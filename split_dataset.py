@@ -6,8 +6,8 @@ import os
 # Parse arguments
 parser = argparse.ArgumentParser(description='Split dataset into training, validation and testing sets')
 parser.add_argument('--dataset_dir', required=True, help='Path to dataset annotations', type=str)
-parser.add_argument('--test_percentage', required=False, help='Percentage of images used for the testing set', type=int, default=0.10)
-parser.add_argument('--val_percentage', required=False, help='Percentage of images used for the validation set', type=int, default=0.10)
+parser.add_argument('--test_percentage', required=False, help='Percentage of images used for the testing set', type=float, default=0.10)
+parser.add_argument('--val_percentage', required=False, help='Percentage of images used for the validation set', type=float, default=0.10)
 parser.add_argument('--seed', required=False, help='Random seed for the split', type=int, default=123)
 parser.add_argument('--verbose', required=False, help='Print information about the split', type=bool, default=False)
 
