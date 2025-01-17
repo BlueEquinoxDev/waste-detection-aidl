@@ -7,6 +7,7 @@ from utilities.get_supercategory_by_id import get_supercategory_by_id
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
+import json
 
 class TacoDataset(Dataset):
     """
@@ -29,7 +30,7 @@ class TacoDataset(Dataset):
     """
 
 
-    def __init__(self, annotations_file: str, img_dir: str, transforms=None, task: TaskType=TaskType.SEGMENTATION, cls_category: ClassificationCategoryType = ClassificationCategoryType.SUPERCATEGORY) -> None:
+    def __init__(self, annotations_file: str, img_dir: str, transforms=None, task: TaskType=TaskType.SEGMENTATION, cls_category: ClassificationCategoryType = ClassificationCategoryType.SUPERCATEGORY, cat_map: dict = None) -> None:
         """ Constructor for the TacoDataset class """
         super().__init__()
 
@@ -37,15 +38,22 @@ class TacoDataset(Dataset):
         assert os.path.isfile(annotations_file), f"File not found: {annotations_file}"
         assert os.path.isdir(img_dir), f"Directory not found: {img_dir}"
         assert task in TaskType, f"Invalid task type: {task}"
+        assert cls_category in ClassificationCategoryType, f"Invalid Classification type: {task}"
 
         self.task = task
         self.cls_category = cls_category
+
+        # In case Custom category map, prepare variables
+        if cat_map!=None and cls_category==ClassificationCategoryType["CUSTOM"]:
+            self.categories_id_2_super_id = self.categories2super(cat_map)
+            self.category_id_2_super_category_label = self.id2supercategory_label(cat_map)
+
         self.coco_data = COCO(annotations_file)
         self.img_dir = img_dir
         self.transforms = transforms
         self.img_ids = list(self.coco_data.imgs.keys())
         self.anns_ids = list(self.coco_data.anns.keys())
-    
+
 
     def __len__(self) -> None:
         """ Returns the length of the dataset """
@@ -90,7 +98,13 @@ class TacoDataset(Dataset):
             borderType=cv2.BORDER_CONSTANT,
             value=(0, 0, 0)  # Black padding
             )
-
+    
+    def categories2super(self, category_map: list) -> list:
+        print(category_map)
+        return [item["super_id"] for item in category_map]
+    
+    def id2supercategory_label(self, category_map: list) -> list:
+        return [item["supercategory"] for item in category_map]
 
     def __getitem__(self, idx) -> None:
         """ 
@@ -165,6 +179,8 @@ class TacoDataset(Dataset):
             if self.cls_category == ClassificationCategoryType.SUPERCATEGORY:
                 category_id = get_supercategory_by_id(category_id)
                 # print(f"super category_id has been obtained: {category_id}")
+            elif self.cls_category == ClassificationCategoryType.CUSTOM:
+                category_id = self.categories_id_2_super_id(category_id)
 
             # Load the image details using Coco API and image id
             img_coco_data = self.coco_data.loadImgs(img_id)[0] # The dict contains id, file_name, height, width, license and paths

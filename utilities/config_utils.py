@@ -15,3 +15,4 @@ class TaskType(Enum):
 class ClassificationCategoryType(Enum):
     CATEGORY = auto()
     SUPERCATEGORY = auto()
+    CUSTOM = auto()
