@@ -4,7 +4,7 @@ import os
 import random
 import torch
 
-from datasets.taco_dataset import TacoDataset
+from dataset_classes.taco_dataset import TacoDataset
 from utilities.config_utils import TaskType
 from torchvision.transforms import v2 as transforms
 from torch.utils.data import DataLoader
@@ -35,6 +35,7 @@ parser.add_argument("--verbose", help="print info during execution", type=bool, 
 
 args = parser.parse_args()
 
+print(os.curdir)
 # Check if the arguments are valid
 assert os.path.exists(args.annotations_dir), "Annotations directory does NOT exist"
 assert os.path.exists(args.data_dir), "Data directory does NOT exist"
@@ -48,15 +49,15 @@ test_annotations_file = os.path.join(args.annotations_dir, "test_annotations.jso
 
 # Create the transforms for training, validation and testing
 # TODO: Compute real mean and std of channels + Add more data augmentation techniques
-data_transforms_train = transforms.Compose([
-    transforms.ToImage(),  # To tensor is deprecated
-    transforms.ToDtype(torch.uint8, scale=True),
-    transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), antialias=True),
-    transforms.RandomRotation(degrees=15),
-    transforms.RandomHorizontalFlip(0.5),
-    transforms.ToDtype(torch.float32, scale=True),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+#data_transforms_train = transforms.Compose([
+    #transforms.ToImage(),  # To tensor is deprecated
+    #transforms.ToDtype(torch.uint8, scale=True),
+    #transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), antialias=True),
+    #transforms.RandomRotation(degrees=15),
+    #transforms.RandomHorizontalFlip(0.5),
+    #transforms.ToDtype(torch.float32, scale=True),
+    #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+#    ])
 
 data_transforms_test = transforms.Compose([
     transforms.ToImage(),  # To tensor is deprecated,
@@ -65,7 +66,7 @@ data_transforms_test = transforms.Compose([
     ])
 
 # Create the datasets for training, validation and testing
-train_dataset = TacoDataset(annotations_file=train_annotations_file, img_dir=args.data_dir, transforms=data_transforms_train, task=TaskType[args.task.upper()])
+train_dataset = TacoDataset(annotations_file=train_annotations_file, img_dir=args.data_dir, task=TaskType[args.task.upper()])
 val_dataset = TacoDataset(annotations_file=val_annotations_file, img_dir=args.data_dir, transforms=data_transforms_test, task=TaskType[args.task.upper()])
 test_dataset = TacoDataset(annotations_file=test_annotations_file, img_dir=args.data_dir, transforms=data_transforms_test, task=TaskType[args.task.upper()])
 
@@ -80,5 +81,5 @@ train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=Tru
 val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
-
+print(train_dataset[91])
 
