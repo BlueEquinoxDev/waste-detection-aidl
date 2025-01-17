@@ -35,7 +35,6 @@ parser.add_argument("--verbose", help="print info during execution", type=bool, 
 
 args = parser.parse_args()
 
-print(os.curdir)
 # Check if the arguments are valid
 assert os.path.exists(args.annotations_dir), "Annotations directory does NOT exist"
 assert os.path.exists(args.data_dir), "Data directory does NOT exist"
@@ -81,5 +80,5 @@ train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=Tru
 val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.n_workers)
 
-print(train_dataset[91])
+
 
