@@ -133,18 +133,30 @@ class TacoDataset(Dataset):
             # Load path of the image using the image file name & Join the image directory path with the image file name
             path = os.path.join(self.img_dir, img_coco_data['file_name'])
             # Load the image using the path
-            sample_img = Image.open(path)
+            original_sample_img = Image.open(path)
             # Make the image a numpy array
-            sample_img = np.array(sample_img)
+            original_sample_img = np.array(original_sample_img)
             
             # Apply transformations to the image if they are provided
             if self.transforms:
-                sample_img = self.transforms(sample_img)
+                sample_img = self.transforms(original_sample_img)
             
             # Load the annotation for the image
             ans_ids = self.coco_data.getAnnIds(imgIds=img_id)
             annotations = self.coco_data.loadAnns(ans_ids)
             masks = [self.coco_data.annToMask(ann) for ann in annotations]
+
+            # Get the category id for each annotation
+            category_ids = [ann['category_id'] for ann in annotations]
+
+            # Map to super category if required
+            if self.cls_category == ClassificationCategoryType.SUPERCATEGORY:
+                category_ids = [get_supercategory_by_id(category_id) for category_id in category_ids]
+                # print(f"super category_id has been obtained: {category_id}")
+            elif self.cls_category == ClassificationCategoryType.CUSTOM:
+                category_ids = [self.categories_id_2_super_id(category_id) for category_id in category_ids]
+            category_ids = np.array(category_ids)
+            
             """
             i = len(masks)-1
             while i >= 0:
@@ -159,7 +171,12 @@ class TacoDataset(Dataset):
                 masks = self.transforms(masks)
             
             # Return the image in numpy array format and the masks in numpy array format
-            return sample_img, masks
+            return {
+                "sample_img": sample_img,
+                "masks": masks,
+                "original_img": original_sample_img,
+                "classes": category_ids,
+            }
         
         # In case of classification task
         elif self.task == TaskType.CLASSIFICATION:
