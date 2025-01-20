@@ -8,6 +8,17 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 import json
+from dataclasses import dataclass
+
+@dataclass
+class SegmentationDataInput:
+    transformed_image: np.ndarray
+    transformed_masks: np.ndarray
+    original_image: np.ndarray
+    original_masks: np.ndarray
+    id: int
+    classes: np.ndarray
+    
 
 class TacoDataset(Dataset):
     """
@@ -61,7 +72,7 @@ class TacoDataset(Dataset):
         if self.task == TaskType.SEGMENTATION:
             return len(self.img_ids)
         elif self.task == TaskType.CLASSIFICATION:
-            return len(self.img_ids)
+            return len(self.anns_ids)
         else:
             raise NotImplementedError("Not a valid task type")
         
@@ -100,11 +111,10 @@ class TacoDataset(Dataset):
             )
     
     def categories2super(self, category_map: list) -> list:
-        print(category_map)
-        return [item["super_id"] for item in category_map]
+        return {item["id"]: item["super_id"] for item in category_map}
     
     def id2supercategory_label(self, category_map: list) -> list:
-        return [item["supercategory"] for item in category_map]
+        return {item["id"]: item["supercategory"] for item in category_map}
 
     def __getitem__(self, idx) -> None:
         """ 
@@ -133,18 +143,15 @@ class TacoDataset(Dataset):
             # Load path of the image using the image file name & Join the image directory path with the image file name
             path = os.path.join(self.img_dir, img_coco_data['file_name'])
             # Load the image using the path
-            original_sample_img = Image.open(path)
+            original_image = Image.open(path)
             # Make the image a numpy array
-            original_sample_img = np.array(original_sample_img)
-            
-            # Apply transformations to the image if they are provided
-            if self.transforms:
-                sample_img = self.transforms(original_sample_img)
+            original_image = np.array(original_image)
             
             # Load the annotation for the image
             ans_ids = self.coco_data.getAnnIds(imgIds=img_id)
             annotations = self.coco_data.loadAnns(ans_ids)
-            masks = [self.coco_data.annToMask(ann) for ann in annotations]
+            original_masks = [self.coco_data.annToMask(ann) for ann in annotations]
+            original_masks = np.array(original_masks)
 
             # Get the category id for each annotation
             category_ids = [ann['category_id'] for ann in annotations]
@@ -154,29 +161,40 @@ class TacoDataset(Dataset):
                 category_ids = [get_supercategory_by_id(category_id) for category_id in category_ids]
                 # print(f"super category_id has been obtained: {category_id}")
             elif self.cls_category == ClassificationCategoryType.CUSTOM:
-                category_ids = [self.categories_id_2_super_id(category_id) for category_id in category_ids]
+                category_ids = [self.categories_id_2_super_id[category_id] for category_id in category_ids]
             category_ids = np.array(category_ids)
-            
-            """
-            i = len(masks)-1
-            while i >= 0:
-                if masks[i].shape != sample_img.shape[:2]:
-                    masks.pop(i)
-                i -= 1
-            """
-            masks = np.array(masks)
 
-            # Apply transformations to the segmentations if they are provided
+            print(f"categories: {category_ids}")
+            segmentation_mask = np.sum([mask*category for mask, category in zip(original_masks, category_ids)], axis=2)
+
+
+            print(f"Printing: {segmentation_mask}")
+            print(f"Printing: {np.unique(segmentation_mask)}")
+
+
+            # Apply transformations to the image if they are provided
             if self.transforms:
-                masks = self.transforms(masks)
+                transformed = self.transforms(
+                    image=original_image,
+                    masks=original_masks
+                )
+
+            # Transpose to channel-first format
+            transformed_image = transformed["image"].transpose(2, 0, 1)
+            transformed_masks = transformed["masks"]
+
+            
             
             # Return the image in numpy array format and the masks in numpy array format
-            return {
-                "sample_img": sample_img,
-                "masks": masks,
-                "original_img": original_sample_img,
-                "classes": category_ids,
-            }
+            return SegmentationDataInput(
+                transformed_image=transformed_image,
+                transformed_masks=transformed_masks,
+                original_image=original_image,
+                original_masks=original_image,
+                id=img_id,
+                classes=category_ids
+            )
+
         
         # In case of classification task
         elif self.task == TaskType.CLASSIFICATION:
@@ -243,6 +261,7 @@ class TacoDataset(Dataset):
         # In case of segmentation task
         else:
             raise TypeError("This should never be reached error in TaskType")
+
 
     
         
