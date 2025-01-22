@@ -19,6 +19,16 @@ dataset_dir = os.path.dirname(args.dataset_path)
 
 print('Note. If for any reason the connection is broken. Just call me again and I will start where I left.')
 
+# FIX annotations issue
+with open(os.path.join(dataset_dir, "annotations.json"), 'r') as f:
+    annotations = json.loads(f.read())
+    ann_ids = []
+    for i, ann in enumerate(annotations["annotations"], start=1):
+        ann["id"]=i
+
+with open(os.path.join(dataset_dir, "annotations.json"), 'w') as f:
+    f.write(json.dumps(annotations))
+
 # Load annotations
 with open(args.dataset_path, 'r') as f:
     annotations = json.loads(f.read())
