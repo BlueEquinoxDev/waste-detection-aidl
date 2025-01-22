@@ -162,6 +162,7 @@ class TacoDataset(Dataset):
             img_coco_data = self.coco_data.loadImgs(img_id)[0] # The dict contains id, file_name, height, width, license and paths
             # Load path of the image using the image file name & Join the image directory path with the image file name
             path = os.path.join(self.img_dir, img_coco_data['file_name'])
+            # print(f"Path: {path} and height: {img_coco_data['height']} and width: {img_coco_data['width']}")
             # Load the image using the path
             sample_img = Image.open(path)
             # plt.imshow(sample_img)
@@ -169,12 +170,16 @@ class TacoDataset(Dataset):
 
             # Generate the mask from the annotation segmentation
             mask = self.coco_data.annToMask(annotation)
+            # plt.imshow(mask)
+            # plt.show()
+            # print(f"Mask size: {mask.shape} and image size is {sample_img.size}")
+
             # Make the image a numpy array to apply the mask
             sample_img = np.array(sample_img)
             # Apply the mask to the image
             sample_img = cv2.bitwise_and(sample_img, sample_img, mask=mask)
-            # plt.imshow(sample_img)
-            # plt.show()
+            plt.imshow(sample_img)
+            plt.show()
 
             # Use bbox to crop the image
             x_min, y_min, width, height = [int(dim) for dim in bbox]
