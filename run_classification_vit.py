@@ -1,7 +1,8 @@
 from transformers import ViTForImageClassification, ViTImageProcessor
 from PIL import Image
 import torch
-from datasets.taco_dataset import TacoDataset, TaskType
+from utilities.config_utils import TaskType
+from datasets.taco_dataset_vit import TacoDatasetViT
 from torch.utils.data import DataLoader
 from transformers import TrainingArguments, Trainer
 from torchvision.transforms import v2 as transforms
@@ -28,13 +29,14 @@ data_transforms_train = transforms.Compose([
 data_transforms_test = transforms.Compose([
     transforms.ToImage(),  # To tensor is deprecated,
     transforms.ToDtype(torch.float32, scale=True),
+    transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), antialias=True),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
 # Load the TACO dataset
-train_dataset = TacoDataset(annotations_file=train_annotations_file, img_dir="data", transforms=data_transforms_train, task=TaskType['CLASSIFICATION'])
-val_dataset = TacoDataset(annotations_file=val_annotations_file, img_dir="data", transforms=data_transforms_test, task=TaskType['CLASSIFICATION'])
-test_dataset = TacoDataset(annotations_file=test_annotations_file, img_dir="data", transforms=data_transforms_test, task=TaskType['CLASSIFICATION'])
+train_dataset = TacoDatasetViT(annotations_file=train_annotations_file, img_dir="data", transforms=data_transforms_train)
+val_dataset = TacoDatasetViT(annotations_file=val_annotations_file, img_dir="data", transforms=data_transforms_test)
+test_dataset = TacoDatasetViT(annotations_file=test_annotations_file, img_dir="data", transforms=data_transforms_test)
 
 print(f"Train dataset length: {len(train_dataset)}")
 print(f"size of train_dataset[0]: {train_dataset[0].__sizeof__}")
@@ -42,16 +44,17 @@ print(f"Validation dataset length: {len(val_dataset)}")
 print(f"Test dataset length: {len(test_dataset)}")  
 
 # TEST IMAGE SIZE Get the first item from the dataset
-sample = train_dataset[0]
+#sample = train_dataset[0]
 
 # TEST IMAGE SIZE Assuming the first element of the tuple is the image tensor
-image_tensor = sample[0]  # Adjust the index based on your dataset's structure
+#image_tensor = sample['pixel_values']  # Adjust the index based on your dataset's structure
+#labels = sample['labels']
 
 # TEST IMAGE SIZE Convert the tensor to a PIL image
-image = transforms.ToPILImage()(image_tensor)
+#image = transforms.ToPILImage()(image_tensor)
 
 # TEST IMAGE SIZE Print the size of the image
-print(f"Image size: {image.size}")
+#print(f"Image size: {image.size}")
 
 # Create data loaders
 # train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
@@ -75,7 +78,7 @@ trainer = Trainer(
     args=training_args,
     train_dataset=train_dataset,
     eval_dataset=val_dataset,
-    tokenizer=feature_extractor,
+    processing_class=feature_extractor,  # Changed from tokenizer to processing_class
 )
 
 # Train the model
