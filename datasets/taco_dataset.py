@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset
 from pycocotools.coco import COCO
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 from utilities.config_utils import TaskType, ClassificationCategoryType
 from utilities.get_supercategory_by_id import get_supercategory_by_id
 import matplotlib.pyplot as plt
@@ -120,6 +120,10 @@ class TacoDataset(Dataset):
             path = os.path.join(self.img_dir, img_coco_data['file_name'])
             # Load the image using the path
             sample_img = Image.open(path)
+
+            # Avoid issues of rotated images by rotating it accoring to EXIF info
+            sample_img = ImageOps.exif_transpose(sample_img)
+
             # Make the image a numpy array
             sample_img = np.array(sample_img)
             
@@ -131,6 +135,9 @@ class TacoDataset(Dataset):
             annotations = self.coco_data.loadAnns(self.coco_data.getAnnIds(imgIds=img_id))
             masks = [self.coco_data.annToMask(ann) for ann in annotations]
             masks = np.array(masks)
+
+            # Change the shape of the masks to be the same of the img (H, W, C) C=the nr of masks
+            masks = np.transpose(masks, axes=(1, 2, 0))
 
             # Apply transformations to the segmentations if they are provided
             if self.transforms:
