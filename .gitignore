@@ -176,3 +176,5 @@ batch*
 test_annotations.json
 train_annotations.json
 validation_annotations.json
+
+.DS_Store

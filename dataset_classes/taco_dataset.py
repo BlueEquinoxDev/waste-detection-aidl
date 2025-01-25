@@ -165,8 +165,9 @@ class TacoDataset(Dataset):
             category_ids = np.array(category_ids)
 
             print(f"categories: {category_ids}")
+            print(f"Origina: {original_masks[0]}")
+            print(category_ids[0])
             segmentation_mask = np.sum([mask*category for mask, category in zip(original_masks, category_ids)], axis=2)
-
 
             print(f"Printing: {segmentation_mask}")
             print(f"Printing: {np.unique(segmentation_mask)}")
