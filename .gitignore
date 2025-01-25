@@ -176,3 +176,4 @@ batch*
 test_annotations.json
 train_annotations.json
 validation_annotations.json
+app/checkpoint/checkpoint.pt
