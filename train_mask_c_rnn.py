@@ -42,19 +42,15 @@ def compute_mean_std():
     exit(0)
 
 
-data_transforms_train = transforms.Compose([        
-    transforms.Resize(size=(800,800)),
+data_transforms_train = transforms.Compose([            
     transforms.RandomHorizontalFlip(0.5),
     transforms.ToDtype(torch.float32, scale=True),
-    transforms.ToPureTensor(),
-    transforms.Normalize(mean=[0.49515063, 0.46845073, 0.4139734], std=[0.11767369, 0.1058425 , 0.11804706])
+    transforms.ToPureTensor()
     ])
 
-data_transforms_validation = transforms.Compose([        
-    transforms.Resize(size=(800,800)),
+data_transforms_validation = transforms.Compose([            
     transforms.ToDtype(torch.float32, scale=True),
-    transforms.ToPureTensor(),
-    transforms.Normalize(mean=[0.49515063, 0.46845073, 0.4139734], std=[0.11767369, 0.1058425 , 0.11804706])
+    transforms.ToPureTensor()
     ])
 
 def collate_fn(batch):
@@ -73,14 +69,14 @@ train_loader=DataLoader(train_taco_dataset,shuffle=True,batch_size=1,collate_fn=
 valiation_loader=DataLoader(validation_taco_dataset,shuffle=True,batch_size=1,collate_fn=collate_fn)
  
 
-model=WasteMaskRCNN(num_classes=61)
+model=WasteMaskRCNN(num_classes=28+1)
 
 model.to(device)
 
 params = [p for p in model.parameters() if p.requires_grad]
 print(f"parameters to optimize: {len(params)}")
 optimizer = torch.optim.SGD(
-    params,
+    model.parameters(),
     lr=0.005,
     momentum=0.9,
     weight_decay=0.0005
@@ -95,7 +91,9 @@ lr_scheduler = torch.optim.lr_scheduler.StepLR(
 
 scaler = torch.cuda.amp.GradScaler()  if device.type == 'cuda' else None
 
-def train_one_epoch():    
+def train_one_epoch():  
+    losses_avg=0
+    len_dataset=len(train_loader)  
     for  batch, data in enumerate(train_loader):
         optimizer.zero_grad()
         images,targets=data    
@@ -106,6 +104,7 @@ def train_one_epoch():
         #with torch.autocast(device_type="cuda"):
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
+        loss_dict_printable = {k: f"{v.item():.2f}" for k, v in loss_dict.items()}
 
         # reduce losses over all GPUs for logging purposes
         #loss_dict_reduced = reduce_dict(loss_dict)       
@@ -126,8 +125,11 @@ def train_one_epoch():
             optimizer.step()
             lr_scheduler.step()
         
-        #print(f"batch: {batch}, loss:{loss_value} losses: {loss_dict_reduced}")
-        print(f"batch: {batch}, loss:{losses.item()}")                
+        #print(f"batch: {batch}, loss:{loss_value} losses: {loss_dict_reduced}")        
+        print(f"[{batch}/{len_dataset}] total loss:loss:{losses.item():.2f} losses: {loss_dict_printable}")     
+        losses_avg+= losses.item()
+        
+    return losses_avg/len_dataset
         
         
 
@@ -147,13 +149,16 @@ def validation_one_epoch():
                 losses = sum(loss for loss in loss_dict.values())
                 
                 #predictions=reduce_dict(predictions[0])
-                print(f"batch: {batch},validation loss:{losses.item()}")  
+                print(f"batch: {batch},validation loss:{losses.item():.2f}")  
 
 
-NUM_EPOCH=2
-for epoch in range(NUM_EPOCH):
-    train_one_epoch()
-    validation_one_epoch()
+NUM_EPOCH=50
+all_loss=[]
+for epoch in range(1,NUM_EPOCH+1):
+    losses_avg=train_one_epoch()
+    #validation_one_epoch()
+    print(f"epoch[{epoch}/{NUM_EPOCH}]: avg. loss: {losses_avg}")
+    all_loss.append(losses_avg)
 
 checkpoint = {
         "model_state_dict":  model.cpu().state_dict(),
@@ -164,3 +169,4 @@ if not os.path.exists(f"{os.getcwd()}/app/checkpoint/"):
     os.makedirs(f"{os.getcwd()}/app/checkpoint/")
     
 torch.save(checkpoint, f"{os.getcwd()}/app/checkpoint/checkpoint.pt")
+print(all_loss)

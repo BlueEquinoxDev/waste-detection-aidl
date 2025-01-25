@@ -6,6 +6,7 @@ from utilities.config_utils import TaskType, ClassificationCategoryType
 from torchvision import tv_tensors
 from torchvision.transforms.v2 import functional as F
 import torch
+import json
 
 class TacoDatasetMaskRCNN(Dataset):
 
@@ -29,8 +30,19 @@ class TacoDatasetMaskRCNN(Dataset):
         
         self.index_to_imageId={i:img_id for i,img_id in enumerate(self.coco_data.imgs.keys())}
         
+           # Load the new JSON with supercategories and their corresponding ids
+        # Load supercategories from JSON
+        with open('data/supercategories.json', 'r') as infile:
+            supercategories_list = json.load(infile)
         
-    
+        # Create mappings from the list of supercategory objects
+        self.idx_to_class = {(item['id']+1): item['supercategory'] 
+                            for item in supercategories_list}
+        self.class_to_idx = {item['supercategory']: (item['id']+1) 
+                            for item in supercategories_list}
+        # Create category mapping for COCO annotations
+        self.category_map = {cat['id']: self.class_to_idx[cat['supercategory']] 
+                        for cat in self.coco_data.loadCats(self.coco_data.getCatIds())}
 
     def __len__(self) -> None:
         return self.len_dataset
@@ -58,7 +70,7 @@ class TacoDatasetMaskRCNN(Dataset):
             bx=ann['bbox']
             bboxs.append([bx[0],bx[1],bx[0]+bx[2],bx[1]+bx[3]])
             areas.append(bx[2]*bx[3])
-            labels.append(ann['category_id'])
+            labels.append(self.category_map[ann['category_id']])
         target = {}
         
         target["boxes"] = tv_tensors.BoundingBoxes(bboxs,
