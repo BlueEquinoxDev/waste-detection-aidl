@@ -1,7 +1,7 @@
 from torch.utils.data import Dataset
 from pycocotools.coco import COCO
 import os
-from PIL import Image
+from PIL import Image, ImageOps
 #from utilities.config_utils import TaskType, ClassificationCategoryType
 #from utilities.get_supercategory_by_id import get_supercategory_by_id
 import matplotlib.pyplot as plt
@@ -32,53 +32,45 @@ class TacoDatasetViT(Dataset):
     """
 
 
-    def __init__(self, annotations_file: str, img_dir: str, transforms=None) -> None:
-        """ Constructor for the TacoDataset class """
+    def __init__(self, annotations_file, img_dir, transforms=None, subset_classes=None):
         super().__init__()
-
-        # Check if the provided paths are valid and if the task type is valid
+        
+        # Check paths
         assert os.path.isfile(annotations_file), f"File not found: {annotations_file}"
         assert os.path.isdir(img_dir), f"Directory not found: {img_dir}"
-
+        
         self.coco_data = COCO(annotations_file)
+        self.subset_classes = subset_classes
+        self.cluster_class_to_idx = {cls_name: idx for idx, cls_name in enumerate(self.subset_classes.keys())}
+        self.idx_to_cluster_class = {idx: cls_name for idx, cls_name in enumerate(self.cluster_class_to_idx.keys())}
+        print(f"Cluster class to idx: {self.cluster_class_to_idx}")
+        print(f"Idx to cluster class: {self.idx_to_cluster_class}")
+        # Create reverse mapping
+        self.reverse_mapping = {
+            original_id: self.cluster_class_to_idx[cls_name]
+            for cls_name, original_ids in self.subset_classes.items()
+            for original_id in original_ids
+        }
+        print(f"Reverse mapping: {self.reverse_mapping}")
+        
+        
+        # Get all annotation IDs
+        all_ann_ids = self.coco_data.getAnnIds()
+        
+        # Filter annotations based on subset classes
+        self.anns_ids = [
+            ann_id for ann_id in all_ann_ids
+            if self.coco_data.loadAnns(ann_id)[0]['category_id'] in self.reverse_mapping
+        ]
+        
+        # Get unique image IDs that have annotations in our subset
+        self.img_ids = list(set(
+            self.coco_data.loadAnns(ann_id)[0]['image_id']
+            for ann_id in self.anns_ids
+        ))
+        
         self.img_dir = img_dir
         self.transforms = transforms
-        self.img_ids = list(self.coco_data.imgs.keys())
-        self.anns_ids = list(self.coco_data.anns.keys())
-
-        # Load the new JSON with supercategories and their corresponding ids
-        # Load supercategories from JSON
-        with open('data/supercategories.json', 'r') as infile:
-            supercategories_list = json.load(infile)
-        
-        # Create mappings from the list of supercategory objects
-        self.idx_to_class = {item['id']: item['supercategory'] 
-                            for item in supercategories_list}
-        self.class_to_idx = {item['supercategory']: item['id'] 
-                            for item in supercategories_list}
-        # Create category mapping for COCO annotations
-        self.category_map = {cat['id']: self.class_to_idx[cat['supercategory']] 
-                        for cat in self.coco_data.loadCats(self.coco_data.getCatIds())}
-        
-        # Get the clustercategory mapping
-        with open('data/clustercategories.json', 'r') as infile:
-            clustercategories_list = json.load(infile)
-        
-        # Mapping from supercategory to cluster category
-        self.supercategory_to_cluster = {}
-
-        for cluster in clustercategories_list:
-            cluster_id = cluster["id"]
-            for supercategory_id in cluster["supercategories"]:
-                self.supercategory_to_cluster[supercategory_id] = cluster_id
-
-        print(f"self.supercategory_to_cluster: {self.supercategory_to_cluster}")
-        
-        # create mappings from the list of cluster categories
-        self.idx_to_cluster_class = {item['id']: item['cluster-category']
-                            for item in clustercategories_list}
-        self.cluster_class_to_idx = {item['cluster-category']: item['id']
-                            for item in clustercategories_list}
 
 
     def __len__(self) -> None:
@@ -141,7 +133,7 @@ class TacoDatasetViT(Dataset):
         ann_id = self.anns_ids[idx]
         annotation = self.coco_data.loadAnns(ann_id)[0]
         bbox = annotation['bbox']  # it could be done using the bounding box instead of the segmentation
-        category_id = self.supercategory_to_cluster[self.category_map[annotation['category_id']]]
+        category_id = self.reverse_mapping[annotation['category_id']]
         img_id = annotation['image_id']
         # print(f"Annotation id: {ann_id}")
         # print(f"Image id: {img_id}")
@@ -153,6 +145,9 @@ class TacoDatasetViT(Dataset):
         # Load the image using the path
         sample_img = Image.open(path)
 
+        # Avoid issues of rotated images by rotating it accoring to EXIF info
+        sample_img = ImageOps.exif_transpose(sample_img)
+
         # Generate the mask from the annotation segmentation
         mask = self.coco_data.annToMask(annotation)
         # print(f"Mask shape: {mask.shape}")
@@ -160,21 +155,6 @@ class TacoDatasetViT(Dataset):
         # Make the image a numpy array to apply the mask
         sample_img = np.array(sample_img)
         # print(f"Sample image shape: {sample_img.shape}")
-
-        ### WORKAROUND ###
-        # if the mask is not the same size as the image, rotate it
-        if mask.shape != sample_img.shape[:2]:
-            # display the image and the mask
-            # plt.figure(figsize=(20, 5))
-            # plt.subplot(1, 2, 1)
-            # plt.imshow(sample_img)
-            # plt.title('Original Image')
-            # plt.subplot(1, 2, 2)
-            # plt.imshow(mask, cmap='gray')
-            # plt.title('Mask')
-            # plt.show()
-            # rotate the mask 270 degrees
-            mask = np.rot90(mask, 3)
 
         # Apply the mask to the image
         cropped_image = cv2.bitwise_and(sample_img, sample_img, mask=mask)

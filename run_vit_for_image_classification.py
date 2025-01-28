@@ -38,10 +38,18 @@ data_transforms_test = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
+subset_classes = {
+    "Bottle": [4, 5, 6],
+    "Carton": [14, 18],  # Cluster IDs 14 and 18
+    "Cup": [20, 21, 22, 23, 24],
+    "Can": [10, 12],
+    "Plastic film": [36]
+}
+
 # Load the TACO dataset
-train_dataset = TacoDatasetViT(annotations_file=train_annotations_file, img_dir="data", transforms=data_transforms_train)
-val_dataset = TacoDatasetViT(annotations_file=val_annotations_file, img_dir="data", transforms=data_transforms_test)
-test_dataset = TacoDatasetViT(annotations_file=test_annotations_file, img_dir="data", transforms=data_transforms_test)
+train_dataset = TacoDatasetViT(annotations_file=train_annotations_file, img_dir="data", transforms=data_transforms_train, subset_classes = subset_classes)
+val_dataset = TacoDatasetViT(annotations_file=val_annotations_file, img_dir="data", transforms=data_transforms_test, subset_classes = subset_classes)
+test_dataset = TacoDatasetViT(annotations_file=test_annotations_file, img_dir="data", transforms=data_transforms_test, subset_classes = subset_classes)
 
 print(f"Number of different labels in the train dataset: {train_dataset.idx_to_cluster_class} length: {len(train_dataset.idx_to_cluster_class)}")
 
@@ -84,13 +92,14 @@ for epoch in range(EPOCHS):
         optimizer.zero_grad()
         
         # Forward pass
-        output, loss = model(x, y)
-        
-        if loss is None: 
-              loss = loss_func(output, y)   
-              optimizer.zero_grad()           
-              loss.backward()                 
-              optimizer.step()
+        outputs = model(x, y)
+        loss = outputs.loss
+
+        # if loss is None: 
+        #     loss = loss_func(output, y)   
+                        
+        loss.backward()                 
+        optimizer.step()
         
         if step % 74 == 0:
             # Get the next batch for testing purposes
@@ -98,7 +107,7 @@ for epoch in range(EPOCHS):
             test_x = test['pixel_values'].to(device)
             test_y = test['labels'].to(device)
 
-            model = model.eval()
+            model.eval()
             # Get output (+ respective class) and compare to target
             test_output, loss = model(test_x, test_y)
             preds = test_output.argmax(1)
@@ -115,3 +124,4 @@ for epoch in range(EPOCHS):
             # Calculate Accuracy
             accuracy = (preds == test_y).sum().item() / TEST_BATCH_SIZE
             print(f"Epoch [{epoch+1}/{EPOCHS}] | Step [{step+1}] | train loss: {loss:.4f} | test accuracy: {accuracy:.2f}")
+            model.train()
