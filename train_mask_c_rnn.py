@@ -20,6 +20,8 @@ torch.backends.cudnn.benchmark = True
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
+device=torch.device("cpu")
+
 def compute_mean_std():
     taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/train_annotations.json",
                                      img_dir="data",
@@ -71,7 +73,6 @@ valiation_loader=DataLoader(validation_taco_dataset,shuffle=True,batch_size=1,co
 
 model=WasteMaskRCNN(num_classes=28+1)
 
-model.to(device)
 
 params = [p for p in model.parameters() if p.requires_grad]
 print(f"parameters to optimize: {len(params)}")
@@ -104,6 +105,10 @@ def train_one_epoch():
         #with torch.autocast(device_type="cuda"):
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
+        losses.backward()
+        optimizer.step()
+        lr_scheduler.step()
+        
         loss_dict_printable = {k: f"{v.item():.2f}" for k, v in loss_dict.items()}
 
         # reduce losses over all GPUs for logging purposes
@@ -112,22 +117,13 @@ def train_one_epoch():
         #loss_value = losses_reduced.item()
         #loss_dict_reduced={key:loss_dict_reduced[key].item() for key in  loss_dict_reduced.keys()}
         
-        if scaler:
-            scaler.scale(losses).backward()
-            scaler.step(optimizer)
-            old_scaler = scaler.get_scale()
-            scaler.update()
-            new_scaler = scaler.get_scale()
-            if new_scaler >= old_scaler:
-                lr_scheduler.step()
-        else:
-            losses.backward()
-            optimizer.step()
-            lr_scheduler.step()
+
+        
         
         #print(f"batch: {batch}, loss:{loss_value} losses: {loss_dict_reduced}")        
         print(f"[{batch}/{len_dataset}] total loss:loss:{losses.item():.2f} losses: {loss_dict_printable}")     
         losses_avg+= losses.item()
+        if(batch+1)%3==0: break
         
     return losses_avg/len_dataset
         
@@ -152,18 +148,29 @@ def validation_one_epoch():
                 print(f"batch: {batch},validation loss:{losses.item():.2f}")  
 
 
-NUM_EPOCH=50
+NUM_EPOCH=1
 all_loss=[]
+
 for epoch in range(1,NUM_EPOCH+1):
     losses_avg=train_one_epoch()
     #validation_one_epoch()
     print(f"epoch[{epoch}/{NUM_EPOCH}]: avg. loss: {losses_avg}")
     all_loss.append(losses_avg)
 
+
+model.eval()
+model.to('cpu')
+
+'''
 checkpoint = {
         "model_state_dict":  model.cpu().state_dict(),
         "optimizer_state_dict":optimizer.state_dict()
 }  
+'''
+checkpoint = {
+        "model_state_dict":  model.cpu().state_dict()
+}  
+
 
 if not os.path.exists(f"{os.getcwd()}/app/checkpoint/"):
     os.makedirs(f"{os.getcwd()}/app/checkpoint/")

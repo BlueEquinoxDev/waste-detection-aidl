@@ -36,4 +36,5 @@ class WasteMaskRCNN(nn.Module):
             hidden_layer,
             num_classes
         )
+        #for p in model.backbone.parameters():p.requires_grad=False
         return model

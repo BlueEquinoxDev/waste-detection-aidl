@@ -41,7 +41,7 @@ class TacoDatasetMaskRCNN(Dataset):
         self.class_to_idx = {item['supercategory']: (item['id']+1) 
                             for item in supercategories_list}
         # Create category mapping for COCO annotations
-        self.category_map = {cat['id']: self.class_to_idx[cat['supercategory']] 
+        self.category_map = {cat['id']+1: self.class_to_idx[cat['supercategory']] 
                         for cat in self.coco_data.loadCats(self.coco_data.getCatIds())}
 
     def __len__(self) -> None:
@@ -70,7 +70,7 @@ class TacoDatasetMaskRCNN(Dataset):
             bx=ann['bbox']
             bboxs.append([bx[0],bx[1],bx[0]+bx[2],bx[1]+bx[3]])
             areas.append(bx[2]*bx[3])
-            labels.append(self.category_map[ann['category_id']])
+            labels.append(self.category_map[ann['category_id']+1])
         target = {}
         
         target["boxes"] = tv_tensors.BoundingBoxes(bboxs,
