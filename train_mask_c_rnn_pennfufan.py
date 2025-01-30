@@ -1,0 +1,147 @@
+#see https://github.com/pytorch/vision/blob/main/references/detection/coco_eval.py#L67 for metrics
+from datasets.pennfudandataset import PennFudanDataset
+from torch.utils.data import DataLoader
+from torchvision.transforms import v2 as transforms
+import torch
+import numpy as np
+import os
+import random
+from pycocotools.cocoeval import COCOeval
+from model.wastemaskrcnn import WasteMaskRCNN
+
+sed=23
+torch.manual_seed(sed)
+random.seed(sed)
+np.random.seed(sed)
+
+#can cause differents algorithms in subsecuents runs 
+# (False reduce performance but use the same algorithm always)
+torch.backends.cudnn.benchmark = True
+
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
+
+device=torch.device("cpu")
+
+def compute_mean_std():
+    taco_dataset=PennFudanDataset("/fent/projectes/estudis/IA_upc/waste-detection-aidl/data/PennFudanPed",
+                                  transforms=transforms.Compose([
+                                      transforms.ToDtype(torch.float32, scale=True),
+                                      transforms.ToPureTensor()]))
+    
+    loader=DataLoader(train_taco_dataset,shuffle=False,batch_size=1)
+    
+    mean=[]
+    std=[]
+    for  batch, data in enumerate(loader):
+        img,target=data
+        img=img/255
+        mean.append(torch.mean(img,dim=[1,2]).detach().cpu().numpy())
+        std.append(torch.std(img,dim=[1,2]).detach().cpu().numpy())
+
+    print(f"mean: ",np.mean(mean,axis=0))
+    print(f"std: ",np.std(mean,axis=0))
+    print('hi')
+    exit(0)
+
+
+data_transforms_train = transforms.Compose([            
+    transforms.RandomHorizontalFlip(0.5),
+    transforms.ToDtype(torch.float32, scale=True),
+    transforms.ToPureTensor()
+    ])
+
+data_transforms_validation = transforms.Compose([            
+    transforms.ToDtype(torch.float32, scale=True),
+    transforms.ToPureTensor()
+    ])
+
+def collate_fn(batch):
+    return tuple(zip(*batch))
+
+train_taco_dataset=PennFudanDataset("/fent/projectes/estudis/IA_upc/waste-detection-aidl/data/PennFudanPed",
+                                    transforms=data_transforms_train)
+
+
+train_loader=DataLoader(train_taco_dataset,shuffle=True,batch_size=1,collate_fn=collate_fn)
+
+
+model=WasteMaskRCNN(num_classes=1+1)
+
+
+params = [p for p in model.parameters() if p.requires_grad]
+print(f"parameters to optimize: {len(params)}")
+optimizer = torch.optim.SGD(
+    model.parameters(),
+    lr=0.005,
+    momentum=0.9,
+    weight_decay=0.0005
+)
+
+# and a learning rate scheduler
+lr_scheduler = torch.optim.lr_scheduler.StepLR(
+    optimizer,
+    step_size=3,
+    gamma=0.1
+)
+
+scaler = torch.cuda.amp.GradScaler()  if device.type == 'cuda' else None
+
+def train_one_epoch():  
+    losses_avg=0
+    len_dataset=len(train_loader)  
+    for  batch, data in enumerate(train_loader):
+        optimizer.zero_grad()
+        images,targets=data    
+        images = list(image.to(device) for image in images)
+        targets = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]
+        #loss_dict = model(images,targets)
+        
+        #with torch.autocast(device_type="cuda"):
+        loss_dict = model(images, targets)
+        losses = sum(loss for loss in loss_dict.values())
+        losses.backward()
+        optimizer.step()
+        lr_scheduler.step()
+        
+        loss_dict_printable = {k: f"{v.item():.2f}" for k, v in loss_dict.items()}
+
+        # reduce losses over all GPUs for logging purposes
+        #loss_dict_reduced = reduce_dict(loss_dict)       
+        #losses_reduced = sum(loss for loss in loss_dict_reduced.values())
+        #loss_value = losses_reduced.item()
+        #loss_dict_reduced={key:loss_dict_reduced[key].item() for key in  loss_dict_reduced.keys()}
+        
+
+        
+        
+        #print(f"batch: {batch}, loss:{loss_value} losses: {loss_dict_reduced}")        
+        print(f"[{batch}/{len_dataset}] total loss:loss:{losses.item():.2f} losses: {loss_dict_printable}")     
+        losses_avg+= losses.item()
+        if(batch+1)%10==0: break
+        
+    return losses_avg/len_dataset
+        
+        
+NUM_EPOCH=1
+
+all_loss=[]
+for epoch in range(1,NUM_EPOCH+1):
+    losses_avg=train_one_epoch()
+    #validation_one_epoch()
+    print(f"epoch[{epoch}/{NUM_EPOCH}]: avg. loss: {losses_avg}")
+    all_loss.append(losses_avg)
+
+
+model.eval()
+model.to('cpu')
+
+
+image,target=train_taco_dataset[56]
+
+image=image.to(device)
+
+model.eval()
+with torch.no_grad():
+    detections = model([image], targets=None)    
+
+print(detections)
