@@ -2,22 +2,23 @@ from transformers import ViTForImageClassification, ViTImageProcessor
 from PIL import Image
 import torch
 from utilities.config_utils import TaskType
-from datasets.taco_dataset_vit import TacoDatasetViT
-from torch.utils.data import DataLoader
+from custom_datasets.taco_dataset_vit import TacoDatasetViT
+from custom_datasets.viola77_dataset import Viola77Dataset
+# from torch.utils.data import DataLoader
 from transformers import TrainingArguments, Trainer
 from torchvision.transforms import v2 as transforms
 import os
-from sklearn.metrics import accuracy_score, classification_report
+from datasets import load_dataset
+from utilities.compute_metrics import create_compute_metrics
 import numpy as np
+
+# Choose dataset
+DATASET = "VIOLA77" # "TACO" or "VIOLA77"
 
 # Load the feature extractor and model
 feature_extractor = ViTImageProcessor.from_pretrained('google/vit-base-patch16-224')
-model = ViTForImageClassification.from_pretrained('google/vit-base-patch16-224')
 
-train_annotations_file = os.path.join("data", "train_annotations.json")
-val_annotations_file = os.path.join("data", "validation_annotations.json")
-test_annotations_file = os.path.join("data", "test_annotations.json")
-
+# Define data transforms
 data_transforms_train = transforms.Compose([
     transforms.ToImage(),  # To tensor is deprecated
     transforms.ToDtype(torch.uint8, scale=True),
@@ -35,41 +36,60 @@ data_transforms_test = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-subset_classes = {
-    "Bottle": [4, 5, 6],
-   # "Carton": [14, 18],  # Cluster IDs 14 and 18
-    "Cup": [20, 21, 22, 23, 24],
-    "Can": [10, 12],
-    "Plastic film": [36]
-}
 
-# Load the TACO dataset
-train_dataset = TacoDatasetViT(annotations_file=train_annotations_file, img_dir="data", transforms=data_transforms_train, subset_classes = subset_classes)
-val_dataset = TacoDatasetViT(annotations_file=val_annotations_file, img_dir="data", transforms=data_transforms_test, subset_classes = subset_classes)
-test_dataset = TacoDatasetViT(annotations_file=test_annotations_file, img_dir="data", transforms=data_transforms_test, subset_classes = subset_classes)
+if DATASET == "TACO":
 
-print(f"Train dataset length: {len(train_dataset)}")
-print(f"size of train_dataset[0]: {train_dataset[0].__sizeof__}")
-print(f"Validation dataset length: {len(val_dataset)}")
-print(f"Test dataset length: {len(test_dataset)}")  
+    train_annotations_file = os.path.join("data", "train_annotations.json")
+    val_annotations_file = os.path.join("data", "validation_annotations.json")
+    test_annotations_file = os.path.join("data", "test_annotations.json")
 
-# TEST IMAGE SIZE Get the first item from the dataset
-#sample = train_dataset[0]
+    subset_classes = {
+        "Bottle": [4, 5, 6],
+    # "Carton": [14, 18],  # Cluster IDs 14 and 18
+        "Cup": [20, 21, 22, 23, 24],
+        "Can": [10, 12],
+        "Plastic film": [36]
+    }
 
-# TEST IMAGE SIZE Assuming the first element of the tuple is the image tensor
-#image_tensor = sample['pixel_values']  # Adjust the index based on your dataset's structure
-#labels = sample['labels']
+    # Load the TACO dataset
+    train_dataset = TacoDatasetViT(annotations_file=train_annotations_file, img_dir="data", transforms=data_transforms_train, subset_classes = subset_classes)
+    val_dataset = TacoDatasetViT(annotations_file=val_annotations_file, img_dir="data", transforms=data_transforms_test, subset_classes = subset_classes)
+    test_dataset = TacoDatasetViT(annotations_file=test_annotations_file, img_dir="data", transforms=data_transforms_test, subset_classes = subset_classes)
 
-# TEST IMAGE SIZE Convert the tensor to a PIL image
-#image = transforms.ToPILImage()(image_tensor)
+elif DATASET == "VIOLA77":
+    # Load the dataset
+    dataset = load_dataset("viola77data/recycling-dataset", split="train")
+    print(dataset)
 
-# TEST IMAGE SIZE Print the size of the image
-#print(f"Image size: {image.size}")
+    # Split dataset into training, validation, and test sets
+    train_test = dataset.train_test_split(test_size=0.2)
+    val_test = train_test["test"].train_test_split(test_size=0.5)
 
-# Create data loaders
-# train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-# val_loader = DataLoader(val_dataset, batch_size=8)
-# test_loader = DataLoader(test_dataset, batch_size=8)
+    train_dataset = train_test["train"]
+    val_dataset = val_test["train"]
+    test_dataset = val_test["test"]
+
+    # Create datasets with transforms
+    train_dataset = Viola77Dataset(train_dataset, transform=data_transforms_train)
+    val_dataset = Viola77Dataset(val_dataset, transform=data_transforms_test)
+    test_dataset = Viola77Dataset(test_dataset, transform=data_transforms_test)
+
+# Get number of classes and label names from dataset
+num_classes = len(train_dataset.idx_to_cluster_class)
+label_names = list(train_dataset.idx_to_cluster_class.values())
+print(f"Number of classes: {num_classes} | Label names: {label_names}")
+
+# Initialize model with number of labels
+model = ViTForImageClassification.from_pretrained(
+    'google/vit-base-patch16-224',
+    num_labels=num_classes,
+    id2label=train_dataset.idx_to_cluster_class,
+    label2id=train_dataset.cluster_class_to_idx,
+    ignore_mismatched_sizes=True
+)
+
+# Create compute_metrics function with label names
+metrics_function = create_compute_metrics(label_names)
 
 # Define training arguments
 training_args = TrainingArguments(
@@ -82,42 +102,13 @@ training_args = TrainingArguments(
     logging_dir='./logs',
 )
 
-def compute_metrics(eval_pred):
-    """Compute metrics for classification task"""
-    predictions, labels = eval_pred
-    predictions = np.argmax(predictions, axis=1)
-    
-    # Overall accuracy
-    accuracy = accuracy_score(labels, predictions)
-    
-    # Detailed classification report
-    report = classification_report(
-        labels, 
-        predictions, 
-        target_names=list(train_dataset.idx_to_cluster_class.values()),
-        output_dict=True
-    )
-    
-    metrics = {
-        'accuracy': accuracy,
-    }
-    
-    # Add per-class metrics
-    for class_name, class_metrics in report.items():
-        if isinstance(class_metrics, dict):
-            metrics[f'{class_name}_precision'] = class_metrics['precision']
-            metrics[f'{class_name}_recall'] = class_metrics['recall']
-            metrics[f'{class_name}_f1'] = class_metrics['f1-score']
-    
-    return metrics
-
 # Define the Trainer
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
     eval_dataset=val_dataset,
-    compute_metrics=compute_metrics,
+    compute_metrics=metrics_function,
     processing_class=feature_extractor,  # Changed from tokenizer to processing_class
 )
 
