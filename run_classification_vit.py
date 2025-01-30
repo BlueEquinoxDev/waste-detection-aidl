@@ -91,29 +91,6 @@ model = ViTForImageClassification.from_pretrained(
 # Create compute_metrics function with label names
 metrics_function = create_compute_metrics(label_names)
 
-print(f"Train dataset length: {len(train_dataset)}")
-print(f"size of train_dataset[0]: {train_dataset[0].__sizeof__}")
-print(f"Validation dataset length: {len(val_dataset)}")
-print(f"Test dataset length: {len(test_dataset)}")  
-
-# TEST IMAGE SIZE Get the first item from the dataset
-#sample = train_dataset[0]
-
-# TEST IMAGE SIZE Assuming the first element of the tuple is the image tensor
-#image_tensor = sample['pixel_values']  # Adjust the index based on your dataset's structure
-#labels = sample['labels']
-
-# TEST IMAGE SIZE Convert the tensor to a PIL image
-#image = transforms.ToPILImage()(image_tensor)
-
-# TEST IMAGE SIZE Print the size of the image
-#print(f"Image size: {image.size}")
-
-# Create data loaders
-# train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-# val_loader = DataLoader(val_dataset, batch_size=8)
-# test_loader = DataLoader(test_dataset, batch_size=8)
-
 # Define training arguments
 training_args = TrainingArguments(
     output_dir='./results',
