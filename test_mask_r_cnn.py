@@ -39,7 +39,7 @@ checkpoint_path = "app/checkpoint/checkpoint.pt"
 checkpoint = torch.load(checkpoint_path)
 
 
-from torchvision.models.detection.backbone_utils import resnet_fpn_backbone 
+#from torchvision.models.detection.backbone_utils import resnet_fpn_backbone 
 #backbone = resnet_fpn_backbone("resnet50", pretrained=True)
 model = WasteMaskRCNN(num_classes=29)   
 
