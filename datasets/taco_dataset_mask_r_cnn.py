@@ -7,6 +7,7 @@ from torchvision import tv_tensors
 from torchvision.transforms.v2 import functional as F
 import torch
 import json
+from PIL import ImageOps
 
 class TacoDatasetMaskRCNN(Dataset):
 
@@ -57,7 +58,9 @@ class TacoDatasetMaskRCNN(Dataset):
         
         annotations = self.coco_data.imgToAnns[img_id]
         
+        
         sample_img = Image.open(path)
+        sample_img = ImageOps.exif_transpose(sample_img)
         
         sample_img = tv_tensors.Image(sample_img)
         

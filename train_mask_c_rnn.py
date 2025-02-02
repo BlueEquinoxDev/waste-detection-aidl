@@ -20,7 +20,7 @@ torch.backends.cudnn.benchmark = True
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
 
-device=torch.device("cpu")
+#device=torch.device("cpu")
 
 def compute_mean_std():
     taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/train_annotations.json",
@@ -47,12 +47,14 @@ def compute_mean_std():
 data_transforms_train = transforms.Compose([            
     transforms.RandomHorizontalFlip(0.5),
     transforms.ToDtype(torch.float32, scale=True),
-    transforms.ToPureTensor()
+    transforms.ToPureTensor(),
+    transforms.Normalize(mean = [0.485, 0.456, 0.406],std = [0.229, 0.224, 0.225])
     ])
 
 data_transforms_validation = transforms.Compose([            
     transforms.ToDtype(torch.float32, scale=True),
-    transforms.ToPureTensor()
+    transforms.ToPureTensor(),
+    transforms.Normalize(mean = [0.485, 0.456, 0.406],std = [0.229, 0.224, 0.225])
     ])
 
 def collate_fn(batch):
@@ -72,6 +74,7 @@ valiation_loader=DataLoader(validation_taco_dataset,shuffle=True,batch_size=1,co
  
 
 model=WasteMaskRCNN(num_classes=28+1)
+model.to(device)
 
 
 params = [p for p in model.parameters() if p.requires_grad]
@@ -121,34 +124,30 @@ def train_one_epoch():
         
         
         #print(f"batch: {batch}, loss:{loss_value} losses: {loss_dict_reduced}")        
-        print(f"[{batch}/{len_dataset}] total loss:loss:{losses.item():.2f} losses: {loss_dict_printable}")     
+        print(f"[{batch}/{len_dataset}] total loss: {losses.item():.2f} losses: {loss_dict_printable}")     
         losses_avg+= losses.item()
-        if(batch+1)%3==0: break
+        if(batch+1)%10==0: validation_one_epoch()
         
     return losses_avg/len_dataset
         
         
 
 def validation_one_epoch():      
-    #device = torch.device("cpu")
-    #model.to(device)    
-    #model.eval()    
-    for  batch, data in enumerate(valiation_loader):        
+    for  batch, data in enumerate(valiation_loader):
         images,targets=data            
         images=list(image.to(device) for image in images)   
         targets = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]             
         with torch.no_grad():
-            with torch.autocast(device_type="cuda"):
-                #if torch.cuda.is_available():
-                    #torch.cuda.synchronize()
-                loss_dict = model(images, targets)      
-                losses = sum(loss for loss in loss_dict.values())
-                
-                #predictions=reduce_dict(predictions[0])
-                print(f"batch: {batch},validation loss:{losses.item():.2f}")  
+            loss_dict = model(images, targets)
+            losses = sum(loss for loss in loss_dict.values())
+            predicts=model(images,None)                
+            #predictions=reduce_dict(predictions[0])
+            print(f"batch: {batch},validation loss:{losses.item():.2f}")  
+            print(f"predicts: {predicts}")        
+        model.train()
+        break
 
-
-NUM_EPOCH=1
+NUM_EPOCH=10
 all_loss=[]
 
 for epoch in range(1,NUM_EPOCH+1):
@@ -161,14 +160,10 @@ for epoch in range(1,NUM_EPOCH+1):
 model.eval()
 model.to('cpu')
 
-'''
+
 checkpoint = {
         "model_state_dict":  model.cpu().state_dict(),
         "optimizer_state_dict":optimizer.state_dict()
-}  
-'''
-checkpoint = {
-        "model_state_dict":  model.cpu().state_dict()
 }  
 
 
@@ -177,3 +172,13 @@ if not os.path.exists(f"{os.getcwd()}/app/checkpoint/"):
     
 torch.save(checkpoint, f"{os.getcwd()}/app/checkpoint/checkpoint.pt")
 print(all_loss)
+
+'''
+box_detections_per_img=512 i hidden_layer = 1024
+
+
+
+He vist que al codi que tenia encara hi era el problema de les imatges rotades. Ja l'he arreglat; el Ferran ja el tenia arreglat :)
+
+He vist que el codi del train que tinc sí que funciona: cada 10 iteracions faig un eval d'una imatge i prediu algua cosa, abans sempre estaven empty. Per fer-ho anar he canviat dos hiperparàmtres de la mask r-cnn: box_detections_per_img=512 i  box_detections_per_img=512 i hidden_layer = 1024. Penso ara que el problema és que s'ha d'ajustar el model a les imatges de TACO que són molt grans. Haurem d'estdiar tots els hiperparàmetres
+'''
