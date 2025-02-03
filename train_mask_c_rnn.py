@@ -1,5 +1,5 @@
 #see https://github.com/pytorch/vision/blob/main/references/detection/coco_eval.py#L67 for metrics
-from datasets.taco_dataset_mask_r_cnn import TacoDatasetMaskRCNN
+from custom_datasets.taco_dataset_mask_r_cnn import TacoDatasetMaskRCNN
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2 as transforms
 import torch
@@ -22,7 +22,7 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mp
 
 def compute_mean_std():
     taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/train_annotations.json",
-                                     img_dir="data",
+                                     img_dir="data/images",
                                      transforms=transforms.Compose([
                                          transforms.ToDtype(torch.float32, scale=True),
                                          transforms.ToPureTensor()]))
@@ -57,11 +57,11 @@ def collate_fn(batch):
     return tuple(zip(*batch))
 
 train_taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/train_annotations.json",
-                                       img_dir="data",
+                                       img_dir="./data/images",
                                        transforms=data_transforms_train)
 
 validation_taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/validation_annotations.json",
-                                            img_dir="data",
+                                            img_dir="./data/images",
                                             transforms=data_transforms_validation)
 
 
