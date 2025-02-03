@@ -177,4 +177,4 @@ test_annotations.json
 train_annotations.json
 validation_annotations.json
 app/checkpoint/checkpoint.pt
-.DS_Store
+app/checkpoint/checkpoint*.pt

@@ -47,32 +47,29 @@ python split_dataset.py --dataset_dir ./data [--test_percentage 0.1] [--val_perc
 * Use ``--seed`` if you want to have a different random output. Default 123.
 * Use ``--verbose`` if you want to have printed text on the console during execution.
 
-### Dataset Class
+### Dataset Classes
 
-The TacoDataset class in ``datasets/taco_dataset.py`` has the functionality to load the Taco Dataset in for both, Segmentation and Classification tasks.
+#### Instance Segmentation - Mask R-CNN
+The Taco Dataset for mask R-CNN class in ``custom_datasets/taco_dataset_mask_r_cnn_update.py`` has the functionality to load the Taco Dataset in for Instance Segmentation.
 
-To create a class instance:
-```
-train_dataset = TacoDataset(annotations_file='data/train_annotations.json', img_dir='data', [transforms=transforms], [task=TaskType.SEGMENTATION])
-```
-* ``annotations_file``: Path to the annotations file.
-* ``img_dir``: Path to the image directory.
-* ``transforms``: (Optional). List of transformations to apply to the images.
-* ``task``: (Optional). Task type (SEGMENTATION or CLASSIFICATION).
+#### Image Classification - ViT for Viola
+The Viola77 dataset for Image classification in ``custom_datasets/viola77_dataset.py`` has the functionality to load the Viola77 Dataset in for Image Classification.
 
-##### Returns in case of SEGMENTATION Task:
-- ``sample_img``: image numpy array
-- ``masks``: numpy array with masks for each object in the image
-
-##### Returns in case of CLASSIFICATION Task:
-- ``sample_img``: image numpy array
-- ``category_id``: category id
+#### Image Classification - ViT for Taco + Viola
+The Viola77 dataset for Image classification in ``custom_datasets/viola77_dataset.py`` has the functionality to load the Viola77 Dataset in for Image Classification.
 
 #### Hint
 If when running ``datasets/taco_dataset.py`` you get the following error ``ModuleNotFoundError: No module named 'utilities'`` this can be solved by adding the project directory to the PYTHONPATH with ``export PYTHONPATH="/path/to/project:$PYTHONPATH"``
 
-### train.py
+### Training
 
+#### Training ViT in Viola Dataset
+Run ``python run_classification_vit.py``
 
+#### Training ViT in Viola + Taco Dataset
+Run ``python run_classification_vit_viola_taco.py``
+
+#### Training Mask R-CNN in Taco Dataset
+Run ``python run_mask_r_cnn_update.py``
 
 
