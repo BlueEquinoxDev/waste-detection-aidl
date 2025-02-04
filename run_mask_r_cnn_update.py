@@ -314,17 +314,17 @@ for box, score, label, mask in zip(boxes, scores, labels, masks):
         im_copy = Image.composite(full_color, im_copy, mask_im)
 
 # Get COCO labels
-coco_labels = [v for k, v in idx2class.items()]
-
+named_labels = [v for k, v in idx2class.items()]
+"""
 with open("labels.txt", "r") as f:
     for line in f.readlines():
         coco_labels.append(line.replace("\n", ""))
-
+"""
 draw = ImageDraw.Draw(im_copy)
 for box, score, label, mask in zip(boxes, scores, labels, masks):
     if score > scores_threshold:
         coords = box.cpu().tolist()
         draw.rectangle(coords, width=1, outline=(0, 255, 0))
-        text = f"{coco_labels[label.item()]} {score*100:.2f}%"
+        text = f"{named_labels[label]} {score*100:.2f}%"
         draw.text([coords[0], coords[1]-20], text, fill=(0, 255, 0), font_size=20)
 im_copy.show()
