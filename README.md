@@ -74,5 +74,13 @@ If when running ``datasets/taco_dataset.py`` you get the following error ``Modul
 ### train.py
 
 
+## Docker
+
+Build the image with:
+```docker build -t waste-detection-app .```
+
+Run specific Python file:
+```docker run --rm waste-detection-app <FILE_NAME.py>```
+
 
 
