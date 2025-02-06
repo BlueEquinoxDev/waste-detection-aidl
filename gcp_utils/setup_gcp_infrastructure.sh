@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Step 1: Source the config file
-if [ -f "config/config.env" ]; then
-  source config/config.env
+if [ -f "gcp_utils/config/config.env" ]; then
+  source gcp_utils/config/config.env
 else
   echo "Configuration file 'config.env' not found!"
   exit 1
@@ -32,15 +32,20 @@ gcloud compute firewall-rules create allow-tcp-5000 \
   --source-ranges=0.0.0.0/0 \
   --target-tags=http-server
 
+# Get script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+echo "Script directory: $SCRIPT_DIR"
+
 # Create the VM instance
 gcloud compute instances create "$VM_NAME" \
   --zone="$LOCATION"-a \
-  --machine-type=e2-micro \
+  --machine-type="$VM_MACHINE_TYPE" \
   --image-family=debian-11 \
   --image-project=debian-cloud \
-  --boot-disk-size=10GB \
+  --boot-disk-size="$VM_BOOT_DISK_SIZE" \
   --tags=http-server,https-server \
-  --metadata-from-file startup-script=startup-script.sh
+  --service-account="my-vm-service-account@$PROJECT_ID.iam.gserviceaccount.com" \
+  --metadata-from-file startup-script="$SCRIPT_DIR/startup_script.sh"
 
 # Echo the public IP address of the VM
 VM_PUBLIC_IP=$(gcloud compute instances describe "$VM_NAME" --zone="$LOCATION"-a --format="get(networkInterfaces[0].accessConfigs[0].natIP)")

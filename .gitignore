@@ -179,3 +179,4 @@ validation_annotations.json
 app/checkpoint/checkpoint.pt
 app/checkpoint/checkpoint*.pt
 results/
+gcp_utils/config/config.env

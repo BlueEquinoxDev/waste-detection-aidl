@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Step 1: Source the config file
-if [ -f "config/config.env" ]; then
-  source config/config.env
+if [ -f "gcp_utils/config/config.env" ]; then
+  source gcp_utils/config/config.env
 else
   echo "Configuration file 'config.env' not found!"
   exit 1
@@ -13,12 +13,12 @@ fi
 echo "Cleaning up..."
 
 # Delete the firewall rule
-if gcloud compute firewall-rules delete allow-tcp-5000 --quiet; then
-    echo "Firewall rule allow-tcp-5000 deleted successfully."
-else
-    echo "Error: Failed to delete the firewall rule allow-tcp-5000." >&2
-    exit 1
-fi
+# if gcloud compute firewall-rules delete allow-tcp-5000 --quiet; then
+#     echo "Firewall rule allow-tcp-5000 deleted successfully."
+# else
+#     echo "Error: Failed to delete the firewall rule allow-tcp-5000." >&2
+#     exit 1
+# fi
 
 # Delete the VM instance
 if gcloud compute instances delete "$VM_NAME" --zone="${LOCATION}-a" --quiet; then
