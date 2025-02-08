@@ -280,7 +280,7 @@ for epoch in range(1,NUM_EPOCH+1):
     print("The attributes of now() are :")
     filename = f"{current_time.year}_{current_time.month}_{current_time.day}_{current_time.hour}_{current_time.minute}"
 
-    torch.save(checkpoint, f"{os.getcwd()}/app/checkpoint/checkpoint_epoch_{epoch}_{filename}.pt")
+    torch.save(checkpoint, f"{os.getcwd()}/app/checkpoint/checkpoint_epoch_{str(epoch).zfill(3)}_{filename}.pt")
 print(all_loss)
 
 # Test the result model with one image ========================================================

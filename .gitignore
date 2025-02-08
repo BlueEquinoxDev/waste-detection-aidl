@@ -178,3 +178,4 @@ train_annotations.json
 validation_annotations.json
 app/checkpoint/checkpoint.pt
 app/checkpoint/checkpoint*.pt
+data/Fish_Dataset/*

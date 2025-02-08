@@ -233,8 +233,9 @@ class TacoViolaDatasetViT(Dataset):
         # plt.title('Transformed Image')
         # plt.show()
 
-        print(f"TACO IMAGE ******: {type(transformed_img)}")
-        print(f"TACO IMAGE ******: {transformed_img.size()}")
+        # print(f"TACO IMAGE ******: {type(transformed_img)}")
+        # print(f"TACO IMAGE ******: {transformed_img.size()}")
+        
 
         return {
             'pixel_values': transformed_img,
