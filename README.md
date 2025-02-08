@@ -73,3 +73,13 @@ Run ``python run_classification_vit_viola_taco.py``
 Run ``python run_mask_r_cnn_update.py``
 
 
+## Docker
+
+Build the image with:
+```docker build -t waste-detection-app .```
+
+Run specific Python file:
+```docker run --rm waste-detection-app <FILE_NAME.py>```
+
+
+
