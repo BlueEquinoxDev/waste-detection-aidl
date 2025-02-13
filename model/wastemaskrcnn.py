@@ -21,8 +21,9 @@ class WasteMaskRCNN(nn.Module):
         return self.model(inputs,targets)        
     def __get_model_instance_segmentation__(self,num_classes):
         # load an instance segmentation model pre-trained on COCO
-        model = torchvision.models.detection.maskrcnn_resnet50_fpn_v2(pretrained=True,
-                                                                      box_detections_per_img=512)
+        model = torchvision.models.detection.maskrcnn_resnet50_fpn_v2(weights=torchvision.models.detection.MaskRCNN_ResNet50_FPN_V2_Weights.DEFAULT,
+                                                                      box_detections_per_img=512,
+                                                                      trainable_backbone_layers=5)
         # get number of input features for the classifier
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         # replace the pre-trained head with a new one
