@@ -11,11 +11,11 @@ class Viola77Dataset(Dataset):
 
         # Create a dictionary to map the class names to indices
         self.cluster_class_to_idx = { cls_name: idx for idx, cls_name in enumerate(self.classes) }
-        print(f"Cluster class to idx: {self.cluster_class_to_idx}")
+        # print(f"Cluster class to idx: {self.cluster_class_to_idx}")
 
         # Reverse mapping
         self.idx_to_cluster_class = {idx: cls_name for idx, cls_name in enumerate(self.cluster_class_to_idx.keys())}
-        print(f"Idx to cluster class: {self.idx_to_cluster_class}")
+        # print(f"Idx to cluster class: {self.idx_to_cluster_class}")
 
     def __len__(self):
         return len(self.dataset)
