@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy the requirements file and install dependencies
-COPY requirements_TACO.txt .
-RUN pip install --upgrade pip && pip install -r requirements_TACO.txt
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 # Copy the rest of the application code
 COPY . .

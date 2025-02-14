@@ -32,7 +32,7 @@ class TacoDatasetMaskRCNN(Dataset):
         
            # Load the new JSON with supercategories and their corresponding ids
         # Load supercategories from JSON
-        with open('data/supercategories.json', 'r') as infile:
+        with open('data/taco28_categories.json', 'r') as infile:
             supercategories_list = json.load(infile)
         
         # Create mappings from the list of supercategory objects

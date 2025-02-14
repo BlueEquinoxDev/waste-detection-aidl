@@ -38,11 +38,11 @@ echo "Script directory: $SCRIPT_DIR"
 
 # Create the VM instance
 gcloud compute instances create "$VM_NAME" \
-  --zone="$LOCATION"-a \
-  --machine-type="$VM_MACHINE_TYPE" \
+  --zone="$LOCATION"-b \
+  --machine-type=e2-micro \
   --image-family=debian-11 \
   --image-project=debian-cloud \
-  --boot-disk-size="$VM_BOOT_DISK_SIZE" \
+  --boot-disk-size=30GB \
   --tags=http-server,https-server \
   --service-account="my-vm-service-account@$PROJECT_ID.iam.gserviceaccount.com" \
   --metadata-from-file startup-script="$SCRIPT_DIR/startup_script.sh"

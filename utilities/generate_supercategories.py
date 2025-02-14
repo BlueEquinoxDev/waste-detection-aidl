@@ -20,7 +20,7 @@ for category in data["categories"]:
 supercategories_data = [{"supercategory": name, "id": id} for name, id in supercategories.items()]
 
 # Create the new JSON document
-with open("data/supercategories.json", "w") as outfile:
+with open("data/taco28_categories.json", "w") as outfile:
     json.dump(supercategories_data, outfile, indent=4)
 
-print("data/supercategories.json file created successfully!")
+print("data/taco28_categories.json file created successfully!")

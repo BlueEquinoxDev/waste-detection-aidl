@@ -1,0 +1,27 @@
+[
+    {
+        "cluster-category": "Plastic",
+        "id": 0,
+        "supercategories": [4, 2, 3, 11, 12, 15, 16, 17, 18, 23, 24, 25]
+    },
+    {
+        "cluster-category": "Metal",
+        "id": 1,
+        "supercategories": [0, 6, 19, 21, 1]
+    },
+    {
+        "cluster-category": "Glass",
+        "id": 2,
+        "supercategories": [5, 10]
+    },
+    {
+        "cluster-category": "Paper/Cardboard",
+        "id": 3,
+        "supercategories": [7, 13, 14, 8]
+    },
+    {
+        "cluster-category": "Organic & Miscellaneous Waste",
+        "id": 4,
+        "supercategories": [9, 20, 22, 27, 26]
+    }
+]

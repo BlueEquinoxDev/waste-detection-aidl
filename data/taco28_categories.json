@@ -1,0 +1,114 @@
+[
+    {
+        "supercategory": "Aluminium foil",
+        "id": 0
+    },
+    {
+        "supercategory": "Battery",
+        "id": 1
+    },
+    {
+        "supercategory": "Blister pack",
+        "id": 2
+    },
+    {
+        "supercategory": "Bottle",
+        "id": 3
+    },
+    {
+        "supercategory": "Bottle cap",
+        "id": 4
+    },
+    {
+        "supercategory": "Broken glass",
+        "id": 5
+    },
+    {
+        "supercategory": "Can",
+        "id": 6
+    },
+    {
+        "supercategory": "Carton",
+        "id": 7
+    },
+    {
+        "supercategory": "Cup",
+        "id": 8
+    },
+    {
+        "supercategory": "Food waste",
+        "id": 9
+    },
+    {
+        "supercategory": "Glass jar",
+        "id": 10
+    },
+    {
+        "supercategory": "Lid",
+        "id": 11
+    },
+    {
+        "supercategory": "Other plastic",
+        "id": 12
+    },
+    {
+        "supercategory": "Paper",
+        "id": 13
+    },
+    {
+        "supercategory": "Paper bag",
+        "id": 14
+    },
+    {
+        "supercategory": "Plastic bag & wrapper",
+        "id": 15
+    },
+    {
+        "supercategory": "Plastic container",
+        "id": 16
+    },
+    {
+        "supercategory": "Plastic glooves",
+        "id": 17
+    },
+    {
+        "supercategory": "Plastic utensils",
+        "id": 18
+    },
+    {
+        "supercategory": "Pop tab",
+        "id": 19
+    },
+    {
+        "supercategory": "Rope & strings",
+        "id": 20
+    },
+    {
+        "supercategory": "Scrap metal",
+        "id": 21
+    },
+    {
+        "supercategory": "Shoe",
+        "id": 22
+    },
+    {
+        "supercategory": "Squeezable tube",
+        "id": 23
+    },
+    {
+        "supercategory": "Straw",
+        "id": 24
+    },
+    {
+        "supercategory": "Styrofoam piece",
+        "id": 25
+    },
+    {
+        "supercategory": "Unlabeled litter",
+        "id": 26
+    },
+    {
+        "supercategory": "Cigarette",
+        "id": 27
+    }
+]
