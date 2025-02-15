@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-def create_compute_metrics(label_names):
-    def compute_metrics(eval_pred):
+def create_compute_metrics(label_names, logdir):
+    def compute_metrics(eval_pred, logdir = logdir):
         """Compute metrics for classification task"""
         predictions, labels = eval_pred
         predictions = np.argmax(predictions, axis=1)
@@ -40,8 +40,8 @@ def create_compute_metrics(label_names):
         plt.xlabel('Predicted Label')
         
         # Save plot
-        os.makedirs('results/plots', exist_ok=True)
-        plt.savefig('results/plots/confusion_matrix.png')
+        os.makedirs(f'{logdir}/plots', exist_ok=True)
+        plt.savefig(f'{logdir}/plots/confusion_matrix.png')
         plt.close()
         
         metrics = {

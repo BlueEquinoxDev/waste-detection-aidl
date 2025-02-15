@@ -13,6 +13,7 @@ from utilities.compute_metrics import create_compute_metrics
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
+import json
 
 # Choose dataset
 DATASET = "TACO" # "TACO" or "VIOLA77"
@@ -46,13 +47,12 @@ if DATASET == "TACO":
     val_annotations_file = os.path.join("data", "validation_annotations.json")
     test_annotations_file = os.path.join("data", "test_annotations.json")
 
-    subset_classes = {
-        "Bottle": [4, 5, 6],
-        "Carton": [14, 18],  # Cluster IDs 14 and 18
-        "Cup": [20, 21, 22, 23, 24],
-        "Can": [10, 12],
-        "Plastic film": [36]
-    }
+    # read subset_classes from taco5_categories.json
+    subset_classes_file = os.path.join("data", "taco5_categories.json")
+    subset_classes = {}
+    with open(subset_classes_file, "r") as f:
+        subset_classes = json.load(f)
+
 
     # Load the TACO dataset
     train_dataset = TacoDatasetViT(annotations_file=train_annotations_file, img_dir="data/images", transforms=data_transforms_train, subset_classes = subset_classes)
@@ -91,25 +91,27 @@ model = ViTForImageClassification.from_pretrained(
     ignore_mismatched_sizes=True
 )
 
-# Create compute_metrics function with label names
-metrics_function = create_compute_metrics(label_names)
-
 logdir = os.path.join("logs", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
-# Initialize Tensorboard Writer with the previous folder 'logdir'
-# writer=SummaryWriter(log_dir=logdir)
+results_dir = os.path.join("results", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+
+# Create compute_metrics function with label names
+metrics_function = create_compute_metrics(label_names, logdir)
 
 # Define training arguments
 training_args = TrainingArguments(
-    output_dir='./results/'+EXPERIMENT_NAME,
-    num_train_epochs=20,
+    output_dir=results_dir,
+    num_train_epochs=10,
     per_device_train_batch_size=8,
     per_device_eval_batch_size=8,
     eval_strategy="epoch",
     save_strategy="epoch",
     logging_dir=logdir,
-    logging_strategy="steps",
-    logging_steps=10,  # Log every 10 steps
+    logging_strategy="epoch",
+    logging_steps=1,  # Log every 1 epoch  
     report_to=["tensorboard"],  # Enable tensorboard reporting
+    load_best_model_at_end=True,  # Load the best model after training
+    metric_for_best_model="accuracy",  # Define metric to track
+    save_total_limit=3,  # Limit total saved checkpoints
 )
 
 # Define the Trainer
