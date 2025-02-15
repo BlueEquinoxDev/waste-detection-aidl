@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 from PIL import Image, ImageDraw
+from utilities.compute_metrics import compute_dice, compute_iou
 
 
 class WasteMaskRCNN(nn.Module):
@@ -76,6 +77,12 @@ class WasteMaskRCNN(nn.Module):
             if targets:
                 # Compute metrics
                 metrics = None
+                iou = compute_iou(detections, targets)
+                dice = compute_dice(detections, targets)
+                metrics = {
+                    "iou": iou,
+                    "dice": dice,
+                }
                 return detections, metrics
             else:
                 iou_threshold = 0.2

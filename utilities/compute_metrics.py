@@ -58,3 +58,46 @@ def create_compute_metrics(label_names):
         
         return metrics
     return compute_metrics
+
+
+# Compute IoU
+def compute_iou(pred, target, threshold=0.5, smooth=1e-6):
+    """
+    Compute the Intersection over Union (IoU) score.
+
+    Args:
+    pred (torch.Tensor): Predicted segmentation (probabilities or logits).
+    target (torch.Tensor): Ground truth segmentation (binary).
+    threshold (float): Threshold to binarize the predictions.
+    smooth (float): Small value to avoid division by zero.
+
+    Returns:
+    float: IoU score.
+    """
+    pred = (pred > threshold).float()
+    intersection = (pred * target).sum((1, 2))
+    union = pred.sum((1, 2)) + target.sum((1, 2)) - intersection
+    iou = (intersection + smooth) / (union + smooth)
+
+    return iou.mean().item()
+
+
+# Compute DICE score
+def compute_dice(pred, target, threshold=0.5, smooth=1e-6):
+    """
+    Compute the Dice coefficient.
+
+    Args:
+    pred (torch.Tensor): Predicted segmentation (probabilities or logits).
+    target (torch.Tensor): Ground truth segmentation (binary).
+    threshold (float): Threshold to binarize the predictions.
+    smooth (float): Small value to avoid division by zero.
+
+    Returns:
+    float: Dice coefficient.
+    """
+    pred = (pred > threshold).float()
+    intersection = (pred * target).sum((1, 2))
+    dice = (2 * intersection + smooth) / (pred.sum((1, 2)) + target.sum((1, 2)) + smooth)
+
+    return dice.mean().item()
