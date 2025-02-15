@@ -36,8 +36,10 @@ class TacoDatasetMaskRCNN(Dataset):
         
         # Create mappings from the list of supercategory objects
         self.idx2class = {item['id']+1: item['supercategory'] for item in supercategories_list}
+        self.idx2class[0] = "background"
         
         self.class2idx = {item['supercategory']: item['id']+1 for item in supercategories_list}
+        self.idx2class["background"] = 0
         
         # Create category mapping for COCO annotations
         self.category_map = {cat['id']: self.class2idx[cat['supercategory']] 

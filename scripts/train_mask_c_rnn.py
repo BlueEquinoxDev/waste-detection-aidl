@@ -90,7 +90,7 @@ train_loader=DataLoader(train_taco_dataset,
                         collate_fn=collate_fn)
 
 valiation_loader=DataLoader(validation_taco_dataset,
-                            shuffle=True,
+                            shuffle=False,
                             batch_size=h_params["batch_size"], 
                             num_workers=h_params["num_workers"],
                             collate_fn=collate_fn)
@@ -181,10 +181,24 @@ print(validation_loss)
 
 ### START EVALUATION
 print("STARING EVALUATION")
+test_dataset=WasteMaskRCNN(annotations_file="data/test_annotations.json", 
+                           img_dir="data/images", 
+                           transforms=data_transforms_validation)
+idx2class = test_dataset.idx_to_class
+num_classes = len(idx2class)
+
+test_loader=DataLoader(test_dataset,
+                       shuffle=False,
+                       batch_size=h_params["batch_size"], 
+                       num_workers=h_params["num_workers"],
+                       collate_fn=collate_fn)
+
+for images, targets in enumerate(test_loader):
+    detections, metrics = model.evaluate(images=images, targets=targets)
 
 
 print("Final test accuracy:\n")
-#print(f"Accuracy: {...}")
+print(f"Metrics: {metrics}")
 
 
 
