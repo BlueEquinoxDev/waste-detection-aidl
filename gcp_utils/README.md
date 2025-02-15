@@ -38,7 +38,7 @@ This process can take a few minutes (~7-8 minutes).
 You can test the API by opening the `PUBLIC_IP:5000` in a browser or using the `test_api.ipynb` notebook.
 
 
-### Debugging
+### Debugging and starting the docker container 
 
 To check the logs at the VM, ssh into the VM using either the GCP Console (browser) or running in the terminal the following command:
 `gcloud compute ssh <VM_NAME> --zone <ZONE>`
@@ -46,6 +46,15 @@ To check the logs at the VM, ssh into the VM using either the GCP Console (brows
 Note that `<ZONE>` is a sub-zone inside of a location. Typically the zone will be equal to `<LOCATION>`+`-a`
 
 In the VM check the logs with `nano /tmp/startup-script.log`
+
+Change to project directory with `cd /opt/docker-app`
+
+Build Docker Container with `sudo docker build -t waste-detection-app .`
+
+Run specific Python file:
+```sudo docker run --rm -it --gpus all waste-detection-app <FILE_NAME.py>```
+E.g.: ```sudo docker run --rm -it --gpus all waste-detection-app -m scripts.train_vit_classification```
+
 
 ## 2. Deleting the GCP Infrastructure
 
