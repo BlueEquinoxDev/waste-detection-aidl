@@ -31,7 +31,7 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 data_transforms_train = transforms.Compose([            
     #transforms.RandomResizedCrop(size=(500, 500), antialias=True, interpolation=transforms.InterpolationMode.NEAREST),
     #transforms.Resize(size=(500, 500), antialias=True, interpolation=transforms.InterpolationMode.NEAREST),
-    transforms.RandomHorizontalFlip(0.5),
+    #transforms.RandomHorizontalFlip(0.5),
     transforms.ToDtype(torch.float32, scale=True),
     #transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     transforms.ToPureTensor()
@@ -72,9 +72,9 @@ def collate_fn(batch):
     return images, targets
 
 
-train_data_loader = DataLoader(train_dataset, shuffle=True, batch_size=2, num_workers=0, collate_fn=collate_fn)
-val_data_loader = DataLoader(validation_dataset, shuffle=False, batch_size=2, num_workers=0, collate_fn=collate_fn)
-test_data_loader = DataLoader(test_dataset, shuffle=False, batch_size=2, num_workers=0, collate_fn=collate_fn)
+train_data_loader = DataLoader(train_dataset, shuffle=True, batch_size=4, num_workers=0, collate_fn=collate_fn)
+val_data_loader = DataLoader(validation_dataset, shuffle=False, batch_size=4, num_workers=0, collate_fn=collate_fn)
+test_data_loader = DataLoader(test_dataset, shuffle=False, batch_size=4, num_workers=0, collate_fn=collate_fn)
 
 num_classes = len(idx2class)
 
@@ -88,12 +88,40 @@ in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
 hidden_layer = 256
 model.roi_heads.mask_predictor = torch.nn.Sequential(OrderedDict([
                 ("conv5_mask", torch.nn.ConvTranspose2d(in_features_mask, hidden_layer, kernel_size=2, stride=2)),
+                ("dropout", torch.nn.Dropout(0.5)),
                 ("relu", torch.nn.ReLU()),
                 ("mask_fcn_logits", torch.nn.Conv2d(hidden_layer, num_classes, kernel_size=1, stride=1)),
             ]))
 
+print("······· Backbone parameters··········")
+print(model.backbone.parameters)
 
-optimizer = torch.optim.Adam(list(model.roi_heads.box_predictor.parameters()) + list(model.roi_heads.mask_predictor.parameters()), lr=1e-3, weight_decay=0.0001)
+print("······· PRINTING MODEL··········")
+print(model)
+#params = [p for p in model.parameters() if p.requires_grad]
+for name, param in model.named_parameters():
+    if "backbone.body" in name:
+        param.requires_grad = False
+
+for name, param in model.named_parameters():
+    if param.requires_grad:
+        print(f"REQUIRES GRAD: {name}")
+
+    else:
+        print(f"DO NOT REQUIRE GRAD: {name}")
+
+#print(f"parameters to optimize: {len(list(model.roi_heads.box_predictor.parameters())) + len(list(model.roi_heads.mask_predictor.parameters()))}")
+
+
+#optimizer = torch.optim.Adam(list(model.roi_heads.box_predictor.parameters()) + list(model.roi_heads.mask_predictor.parameters()), lr=1e-3, weight_decay=0.0001)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=0.0001)
+
+"""optimizer = torch.optim.SGD(
+    list(model.roi_heads.box_predictor.parameters()) + list(model.roi_heads.mask_predictor.parameters()),
+    lr=0.005,
+    momentum=0.9,
+    weight_decay=0.0005
+)"""
 
 def train_one_epoch():
     """ Train one epoch """
@@ -114,11 +142,10 @@ def train_one_epoch():
 
         if i%2 == 0:
             loss_dict_printable = {k: f"{v.item():.2f}" for k, v in loss_dict.items()}
-            print(f"Training [{i}/{len(train_data_loader)}] loss: {loss_dict_printable}")
+            print(f"Training [{i}/{len(train_data_loader)}] avg_loss: {losses_avg/(len(train_data_loader) - (len(train_data_loader) - i - 1))} loss: {loss_dict_printable}")
     return losses_avg/len(train_data_loader) # Remove the [:2] to train the entire dataset
 
 def eval_forward(model, images, targets, device):
-    # type: (List[Tensor], Optional[List[Dict[str, Tensor]]]) -> Tuple[Dict[str, Tensor], List[Dict[str, Tensor]]]
     """
     Args:
         images (list[Tensor]): images to be processed
