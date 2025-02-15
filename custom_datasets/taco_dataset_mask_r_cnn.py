@@ -7,6 +7,8 @@ from torchvision import tv_tensors
 from torchvision.transforms.v2 import functional as F
 import torch
 import json
+from PIL import ImageOps
+import numpy as np
 
 class TacoDatasetMaskRCNN(Dataset):
 
@@ -32,17 +34,17 @@ class TacoDatasetMaskRCNN(Dataset):
         
            # Load the new JSON with supercategories and their corresponding ids
         # Load supercategories from JSON
-        with open('data/taco28_categories.json', 'r') as infile:
+        with open('data/supercategories.json', 'r') as infile:
             supercategories_list = json.load(infile)
         
         # Create mappings from the list of supercategory objects
-        self.idx_to_class = {(item['id']+1): item['supercategory'] 
-                            for item in supercategories_list}
-        self.class_to_idx = {item['supercategory']: (item['id']+1) 
-                            for item in supercategories_list}
+        self.idx_to_class = {item['id']+1: item['supercategory'] for item in supercategories_list}
+        
+        self.class_to_idx = {item['supercategory']: item['id']+1 for item in supercategories_list}
+        
         # Create category mapping for COCO annotations
         self.category_map = {cat['id']: self.class_to_idx[cat['supercategory']] 
-                        for cat in self.coco_data.loadCats(self.coco_data.getCatIds())}
+                             for cat in self.coco_data.loadCats(self.coco_data.getCatIds())}
 
     def __len__(self) -> None:
         return self.len_dataset
@@ -57,7 +59,9 @@ class TacoDatasetMaskRCNN(Dataset):
         
         annotations = self.coco_data.imgToAnns[img_id]
         
+        
         sample_img = Image.open(path)
+        sample_img = ImageOps.exif_transpose(sample_img)
         
         sample_img = tv_tensors.Image(sample_img)
         
@@ -73,15 +77,15 @@ class TacoDatasetMaskRCNN(Dataset):
             labels.append(self.category_map[ann['category_id']])
         target = {}
         
-        target["boxes"] = tv_tensors.BoundingBoxes(bboxs,
+        target["boxes"] = tv_tensors.BoundingBoxes(np.array(bboxs),
                                                    format="XYXY",
                                                    canvas_size=F.get_size(sample_img))
                     
-        target["masks"] = tv_tensors.Mask(masks)
+        target["masks"] = tv_tensors.Mask(np.stack(masks))
         target["labels"] = torch.tensor(labels,dtype=torch.int64)
         target["image_id"] = idx
-        target["area"] =torch.tensor(areas)
-        target["iscrowd"] =torch.zeros( len(labels,), dtype=torch.int64)
+        #target["area"] =torch.tensor(areas)
+        #target["iscrowd"] =torch.zeros( len(labels,), dtype=torch.int64)
 
         if self.transforms is not None:
             sample_img, target = self.transforms(sample_img, target)
