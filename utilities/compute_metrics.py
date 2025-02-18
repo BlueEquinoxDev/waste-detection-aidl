@@ -101,3 +101,9 @@ def compute_dice(pred, target, threshold=0.5, smooth=1e-6):
     dice = (2 * intersection + smooth) / (pred.sum((1, 2)) + target.sum((1, 2)) + smooth)
 
     return dice.mean().item()
+
+# Compute mAP
+def compute_map(preds, targets, num_classes):
+    summary_dict = { k:[] for k in range(num_classes)}
+    for pred, gt in enumerate(preds, targets):
+        pass

@@ -46,7 +46,7 @@ def save_model(model, epoch):
         os.makedirs(save_path)
     
     # using now() to get current time
-    current_time = datetime.datetime.now()
+    current_time = datetime.now()
     filename = f"{current_time.year}_{current_time.month}_{current_time.day}_{current_time.hour}_{current_time.minute}"
 
     torch.save(checkpoint, os.path.join(save_path, f"checkpoint_epoch_{epoch}_{filename}.pt"))
@@ -192,6 +192,7 @@ test_loader=DataLoader(test_dataset,
                        batch_size=h_params["batch_size"], 
                        num_workers=h_params["num_workers"],
                        collate_fn=collate_fn)
+
 
 for images, targets in enumerate(test_loader):
     detections, metrics = model.evaluate(images=images, targets=targets)
