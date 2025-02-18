@@ -1,9 +1,11 @@
+import argparse
 from transformers import ViTForImageClassification, ViTImageProcessor
 from PIL import Image
 import torch
 from utilities.config_utils import TaskType
 from custom_datasets.taco_dataset_vit import TacoDatasetViT
 from custom_datasets.viola77_dataset import Viola77Dataset
+from custom_datasets.taco_viola_dataset_vit import TacoViolaDatasetViT
 # from torch.utils.data import DataLoader
 from transformers import TrainingArguments, Trainer
 from torchvision.transforms import v2 as transforms
@@ -16,9 +18,17 @@ from datetime import datetime
 import json
 from model.waste_vit import WasteViT
 
-# Choose dataset
-DATASET = "TACO" # "TACO" or "VIOLA77"
-EXPERIMENT_NAME = "cls-vit-taco5"
+# Parse arguments
+parser = argparse.ArgumentParser(description='Select the dataset for model training')
+parser.add_argument('--dataset', required=False, help='Dataset name', type=str, default="TACO5")
+
+# Check if the given dataset is valid
+valid_datasets = ["TACO5", "TACO28", "VIOLA", "TACO39VIOLA11"]
+dataset_name = parser.parse_args().dataset
+if dataset_name not in valid_datasets:
+    raise ValueError(f"Dataset must be one of {valid_datasets}")
+
+experiment_name = f"cls-vit-{dataset_name.lower()}"
 
 # Define data transforms
 data_transforms_train = transforms.Compose([
@@ -38,25 +48,31 @@ data_transforms_test = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-if DATASET == "TACO":
+if "TACO" in dataset_name and "VIOLA" not in dataset_name:
 
     train_annotations_file = os.path.join("data", "train_annotations.json")
     val_annotations_file = os.path.join("data", "validation_annotations.json")
     test_annotations_file = os.path.join("data", "test_annotations.json")
 
-    # read subset_classes from taco5_categories.json
-    subset_classes_file = os.path.join("data", "taco5_categories.json")
-    subset_classes = {}
-    with open(subset_classes_file, "r") as f:
-        subset_classes = json.load(f)
-
+    if dataset_name == "TACO5":
+        # read subset_classes from taco5_categories.json
+        subset_classes_file = os.path.join("data", "taco5_categories.json")
+        subset_classes = {}
+        with open(subset_classes_file, "r") as f:
+            subset_classes = json.load(f)
+    elif dataset_name == "TACO28":
+        # read subset_classes from taco28_categories.json
+        subset_classes_file = os.path.join("data", "taco28_categories.json")
+        subset_classes = {}
+        with open(subset_classes_file, "r") as f:
+            subset_classes = json.load(f) 
 
     # Load the TACO dataset
     train_dataset = TacoDatasetViT(annotations_file=train_annotations_file, img_dir="data/images", transforms=data_transforms_train, subset_classes = subset_classes)
     val_dataset = TacoDatasetViT(annotations_file=val_annotations_file, img_dir="data/images", transforms=data_transforms_test, subset_classes = subset_classes)
     test_dataset = TacoDatasetViT(annotations_file=test_annotations_file, img_dir="data/images", transforms=data_transforms_test, subset_classes = subset_classes)
 
-elif DATASET == "VIOLA77":
+elif dataset_name == "VIOLA":
     # Load the dataset
     dataset = load_dataset("viola77data/recycling-dataset", split="train")
     print(dataset)
@@ -74,6 +90,46 @@ elif DATASET == "VIOLA77":
     val_dataset = Viola77Dataset(val_dataset, transform=data_transforms_test)
     test_dataset = Viola77Dataset(test_dataset, transform=data_transforms_test)
 
+elif dataset_name == "TACO39VIOLA11":
+    # Load the Viola dataset =================================================================
+    viola_dataset = load_dataset("viola77data/recycling-dataset", split="train")
+
+    # Split dataset into training, validation, and test sets
+    train_test_viola = viola_dataset.train_test_split(test_size=0.2)
+    val_test_viola = train_test_viola["test"].train_test_split(test_size=0.5)
+
+    train_dataset_viola = train_test_viola["train"]
+    val_dataset_viola = val_test_viola["train"]
+    test_dataset_viola = val_test_viola["test"]
+
+    # Create datasets with transforms
+    train_dataset_viola = Viola77Dataset(train_dataset_viola, transform=data_transforms_train)
+    val_dataset_viola = Viola77Dataset(val_dataset_viola, transform=data_transforms_test)
+    test_dataset_viola = Viola77Dataset(test_dataset_viola, transform=data_transforms_test)
+
+    # Obtain the categories form viola dataset
+    classes = viola_dataset.features['label'].names
+
+    # Load the TACO dataset =================================================================
+    train_annotations_file_taco = os.path.join("data", "train_annotations.json")
+    val_annotations_file_taco = os.path.join("data", "validation_annotations.json")
+    test_annotations_file_taco = os.path.join("data", "test_annotations.json")
+
+    # Prepare the mapping
+    with open("data/taco39viola11_categories.json", "r") as f:
+        categories_taco_viola = json.load(f)
+    mapping = { cat["id"]: cat["super_id"] for cat in categories_taco_viola }
+
+    # Create datasets with transforms
+    train_dataset_taco = TacoViolaDatasetViT(annotations_file=train_annotations_file_taco, img_dir="data/images", transform=data_transforms_train, classes=classes, mapping=mapping)
+    val_dataset_taco = TacoViolaDatasetViT(annotations_file=val_annotations_file_taco, img_dir="data/images", transform=data_transforms_test, classes=classes, mapping=mapping)
+    test_dataset_taco = TacoViolaDatasetViT(annotations_file=test_annotations_file_taco, img_dir="data/images", transform=data_transforms_test, classes=classes, mapping=mapping)
+
+    # Concatenate the datasets =================================================================
+    train_dataset = torch.utils.data.ConcatDataset([train_dataset_viola, train_dataset_taco])
+    val_dataset = torch.utils.data.ConcatDataset([val_dataset_viola, val_dataset_taco])
+    test_dataset = torch.utils.data.ConcatDataset([test_dataset_viola, test_dataset_taco])
+
 # Get number of classes and label names from dataset
 num_classes = len(train_dataset.idx_to_cluster_class)
 label_names = list(train_dataset.idx_to_cluster_class.values())
@@ -81,11 +137,11 @@ print(f"Number of classes: {num_classes} | Label names: {label_names}")
 id2label = train_dataset.idx_to_cluster_class
 label2id = train_dataset.cluster_class_to_idx
 
-# model = WasteViT(num_classes=num_classes, id2label = id2label, label2id = label2id)
-model = WasteViT(checkpoint="results/cls-vit-taco5-20250215-113551/checkpoint-900")
+model = WasteViT(num_classes=num_classes, id2label = id2label, label2id = label2id)
+# model = WasteViT(checkpoint="results/cls-vit-taco5-20250215-113551/checkpoint-900")
 
-logdir = os.path.join("logs", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
-results_dir = os.path.join("results", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
 # Create compute_metrics function with label names
 metrics_function = create_compute_metrics(label_names, logdir)

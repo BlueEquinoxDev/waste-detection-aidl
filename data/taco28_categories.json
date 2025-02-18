@@ -1,114 +1,31 @@
-[
-    {
-        "supercategory": "Aluminium foil",
-        "id": 0
-    },
-    {
-        "supercategory": "Battery",
-        "id": 1
-    },
-    {
-        "supercategory": "Blister pack",
-        "id": 2
-    },
-    {
-        "supercategory": "Bottle",
-        "id": 3
-    },
-    {
-        "supercategory": "Bottle cap",
-        "id": 4
-    },
-    {
-        "supercategory": "Broken glass",
-        "id": 5
-    },
-    {
-        "supercategory": "Can",
-        "id": 6
-    },
-    {
-        "supercategory": "Carton",
-        "id": 7
-    },
-    {
-        "supercategory": "Cup",
-        "id": 8
-    },
-    {
-        "supercategory": "Food waste",
-        "id": 9
-    },
-    {
-        "supercategory": "Glass jar",
-        "id": 10
-    },
-    {
-        "supercategory": "Lid",
-        "id": 11
-    },
-    {
-        "supercategory": "Other plastic",
-        "id": 12
-    },
-    {
-        "supercategory": "Paper",
-        "id": 13
-    },
-    {
-        "supercategory": "Paper bag",
-        "id": 14
-    },
-    {
-        "supercategory": "Plastic bag & wrapper",
-        "id": 15
-    },
-    {
-        "supercategory": "Plastic container",
-        "id": 16
-    },
-    {
-        "supercategory": "Plastic glooves",
-        "id": 17
-    },
-    {
-        "supercategory": "Plastic utensils",
-        "id": 18
-    },
-    {
-        "supercategory": "Pop tab",
-        "id": 19
-    },
-    {
-        "supercategory": "Rope & strings",
-        "id": 20
-    },
-    {
-        "supercategory": "Scrap metal",
-        "id": 21
-    },
-    {
-        "supercategory": "Shoe",
-        "id": 22
-    },
-    {
-        "supercategory": "Squeezable tube",
-        "id": 23
-    },
-    {
-        "supercategory": "Straw",
-        "id": 24
-    },
-    {
-        "supercategory": "Styrofoam piece",
-        "id": 25
-    },
-    {
-        "supercategory": "Unlabeled litter",
-        "id": 26
-    },
-    {
-        "supercategory": "Cigarette",
-        "id": 27
-    }
-]
+{
+    "Aluminium foil": [0],
+    "Battery": [1],
+    "Blister pack": [2, 3],
+    "Bottle": [4, 5, 6],
+    "Bottle cap": [7, 8],
+    "Broken glass": [9],
+    "Can": [10, 11, 12],
+    "Carton": [13, 14, 15, 16, 17, 18, 19],
+    "Cup": [20, 21, 22, 23, 24],
+    "Food waste": [25],
+    "Glass jar": [26],
+    "Lid": [27, 28],
+    "Other plastic": [29],
+    "Paper": [30, 31, 32, 33],
+    "Paper bag": [34, 35],
+    "Plastic bag & wrapper": [36, 37, 38, 39, 40, 41, 42],
+    "Plastic container": [43, 44, 45, 46, 47],
+    "Plastic glooves": [48],
+    "Plastic utensils": [49],
+    "Pop tab": [50],
+    "Rope & strings": [51],
+    "Scrap metal": [52],
+    "Shoe": [53],
+    "Squeezable tube": [54],
+    "Straw": [55, 56],
+    "Styrofoam piece": [57],
+    "Unlabeled litter": [58],
+    "Cigarette": [59]
+}
+  
