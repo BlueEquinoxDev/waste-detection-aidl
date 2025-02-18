@@ -14,13 +14,11 @@ import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 import json
+from model.waste_vit import WasteViT
 
 # Choose dataset
 DATASET = "TACO" # "TACO" or "VIOLA77"
 EXPERIMENT_NAME = "cls-vit-taco5"
-
-# Load the feature extractor and model
-feature_extractor = ViTImageProcessor.from_pretrained('google/vit-base-patch16-224')
 
 # Define data transforms
 data_transforms_train = transforms.Compose([
@@ -39,7 +37,6 @@ data_transforms_test = transforms.Compose([
     transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), antialias=True),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
-
 
 if DATASET == "TACO":
 
@@ -81,15 +78,11 @@ elif DATASET == "VIOLA77":
 num_classes = len(train_dataset.idx_to_cluster_class)
 label_names = list(train_dataset.idx_to_cluster_class.values())
 print(f"Number of classes: {num_classes} | Label names: {label_names}")
+id2label = train_dataset.idx_to_cluster_class
+label2id = train_dataset.cluster_class_to_idx
 
-# Initialize model with number of labels
-model = ViTForImageClassification.from_pretrained(
-    'google/vit-base-patch16-224',
-    num_labels=num_classes,
-    id2label=train_dataset.idx_to_cluster_class,
-    label2id=train_dataset.cluster_class_to_idx,
-    ignore_mismatched_sizes=True
-)
+# model = WasteViT(num_classes=num_classes, id2label = id2label, label2id = label2id)
+model = WasteViT(checkpoint="results/cls-vit-taco5-20250215-113551/checkpoint-900")
 
 logdir = os.path.join("logs", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 results_dir = os.path.join("results", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
@@ -121,7 +114,7 @@ trainer = Trainer(
     train_dataset=train_dataset,
     eval_dataset=val_dataset,
     compute_metrics=metrics_function,
-    processing_class=feature_extractor,  # Changed from tokenizer to processing_class
+    processing_class=model.feature_extractor,  # Changed from tokenizer to processing_class
 )
 
 # Train the model
