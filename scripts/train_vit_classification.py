@@ -130,15 +130,30 @@ elif dataset_name == "TACO39VIOLA11":
     val_dataset = torch.utils.data.ConcatDataset([val_dataset_viola, val_dataset_taco])
     test_dataset = torch.utils.data.ConcatDataset([test_dataset_viola, test_dataset_taco])
 
-# Get number of classes and label names from dataset
-num_classes = len(train_dataset.idx_to_cluster_class)
-label_names = list(train_dataset.idx_to_cluster_class.values())
-print(f"Number of classes: {num_classes} | Label names: {label_names}")
-id2label = train_dataset.idx_to_cluster_class
-label2id = train_dataset.cluster_class_to_idx
 
-model = WasteViT(num_classes=num_classes, id2label = id2label, label2id = label2id)
-# model = WasteViT(checkpoint="results/cls-vit-taco5-20250215-113551/checkpoint-900")
+# After creating the concatenated dataset
+if dataset_name == "TACO39VIOLA11":
+    # Get number of classes and label mappings from one of the constituent datasets
+    # Assuming both datasets use the same class mappings
+    if isinstance(train_dataset.datasets[0], (TacoDatasetViT, Viola77Dataset)):
+        base_dataset = train_dataset.datasets[0]
+        num_classes = len(base_dataset.idx_to_cluster_class)
+        label_names = list(base_dataset.idx_to_cluster_class.values())
+        id2label = {idx: label for idx, label in base_dataset.idx_to_cluster_class.items()}
+        label2id = base_dataset.cluster_class_to_idx
+    else:
+        raise ValueError("Unexpected dataset type")
+else:
+    # For single datasets
+    num_classes = len(train_dataset.idx_to_cluster_class)
+    label_names = list(train_dataset.idx_to_cluster_class.values())
+    id2label = {idx: label for idx, label in train_dataset.idx_to_cluster_class.items()}
+    label2id = train_dataset.cluster_class_to_idx
+
+print(f"Number of classes: {num_classes} | Label names: {label_names}")
+
+# model = WasteViT(num_classes=num_classes, id2label = id2label, label2id = label2id)
+model = WasteViT(checkpoint="results/cls-vit-taco39viola11-20250218-200130/checkpoint-5620")
 
 logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
