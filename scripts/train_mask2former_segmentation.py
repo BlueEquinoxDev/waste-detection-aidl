@@ -7,14 +7,31 @@ from albumentations.pytorch import ToTensorV2
 from transformers import MaskFormerForInstanceSegmentation
 import torch
 from tqdm.auto import tqdm
+from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
+from utilities.save_model import save_model
+import os
+
+h_params ={
+    "batch_size": 1,
+    "num_workers": 0,
+}
+
+experiment_name = "seg-mask2former-taco"
+logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+
+
+# Initialize Tensorboard Writer with the previous folder 'logdir'
+writer=SummaryWriter(log_dir=logdir)
 
 processor = MaskFormerImageProcessor(
-    reduce_labels=True, ignore_index=255, do_resize=False, do_rescale=False, do_normalize=False
-    # do_resize=True,
-    # size={"height": 512, "width": 512},
-    # do_normalize=False
+    reduce_labels=True,
+    ignore_index=255,
+    do_resize=False,
+    do_rescale=False,
+    do_normalize=False
 )
-
 
 # Create transform pipeline that handles both image and mask
 transform = A.Compose([
@@ -23,19 +40,22 @@ transform = A.Compose([
 ])
 
 # Initialize dataset with transforms
-train_dataset = TacoDatasetMask2Former(
+train_taco_dataset = TacoDatasetMask2Former(
     annotations_file="data/train_annotations.json",
     img_dir="data/images",
     processor=processor,
     transforms=transform
 )
-# print(f"len(dataset): {len(train_dataset)}")
-# print(f"dataset[0]: {train_dataset[1]}")
 
-# for k, v in train_dataset[1].items():
-#     print(f"{k} {v.shape}")
-#     print(f"{k}: {v}")
-#     print(f"unique values: {np.unique(v)}")
+# Initialize dataset with transforms
+validation_taco_dataset = TacoDatasetMask2Former(
+    annotations_file="data/validation_annotations.json",
+    img_dir="data/images",
+    processor=processor,
+    transforms=transform
+)
+
+idx2class = train_taco_dataset.idx2class
 
 def collate_fn(batch):
     pixel_values = torch.stack([example["pixel_values"].float() / 255.0 for example in batch])  # Convert to float and normalize
@@ -44,34 +64,43 @@ def collate_fn(batch):
     mask_labels = [example["mask_labels"] for example in batch]
     return {"pixel_values": pixel_values, "pixel_mask": pixel_mask, "class_labels": class_labels, "mask_labels": mask_labels}
 
-train_dataloader = DataLoader(train_dataset, batch_size=4, shuffle=True, collate_fn=collate_fn)
+train_loader = DataLoader(train_taco_dataset, 
+                              batch_size = h_params["batch_size"],
+                              num_workers = h_params["num_workers"],
+                              shuffle=True,
+                              collate_fn=collate_fn)
 
-batch = next(iter(train_dataloader))
-# for k,v in batch.items():
-#   if isinstance(v, torch.Tensor):
-#     #print(k,v.shape)
-#   else:
-# #    print(k,len(v))
-
-
+validation_loader = DataLoader(validation_taco_dataset,
+                               batch_size=h_params["batch_size"],
+                               num_workers = h_params["num_workers"],
+                               shuffle=True,
+                               collate_fn=collate_fn)
 
 # We specify ignore_mismatched_sizes=True to replace the already fine-tuned classification head by a new one
 model = MaskFormerForInstanceSegmentation.from_pretrained("facebook/maskformer-swin-base-ade",
-                                                          id2label=train_dataloader.dataset.idx2class,
+                                                          id2label=idx2class,
                                                           ignore_mismatched_sizes=True)
 
+# batch = next(iter(train_dataloader))
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=5e-5)
+optimizer = torch.optim.Adam(model.parameters(),
+                             lr=5e-5,
+                             weight_decay=1e-2)
 
-running_loss = 0.0
-num_samples = 0
-for epoch in range(100):
-    print("Epoch:", epoch)
+
+def train_one_epoch():
+    """
+    Function to train 1 epoch of Mask R-CNN
+    returns:
+        -  avg loss in training
+    """
     model.train()
-    for idx, batch in enumerate(tqdm(train_dataloader)):
+    losses_avg=0
+    len_dataset=len(train_loader)
+    for idx, batch in enumerate(tqdm(train_loader)):
         # Reset the parameter gradients
         optimizer.zero_grad()
 
@@ -82,16 +111,123 @@ for epoch in range(100):
                 class_labels=[labels.to(device) for labels in batch["class_labels"]],
         )
 
+        print(f"outputs: {outputs}")
+
         # Backward propagation
         loss = outputs.loss
         loss.backward()
 
-        batch_size = batch["pixel_values"].size(0)
-        running_loss += loss.item()
-        num_samples += batch_size
-
-        if idx % 100 == 0:
-            print("Loss:", running_loss/num_samples)
+        # batch_size = batch["pixel_values"].size(0)
+        losses_avg += loss.item()
 
         # Optimization
         optimizer.step()
+    
+    return losses_avg/len_dataset
+
+def validation_one_epoch():
+    """
+    Function to validate 1 epoch of Mask R-CNN
+    returns:
+        -  avg loss in validation
+    """
+    losses_avg=0
+    len_dataset=len(validation_loader)  
+    # for  batch, data in enumerate(validation_loader):
+    for idx, batch in enumerate(tqdm(validation_loader)):
+        print(f"Validation idx: {idx}")
+        # images,targets=data            
+        # images=list(image.to(device) for image in images)   
+        # targets = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]             
+        with torch.no_grad():
+            outputs = model(
+                pixel_values=batch["pixel_values"].to(device),
+                mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
+                class_labels=[labels.to(device) for labels in batch["class_labels"]],
+            )
+            loss = outputs.loss
+            # loss_dict = model(images, targets)
+            # losses = sum(loss for loss in loss_dict.values())
+    
+            # loss_dict_printable = {k: f"{v.item():.2f}" for k, v in loss_dict.items()}      
+            # print(f"[{batch}/{len_dataset}] total loss: {losses.item():.2f} losses: {loss_dict_printable}")     
+            # losses_avg+=losses.item()    
+            losses_avg += loss.item()
+
+    return losses_avg/len_dataset
+    
+
+
+### START TRAINING
+print("STARTING TRAINING")
+NUM_EPOCH=25
+train_loss=[]
+validation_loss=[]
+for epoch in range(1,NUM_EPOCH+1):
+    losses_avg_train=train_one_epoch()
+    losses_avg_validation=validation_one_epoch()
+    print(f"TRAINING epoch[{epoch}/{NUM_EPOCH}]: avg. loss: {losses_avg_train:.3f}")
+    print(f"VALIDATION epoch[{epoch}/{NUM_EPOCH}]: avg. loss:{ losses_avg_validation:.3f}")  
+    train_loss.append(losses_avg_train)
+    validation_loss.append(losses_avg_validation)
+    save_model(model, epoch, optimizer, idx2class, results_dir)    
+    writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
+    writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
+
+print("Final train loss:\n")
+print(validation_loss)
+
+print("Final validation loss:\n")
+print(validation_loss)
+
+### START EVALUATION
+print("STARING EVALUATION")
+test_taco_dataset=TacoDatasetMask2Former(annotations_file="data/test_annotations.json",
+                                    img_dir="data/images",
+                                    processor=processor,
+                                    transforms=transform)
+idx2class = test_taco_dataset.idx_to_class
+num_classes = len(idx2class)
+
+test_loader=DataLoader(test_taco_dataset,
+                       shuffle=False,
+                       batch_size=h_params["batch_size"], 
+                       num_workers=h_params["num_workers"],
+                       collate_fn=collate_fn)
+
+for images, targets in enumerate(test_loader):
+    detections, metrics = model.evaluate(images=images, targets=targets)
+
+print("Final test accuracy:\n")
+print(f"Metrics: {metrics}")
+
+
+# running_loss = 0.0
+# num_samples = 0
+# for epoch in range(100):
+#     print("Epoch:", epoch)
+#     model.train()
+#     for idx, batch in enumerate(tqdm(train_dataloader)):
+#         # Reset the parameter gradients
+#         optimizer.zero_grad()
+
+#         # Forward pass
+#         outputs = model(
+#                 pixel_values=batch["pixel_values"].to(device),
+#                 mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
+#                 class_labels=[labels.to(device) for labels in batch["class_labels"]],
+#         )
+
+#         # Backward propagation
+#         loss = outputs.loss
+#         loss.backward()
+
+#         batch_size = batch["pixel_values"].size(0)
+#         running_loss += loss.item()
+#         num_samples += batch_size
+
+#         if idx % 100 == 0:
+#             print("Loss:", running_loss/num_samples)
+
+#         # Optimization
+#         optimizer.step()

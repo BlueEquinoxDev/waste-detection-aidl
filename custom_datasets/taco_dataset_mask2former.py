@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import json
 from torchvision import tv_tensors
+import matplotlib.pyplot as plt
 
 class TacoDatasetMask2Former(Dataset):
 
@@ -134,10 +135,10 @@ class TacoDatasetMask2Former(Dataset):
             semantic_seg = semantic_seg.astype(np.uint8)
 
             # Ensure the segmentation map is properly padded to match expected input size
-            # print(f"semantic_seg.shape: {semantic_seg.shape}")
-            # print(f"np.unique(semantic_seg): {np.unique(semantic_seg)}")
-            # print(f"semantic_seg.dtype: {semantic_seg.dtype}")
-            # print(f"inst2class: {inst2class}")
+            print(f"semantic_seg.shape: {semantic_seg.shape}")
+            print(f"np.unique(semantic_seg): {np.unique(semantic_seg)}")
+            print(f"semantic_seg.dtype: {semantic_seg.dtype}")
+            print(f"inst2class: {inst2class}")
             # target_size = (512, 512, 1)
             # padded_segmentation = np.zeros(target_size, dtype=np.uint8)
             
@@ -156,6 +157,10 @@ class TacoDatasetMask2Former(Dataset):
                 return_tensors="pt"
             )
             inputs = {k: v.squeeze() if isinstance(v, torch.Tensor) else v[0] for k, v in inputs.items()}
+
+            ############## DEBUGING #############
+            visualize_sample(inputs)
+            ######################################
         return inputs
 
         # Output Format
@@ -163,5 +168,55 @@ class TacoDatasetMask2Former(Dataset):
         # pixel_mask torch.Size([512, 512])
         # class_labels torch.Size([1])
         # mask_labels torch.Size([0, 512, 512])
+
+def visualize_sample(inputs):
+    """
+    Visualize a sample from the dataset.
+    This function takes a dictionary of inputs containing pixel values, pixel masks, 
+    mask labels, and class labels, and visualizes the original image alongside 
+    the segmentation masks.
+    Args:
+        inputs (dict): A dictionary containing the following keys:
+            - 'pixel_values' (torch.Tensor): A tensor representing the pixel values of the image.
+            - 'pixel_mask' (torch.Tensor): A tensor representing the pixel mask.
+            - 'mask_labels' (torch.Tensor): A tensor containing the segmentation masks.
+            - 'class_labels' (list): A list of class labels corresponding to the masks.
+    Returns:
+        None: This function displays the images using matplotlib and does not return any value.
+    """
+    # Convert tensor to numpy array and transpose to (H, W, C) format
+    pixel_values = inputs['pixel_values'].numpy().transpose(1, 2, 0)
+    pixel_mask = inputs['pixel_mask'].numpy()
+    mask_labels = inputs['mask_labels'].numpy()
+    class_labels = inputs['class_labels'].tolist()
+    
+    # Create figure with two subplots
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+
+    # Display the original image
+    axes[0].imshow(pixel_values)
+    axes[0].set_title("Original Image")
+    axes[0].axis('off')
+
+    # Display image with superposed masks
+    axes[1].imshow(pixel_values)  # Base image
+    
+    if mask_labels.size > 0:
+        # Generate distinct colors for each mask
+        num_masks = mask_labels.shape[0]
+        colors = plt.cm.rainbow(np.linspace(0, 1, num_masks))
+        
+        # Superpose each mask with a different color and 50% transparency
+        for i, mask in enumerate(mask_labels):
+            # Create masked array for better visualization
+            masked = np.ma.masked_where(mask == 0, mask)
+            axes[1].imshow(masked, cmap=plt.cm.colors.ListedColormap([colors[i]]), 
+                         alpha=0.5)  # 50% transparency
+    
+    axes[1].set_title(f"Segmentation Masks\nClass Labels: {class_labels}")
+    axes[1].axis('off')
+
+    plt.tight_layout()
+    plt.show()
 
 
