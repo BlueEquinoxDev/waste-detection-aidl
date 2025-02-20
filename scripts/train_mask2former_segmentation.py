@@ -86,9 +86,13 @@ model = MaskFormerForInstanceSegmentation.from_pretrained("facebook/maskformer-s
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-optimizer = torch.optim.Adam(model.parameters(),
-                             lr=5e-5,
-                             weight_decay=1e-2)
+# optimizer = torch.optim.Adam(model.parameters(),
+#                              lr=5e-5,
+#                              weight_decay=1e-2)
+
+optimizer=torch.optim.AdamW(model.parameters(),
+                            lr=1e-4,
+                            weight_decay=1e-2)
 
 # Add learning rate scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
