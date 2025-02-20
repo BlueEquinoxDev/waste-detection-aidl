@@ -53,11 +53,17 @@ def save_model(model, epoch):
 
 # Create the datasets for train and validate
 data_transforms_train = transforms.Compose([            
-    transforms.Resize((800,800)),
-    transforms.RandomHorizontalFlip(0.5),    
+    transforms.Resize((800,800)),    
     transforms.ColorJitter(brightness=0.5, contrast=(0.5, 1.5), saturation=(0.5, 1.5), hue=0.05),
+    transforms.RandomHorizontalFlip(p=0.5),
+    #transforms.RandomPerspective(distortion_scale=0.5, p=0.5, interpolation= transforms.InterpolationMode.BILINEAR, fill=0),
+    transforms.RandomRotation(90, interpolation= transforms.InterpolationMode.NEAREST , expand=True, center=None, fill=0),
+    transforms.RandomRotation(180, interpolation= transforms.InterpolationMode.NEAREST, expand=True, center=None, fill=0),
+    transforms.RandomRotation(270, interpolation= transforms.InterpolationMode.NEAREST, expand=True, center=None, fill=0),
+    transforms.RandomVerticalFlip(p=0.5),
+    transforms.GaussianBlur(kernel_size=5, sigma=(0.1, 2.0)),
     transforms.ToDtype(torch.float32, scale=True),
-    transforms.ToPureTensor()
+    transforms.ToPureTensor(),
     ])
 
 data_transforms_validation = transforms.Compose([
