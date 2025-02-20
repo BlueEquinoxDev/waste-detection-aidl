@@ -90,40 +90,69 @@ optimizer = torch.optim.Adam(model.parameters(),
                              lr=5e-5,
                              weight_decay=1e-2)
 
+# Add learning rate scheduler
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
 def train_one_epoch():
     """
-    Function to train 1 epoch of Mask R-CNN
+    Function to train 1 epoch of Mask R-CNN with periodic loss printing
     returns:
         -  avg loss in training
     """
     model.train()
-    losses_avg=0
-    len_dataset=len(train_loader)
+    losses_avg = 0
+    running_loss = 0  # For periodic printing
+    total_samples = 0
+    running_samples = 0  # For periodic printing
+    len_dataset = len(train_loader)
+    
     for idx, batch in enumerate(tqdm(train_loader)):
         # Reset the parameter gradients
         optimizer.zero_grad()
 
         # Forward pass
-        outputs = model(
+        try:
+            outputs = model(
                 pixel_values=batch["pixel_values"].to(device),
                 mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
                 class_labels=[labels.to(device) for labels in batch["class_labels"]],
-        )
-
-        print(f"outputs: {outputs}")
+            )
+        except RuntimeError as e:
+            print(f"Error in batch {idx}: {e}")
+            continue
 
         # Backward propagation
         loss = outputs.loss
         loss.backward()
 
-        # batch_size = batch["pixel_values"].size(0)
-        losses_avg += loss.item()
+        # Gradient clipping before optimizer step
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+        batch_size = batch["pixel_values"].size(0)
+        losses_avg += loss.item() * batch_size
+        total_samples += batch_size
+        
+        # Track running loss for periodic printing
+        running_loss += loss.item() * batch_size
+        running_samples += batch_size
+
+        # Print loss every 10 steps
+        if (idx + 1) % 100 == 0:
+            avg_running_loss = running_loss / running_samples
+            print(f"\nStep [{idx + 1}/{len_dataset}] - Running Loss: {avg_running_loss:.4f}")
+            # Reset running metrics
+            running_loss = 0
+            running_samples = 0
 
         # Optimization
         optimizer.step()
+
+        # Add memory cleanup after each batch
+        if hasattr(torch.cuda, 'empty_cache'):
+            torch.cuda.empty_cache()
     
-    return losses_avg/len_dataset
+    losses_avg = losses_avg / total_samples
+    return losses_avg
 
 def validation_one_epoch():
     """
@@ -131,7 +160,9 @@ def validation_one_epoch():
     returns:
         -  avg loss in validation
     """
+    model.eval()
     losses_avg=0
+    total_samples = 0
     len_dataset=len(validation_loader)  
     # for  batch, data in enumerate(validation_loader):
     for idx, batch in enumerate(tqdm(validation_loader)):
@@ -140,11 +171,15 @@ def validation_one_epoch():
         # images=list(image.to(device) for image in images)   
         # targets = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]             
         with torch.no_grad():
-            outputs = model(
-                pixel_values=batch["pixel_values"].to(device),
-                mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
-                class_labels=[labels.to(device) for labels in batch["class_labels"]],
-            )
+            try:
+                outputs = model(
+                    pixel_values=batch["pixel_values"].to(device),
+                    mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
+                    class_labels=[labels.to(device) for labels in batch["class_labels"]],
+                )
+            except RuntimeError as e:
+                print(f"Error in batch {idx}: {e}")
+                continue
             loss = outputs.loss
             # loss_dict = model(images, targets)
             # losses = sum(loss for loss in loss_dict.values())
@@ -152,9 +187,16 @@ def validation_one_epoch():
             # loss_dict_printable = {k: f"{v.item():.2f}" for k, v in loss_dict.items()}      
             # print(f"[{batch}/{len_dataset}] total loss: {losses.item():.2f} losses: {loss_dict_printable}")     
             # losses_avg+=losses.item()    
-            losses_avg += loss.item()
+            batch_size = batch["pixel_values"].size(0)
+            losses_avg += loss.item() * batch_size
+            total_samples += batch_size
 
-    return losses_avg/len_dataset
+        # Add memory cleanup after each batch
+        if hasattr(torch.cuda, 'empty_cache'):
+            torch.cuda.empty_cache()
+
+    losses_avg = losses_avg / total_samples
+    return losses_avg
     
 
 
@@ -163,6 +205,8 @@ print("STARTING TRAINING")
 NUM_EPOCH=25
 train_loss=[]
 validation_loss=[]
+# Add variables to track best validation loss
+best_val_loss = float('inf')
 for epoch in range(1,NUM_EPOCH+1):
     losses_avg_train=train_one_epoch()
     losses_avg_validation=validation_one_epoch()
@@ -170,12 +214,19 @@ for epoch in range(1,NUM_EPOCH+1):
     print(f"VALIDATION epoch[{epoch}/{NUM_EPOCH}]: avg. loss:{ losses_avg_validation:.3f}")  
     train_loss.append(losses_avg_train)
     validation_loss.append(losses_avg_validation)
-    save_model(model, epoch, optimizer, idx2class, results_dir)    
+    # save_model(model, epoch, optimizer, idx2class, results_dir)    
     writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
+    writer.add_scalar('Segmentation/learning_rate', optimizer.param_groups[0]['lr'], epoch)
+    # Save best model:
+    if losses_avg_validation < best_val_loss:
+        best_val_loss = losses_avg_validation
+        save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, 'best_model.pth'))
+    # Update in training loop after validation
+    scheduler.step(losses_avg_validation)
 
 print("Final train loss:\n")
-print(validation_loss)
+print(train_loss)
 
 print("Final validation loss:\n")
 print(validation_loss)
@@ -195,8 +246,19 @@ test_loader=DataLoader(test_taco_dataset,
                        num_workers=h_params["num_workers"],
                        collate_fn=collate_fn)
 
-for images, targets in enumerate(test_loader):
-    detections, metrics = model.evaluate(images=images, targets=targets)
+model.eval()
+metrics_dict = {}
+with torch.no_grad():
+    for batch in tqdm(test_loader):
+        try:
+            outputs = model(
+                pixel_values=batch["pixel_values"].to(device),
+                mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
+                class_labels=[labels.to(device) for labels in batch["class_labels"]]
+            )
+        except RuntimeError as e:
+            print(f"Error in batch {idx}: {e}")
+            continue
 
 print("Final test accuracy:\n")
 print(f"Metrics: {metrics}")

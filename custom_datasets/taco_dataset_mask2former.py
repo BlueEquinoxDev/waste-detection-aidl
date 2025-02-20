@@ -135,10 +135,10 @@ class TacoDatasetMask2Former(Dataset):
             semantic_seg = semantic_seg.astype(np.uint8)
 
             # Ensure the segmentation map is properly padded to match expected input size
-            print(f"semantic_seg.shape: {semantic_seg.shape}")
-            print(f"np.unique(semantic_seg): {np.unique(semantic_seg)}")
-            print(f"semantic_seg.dtype: {semantic_seg.dtype}")
-            print(f"inst2class: {inst2class}")
+            # print(f"semantic_seg.shape: {semantic_seg.shape}")
+            # print(f"np.unique(semantic_seg): {np.unique(semantic_seg)}")
+            # print(f"semantic_seg.dtype: {semantic_seg.dtype}")
+            # print(f"inst2class: {inst2class}")
             # target_size = (512, 512, 1)
             # padded_segmentation = np.zeros(target_size, dtype=np.uint8)
             
@@ -159,7 +159,7 @@ class TacoDatasetMask2Former(Dataset):
             inputs = {k: v.squeeze() if isinstance(v, torch.Tensor) else v[0] for k, v in inputs.items()}
 
             ############## DEBUGING #############
-            visualize_sample(inputs)
+            # visualize_sample(inputs)
             ######################################
         return inputs
 
