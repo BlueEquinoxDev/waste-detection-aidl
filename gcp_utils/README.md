@@ -76,7 +76,7 @@ To delete the VM and the firewall rule run the following command:
 **Run the script**:
 ```
 chmod +x upload_model_checkpoint.sh
-./upload_model_checkpoint.sh
+./upload_model_checkpoint.sh <model> <dataset>
 ```
 
 You have to modify the following variables in the script:

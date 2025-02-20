@@ -166,7 +166,7 @@ def validation_one_epoch():
     len_dataset=len(validation_loader)  
     # for  batch, data in enumerate(validation_loader):
     for idx, batch in enumerate(tqdm(validation_loader)):
-        print(f"Validation idx: {idx}")
+        # print(f"Validation idx: {idx}")
         # images,targets=data            
         # images=list(image.to(device) for image in images)   
         # targets = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]             
