@@ -34,7 +34,28 @@ processor = MaskFormerImageProcessor(
 )
 
 # Create transform pipeline that handles both image and mask
-transform = A.Compose([
+data_transforms_train = A.Compose([
+    A.RandomRotate90(p=0.5),
+    A.HorizontalFlip(p=0.5),
+    A.VerticalFlip(p=0.5),
+    A.ColorJitter(
+        brightness=0.2, 
+        contrast=0.2, 
+        saturation=0.2, 
+        hue=0.1, 
+        p=0.5
+    ),
+    A.GaussianBlur(
+        blur_limit=(3, 7),
+        sigma_limit=(0.1, 2.0),
+        p=0.5
+    ),
+    A.Resize(height=512, width=512),
+    ToTensorV2()
+])
+
+# Create transform pipeline that handles both image and mask
+data_transforms_validation = A.Compose([
     A.Resize(height=512, width=512),
     ToTensorV2()
 ])
@@ -44,7 +65,7 @@ train_taco_dataset = TacoDatasetMask2Former(
     annotations_file="data/train_annotations.json",
     img_dir="data/images",
     processor=processor,
-    transforms=transform
+    transforms=data_transforms_train
 )
 
 # Initialize dataset with transforms
@@ -52,7 +73,7 @@ validation_taco_dataset = TacoDatasetMask2Former(
     annotations_file="data/validation_annotations.json",
     img_dir="data/images",
     processor=processor,
-    transforms=transform
+    transforms=data_transforms_validation
 )
 
 idx2class = train_taco_dataset.idx2class
@@ -206,7 +227,7 @@ def validation_one_epoch():
 
 ### START TRAINING
 print("STARTING TRAINING")
-NUM_EPOCH=25
+NUM_EPOCH=1
 train_loss=[]
 validation_loss=[]
 # Add variables to track best validation loss
@@ -229,6 +250,11 @@ for epoch in range(1,NUM_EPOCH+1):
     # Update in training loop after validation
     scheduler.step(losses_avg_validation)
 
+    # Call the script to upload the model checkpoint
+    os.system(f"bash gcp_utils/upload_model_checkpoint.sh {os.path.join(results_dir, 'best_model.pth')} Mask2Former TACO")
+    # Call the script to upload the logs
+    os.system(f"bash gcp_utils/upload_model_checkpoint.sh {logdir} Mask2Former TACO")
+
 print("Final train loss:\n")
 print(train_loss)
 
@@ -236,64 +262,33 @@ print("Final validation loss:\n")
 print(validation_loss)
 
 ### START EVALUATION
-print("STARING EVALUATION")
-test_taco_dataset=TacoDatasetMask2Former(annotations_file="data/test_annotations.json",
-                                    img_dir="data/images",
-                                    processor=processor,
-                                    transforms=transform)
-idx2class = test_taco_dataset.idx_to_class
-num_classes = len(idx2class)
+# print("STARING EVALUATION")
+# test_taco_dataset=TacoDatasetMask2Former(annotations_file="data/test_annotations.json",
+#                                     img_dir="data/images",
+#                                     processor=processor,
+#                                     transforms=data_transforms_validation)
+# idx2class = test_taco_dataset.idx2class
+# num_classes = len(idx2class)
 
-test_loader=DataLoader(test_taco_dataset,
-                       shuffle=False,
-                       batch_size=h_params["batch_size"], 
-                       num_workers=h_params["num_workers"],
-                       collate_fn=collate_fn)
+# test_loader=DataLoader(test_taco_dataset,
+#                        shuffle=False,
+#                        batch_size=h_params["batch_size"], 
+#                        num_workers=h_params["num_workers"],
+#                        collate_fn=collate_fn)
 
-model.eval()
-metrics_dict = {}
-with torch.no_grad():
-    for batch in tqdm(test_loader):
-        try:
-            outputs = model(
-                pixel_values=batch["pixel_values"].to(device),
-                mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
-                class_labels=[labels.to(device) for labels in batch["class_labels"]]
-            )
-        except RuntimeError as e:
-            print(f"Error in batch {idx}: {e}")
-            continue
-
-print("Final test accuracy:\n")
-print(f"Metrics: {metrics}")
-
-
-# running_loss = 0.0
-# num_samples = 0
-# for epoch in range(100):
-#     print("Epoch:", epoch)
-#     model.train()
-#     for idx, batch in enumerate(tqdm(train_dataloader)):
-#         # Reset the parameter gradients
-#         optimizer.zero_grad()
-
-#         # Forward pass
-#         outputs = model(
+# model.eval()
+# metrics_dict = {}
+# with torch.no_grad():
+#     for idx, batch in enumerate(tqdm(test_loader)):
+#         try:
+#             outputs = model(
 #                 pixel_values=batch["pixel_values"].to(device),
 #                 mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
-#                 class_labels=[labels.to(device) for labels in batch["class_labels"]],
-#         )
+#                 class_labels=[labels.to(device) for labels in batch["class_labels"]]
+#             )
+#         except RuntimeError as e:
+#             print(f"Error in batch {idx}: {e}")
+#             continue
 
-#         # Backward propagation
-#         loss = outputs.loss
-#         loss.backward()
-
-#         batch_size = batch["pixel_values"].size(0)
-#         running_loss += loss.item()
-#         num_samples += batch_size
-
-#         if idx % 100 == 0:
-#             print("Loss:", running_loss/num_samples)
-
-#         # Optimization
-#         optimizer.step()
+# print("Final test accuracy:\n")
+# print(f"Metrics: {metrics}")
