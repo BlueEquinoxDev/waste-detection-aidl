@@ -17,10 +17,10 @@ h_params ={
     "num_workers": 0,
 }
 
-sed=23
-torch.manual_seed(sed)
-random.seed(sed)
-np.random.seed(sed)
+seed=23
+torch.manual_seed(seed)
+random.seed(seed)
+np.random.seed(seed)
 
 #can cause differents algorithms in subsecuents runs 
 # (False reduce performance but use the same algorithm always)

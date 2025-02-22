@@ -143,10 +143,4 @@ class WasteMaskRCNN(nn.Module):
                     })
                 
                 return processed_detections, processed_images
-        
-        
-        
-
-    
-        
-
+            

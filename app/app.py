@@ -1,4 +1,8 @@
-from flask import Flask, flash, request, redirect, send_file,url_for,send_from_directory
+from flask import Flask, flash, request, redirect, send_file, url_for, send_from_directory, jsonify
+from werkzeug.utils import secure_filename
+import io
+import base64
+
 import os
 import logging
 import pathlib
@@ -6,14 +10,16 @@ import pathlib
 import torch
 from PIL import Image
 
-from model.vits import ViT
+#from model.vits import ViT
+from app.model.wastemaskrcnn import WasteMaskRCNN
 
 from torchvision import transforms
 
 UPLOAD_FOLDER = '/tmp'
-ALLOWED_EXTENSIONS = {'jpg'}
-FILE_NAME="sample.jpg"
-
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+FILE_NAME = "sample.jpg"
+MASK_RCNN_CHECKPOINT = "checkpoint_epoch_8_2025_2_18_21_53.pt"
+IDX2CLASS = None
 MODEL=None
 
 app = Flask(__name__)
@@ -21,83 +27,119 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['FILE_NAME']=FILE_NAME
 
+def _load_MASK_RCNN():
+    global MODEL, IDX2CLASS
+    checkpoint_path = pathlib.Path(__file__).parent.absolute() / os.path.join("checkpoint", MASK_RCNN_CHECKPOINT)
+
+    checkpoint = torch.load(checkpoint_path, weights_only=True, map_location=torch.device('cpu'))
+
+    IDX2CLASS = checkpoint['idx2classes']
+    MODEL=WasteMaskRCNN(num_classes=len(IDX2CLASS))
+    MODEL.load_state_dict(checkpoint['model_state_dict'])
+
+
 with app.app_context():
     # First load into memory the variables that we will need to predict
-    checkpoint_path = pathlib.Path(__file__).parent.absolute() / "checkpoint/checkpoint.pt"
-    checkpoint = torch.load(checkpoint_path)
+    _load_MASK_RCNN()
+    
 
-    MODEL = ViT(checkpoint['img_size'],
-            checkpoint['patch_size'],
-            checkpoint['num_hiddens'],
-            checkpoint['mlp_num_hiddens'],
-            checkpoint['num_heads'],
-            checkpoint['num_blks'],
-            checkpoint['emb_dropout'],
-            checkpoint['blk_dropout'])
-    
-    
+def predict_images(images):
+    detections, processed_images = MODEL.evaluate(images=images, idx2class=IDX2CLASS, preprocessing=True)
+    return detections, processed_images
+
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-           
-def __process_file__(request):
-    if 'file' not in request.files:
-            flash('No file part')
-            return redirect(request.url)
-    file = request.files['file']
-    # If the user does not select a file, the browser submits an
-    # empty file without a filename.
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(request.url)
-    if file and allowed_file(file.filename):
-        file_name =app.config['FILE_NAME']
-        path_file=os.path.join(app.config['UPLOAD_FOLDER'], file_name)
-        if os.path.exists(path_file):
-            os.remove(path_file)
-        file.save(path_file)
-        
-        img=Image.open(path_file)
 
-        x=transforms.functional.pil_to_tensor(img)
 
-        predict=MODEL(x.view((1,1,28,28)).float())
-        distribution=torch.nn.Softmax(dim=-1)(predict)
-        distribution=distribution.detach().cpu().numpy()
-        predict=torch.argmax(torch.nn.Softmax(dim=-1)(predict))
-        predict=predict.cpu().item()
+def process_file(request):
+    images = request.files.to_dict(flat=False)
+
+    saved_files = []
+
+    for image in images:
+        # Use secure_filename to avoid directory traversal and other filename issues
+        filename = secure_filename(image)
+        if filename == '':
+            return jsonify({"error": "No selected file"}), 400
         
-        return {
-            "distribution":distribution.tolist(),
-            "predict":predict
-        }
-        
-    else:
-        flash('file not allowed')
-        return redirect(request.url)
+        if not image or not allowed_file(filename):
+            return jsonify({"error": f"File '{filename}' has an invalid extension."}), 400
+        else:
+            try:
+                encoded_image = images[image][0].read()
+    
+                image_bytes = base64.b64decode(encoded_image)
+                # Wrap the bytes in a BytesIO object
+                image_stream = io.BytesIO(image_bytes)
+                # Open the image using Pillow
+                img = Image.open(image_stream)
+                print(type(img))
+                img.verify()  # Verifies that it's a valid image format
+                img = Image.open(image_stream)
+                # If you need to use the image again (e.g., for saving), reset the stream pointer
+                image_stream.seek(0)
+
+                saved_files.append(img)
+                """
+                # Read the image bytes for validation
+                img_bytes = images[image][0].read()
+                
+                image_stream = io.BytesIO(img_bytes)
+                
+                # Attempt to open the image using Pillow
+                img = Image.open(image_stream)
+                img.verify()  # Verifies that it's a valid image format
+                img = Image.open(image_stream)
+                # If you need to use the image again (e.g., for saving), reset the stream pointer
+                image_stream.seek(0)
+
+                saved_files.append(img)
+                """
+            except Exception as e:
+                return jsonify({"error": f"File '{filename}' is not a valid image: {str(e)}"}), 400
+
+    return saved_files, 200
+
     
 @app.route('/')
 def hello():
-	return "Hello World!"
+	return "Waste Detection AIDL API"
 
 
-@app.route('/upload', methods=['GET'])
-def upload_file():    
-    return '''
-    <!doctype html>
-    <title></title>
-    <h1>Classification of FashionMNIST from ViT</h1>
-    <form method="post" enctype="multipart/form-data" id="multipart">
-      <input type="file" name="file"/>
-      <input type="submit" value="predict" formaction ="predict" />
-    </form>
-    '''
 @app.route('/predict', methods=['POST'])
-def show_file():    
-    preditc=__process_file__(request)    
-    return preditc
+def run_user_request():
+    output, status = process_file(request)
+    if status == 400:
+        return output, 400
+    else:
+        images = output
+        print(images)
+    detections, processed_images = predict_images(images=images) 
+    #[Image. for img in processed_images]
+    #
+    #"images": processed_images,
+    
+    encoded_imgs = []
+    for img in processed_images:
+        rawBytes = io.BytesIO()
+        img.save(rawBytes, "PNG")
+        rawBytes.seek(0)
+        encoded_img = base64.b64encode(rawBytes.read())
+        encoded_imgs.append(str(encoded_img, encoding='utf-8'))
+    
+    return jsonify({"detections": detections, "encoded_images": encoded_imgs}), 200
 
+
+@app.errorhandler(400)
+def server_error(e):
+    logging.exception('An error occurred during a request.')
+    return """
+    An internal error occurred: <pre>{}</pre>
+    See logs for full stacktrace.
+    """.format(e), 400
 
 if __name__ == '__main__':
-	app.run(host='0.0.0.0', port=8000,debug=True)
+	app.run(host='0.0.0.0', port=8000, debug=True)
  
