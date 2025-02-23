@@ -18,3 +18,4 @@ accelerate>=0.26.0
 datasets
 tensorboard
 flask
+dotenv

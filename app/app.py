@@ -1,5 +1,6 @@
-from flask import Flask, flash, request, redirect, send_file, url_for, send_from_directory, jsonify
+from flask import Flask, flash, request, render_template, redirect, send_file, url_for, send_from_directory, jsonify, flash
 from werkzeug.utils import secure_filename
+
 import io
 import base64
 
@@ -12,20 +13,22 @@ from PIL import Image
 
 #from model.vits import ViT
 from app.model.wastemaskrcnn import WasteMaskRCNN
-
-from torchvision import transforms
+from dotenv import load_dotenv
+load_dotenv()
 
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 FILE_NAME = "sample.jpg"
 MASK_RCNN_CHECKPOINT = "checkpoint_epoch_8_2025_2_18_21_53.pt"
 IDX2CLASS = None
-MODEL=None
+MODEL = None
+PREDICT_IMAGE = None
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY")
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-app.config['FILE_NAME']=FILE_NAME
+#app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+#app.config['FILE_NAME']=FILE_NAME
 
 def _load_MASK_RCNN():
     global MODEL, IDX2CLASS
@@ -39,7 +42,6 @@ def _load_MASK_RCNN():
 
 
 with app.app_context():
-    # First load into memory the variables that we will need to predict
     _load_MASK_RCNN()
     
 
@@ -55,7 +57,7 @@ def allowed_file(filename):
 
 def process_file(request):
     images = request.files.to_dict(flat=False)
-
+    print(images)
     saved_files = []
 
     for image in images:
@@ -82,30 +84,21 @@ def process_file(request):
                 image_stream.seek(0)
 
                 saved_files.append(img)
-                """
-                # Read the image bytes for validation
-                img_bytes = images[image][0].read()
-                
-                image_stream = io.BytesIO(img_bytes)
-                
-                # Attempt to open the image using Pillow
-                img = Image.open(image_stream)
-                img.verify()  # Verifies that it's a valid image format
-                img = Image.open(image_stream)
-                # If you need to use the image again (e.g., for saving), reset the stream pointer
-                image_stream.seek(0)
 
-                saved_files.append(img)
-                """
             except Exception as e:
                 return jsonify({"error": f"File '{filename}' is not a valid image: {str(e)}"}), 400
 
     return saved_files, 200
 
     
-@app.route('/')
+@app.route('/', methods=['GET'])
 def hello():
-	return "Waste Detection AIDL API"
+    global PREDICT_IMAGE
+    if PREDICT_IMAGE is None:
+        print("here in hello")
+        return render_template("index.html", image="")
+    else:
+        return render_template("index.html", image=PREDICT_IMAGE)
 
 
 @app.route('/predict', methods=['POST'])
@@ -117,9 +110,6 @@ def run_user_request():
         images = output
         print(images)
     detections, processed_images = predict_images(images=images) 
-    #[Image. for img in processed_images]
-    #
-    #"images": processed_images,
     
     encoded_imgs = []
     for img in processed_images:
@@ -131,6 +121,67 @@ def run_user_request():
     
     return jsonify({"detections": detections, "encoded_images": encoded_imgs}), 200
 
+
+@app.route('/upload_image', methods=['GET', 'POST'])
+def upload_image_web():
+    "Saves one image in memory to predict" 
+    global PREDICT_IMAGE
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            print('No file attached in request')
+            flash("No Image to upload, try selecting one image.")
+            return redirect(url_for("hello"))
+        file = request.files['file']
+        if file.filename == '':
+            print('No file attached in request')
+            flash("No Image to upload, try selecting one image.")
+            return redirect(url_for("hello"))
+        if file:
+            if not allowed_file(file.filename):
+                return jsonify({"error": f"File '{file.filename}' has an invalid extension."}), 400
+            #filename = secure_filename(file.filename)
+            img = Image.open(file.stream)
+            with io.BytesIO() as buf:
+                img.save(buf, 'jpeg')
+                image_bytes = buf.getvalue()
+            encoded_string = base64.b64encode(image_bytes).decode("utf-8")
+            PREDICT_IMAGE = encoded_string
+        return render_template('index.html', image=encoded_string), 200
+    else:
+        return redirect(url_for("hello")), 200
+
+
+@app.route('/predict_web_image', methods=['POST'])
+def run_user_request_web():
+    """ Makes a prediction using a model for image segmentation"""
+    global PREDICT_IMAGE
+    if PREDICT_IMAGE is None:
+        return redirect(url_for("hello"))
+    else:
+        image_bytes = base64.b64decode(PREDICT_IMAGE)
+        # Wrap the bytes in a BytesIO object
+        image_stream = io.BytesIO(image_bytes)
+        # Open the image using Pillow
+        img = Image.open(image_stream)
+        img.verify()  # Verifies that it's a valid image format
+        img = Image.open(image_stream)
+                    # If you need to use the image again (e.g., for saving), reset the stream pointer
+        image_stream.seek(0)
+
+        _, processed_images = predict_images(images=[img]) 
+        
+        rawBytes = io.BytesIO()
+        processed_images[0].save(rawBytes, "PNG")
+        rawBytes.seek(0)
+
+        encoded_string = base64.b64encode(rawBytes.read()).decode("utf-8")
+    return render_template('index.html', image=encoded_string), 200
+
+@app.route('/restart', methods=['POST'])
+def restart():
+    global PREDICT_IMAGE
+    PREDICT_IMAGE = None
+    return redirect(url_for("hello"))
 
 @app.errorhandler(400)
 def server_error(e):

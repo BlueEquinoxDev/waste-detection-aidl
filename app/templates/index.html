@@ -1,0 +1,60 @@
+<html lang="en">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
+    <head>
+        <meta name="description" content="Project for AIDL Postgraduate course at UPC" />
+        <meta name="author" content="Martí Fabregat, Rafel Febrer, Ferran Miró and Miquel Ortiz" />
+        <title>AIDL Waste Detection API</title>
+        <link
+            rel="icon"
+            type="image/x-icon"
+            href="{{ url_for('static', filename='assets/favicon.ico') }}"
+        />
+    </head>
+    <header>
+        <div class="container">
+            <h1>AIDL Waste Detection API</h1>
+            <p>I am your waste guru, show me a picture and I will tell you where the waste is.</p>
+        </div>
+    </header>
+    <body>
+        <div class="container">
+            {% if not image %}
+            <form action="/upload_image" method="post" enctype="multipart/form-data">
+                <p><input type="file" id="file" name="file"><input type="submit" name="upload" value="Upload"></p>
+            </form>
+            {% endif %}
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                {% for message in messages %}
+                    <p class="flash">{{ message }}</p>
+                {% endfor %}
+                {% endif %}
+            {% endwith %}
+            {% if image %}
+            <div class="square">
+                <img src="data:image/jpeg;base64,{{ image }}" id="img-upload" alt="img_data" class="img-upload"/>
+            </div>
+            <form action="/predict_web_image" method="post">
+                <p><input type="submit" name="predict" value="Predict" class="predict_button"></p>
+            </form>
+            <form action="/restart" method="post">
+                <p><input type="submit" name="Restart" value="Try a different image" class="restart_button"></p>
+            </form>
+            {% endif %}
+        </div>
+    </body>
+    <footer>
+        <div class="container">       
+            <div class="gitline">
+                <p><a href="https://github.com/BlueEquinoxDev/waste-detection-aidl">Check our github repository </a></p>
+                <img src="{{ url_for('static', filename='assets/img/github.svg') }}" alt="Github logo" class="git_logo"/>
+            </div>
+            <div class="gitline">
+                <p>Developed by: Martí Fabregat, Rafel Febrer, Ferran Miró and Miquel Ortiz</p>
+            </div>
+            <div class="gitline">
+                <p>AIDL Postgraduate Course by UPC School 2025</p>
+            </div>
+        </div>
+    </footer>
+</html>
