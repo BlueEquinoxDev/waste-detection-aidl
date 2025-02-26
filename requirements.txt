@@ -16,6 +16,6 @@ opencv-python
 transformers
 accelerate>=0.26.0
 datasets
-tensorboard
+albumentations
 flask
 dotenv

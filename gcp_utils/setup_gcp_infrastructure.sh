@@ -37,16 +37,18 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "Script directory: $SCRIPT_DIR"
 
 # Create the VM instance
+# Create the VM instance
 gcloud compute instances create "$VM_NAME" \
   --zone="$LOCATION"-b \
-  --machine-type=e2-micro \
-  --image-family=debian-11 \
-  --image-project=debian-cloud \
-  --boot-disk-size=30GB \
+  --machine-type=g2-standard-4 \
+  --accelerator=count=1,type=nvidia-l4 \
+  --create-disk=auto-delete=yes,boot=yes,device-name=instance-20250215-111128,image=projects/ubuntu-os-accelerator-images/global/images/ubuntu-accelerator-2204-amd64-with-nvidia-550-v20250213,mode=rw,size=30,type=pd-balanced \
+  --maintenance-policy=TERMINATE \
+  --provisioning-model=STANDARD \
   --tags=http-server,https-server \
   --service-account="my-vm-service-account@$PROJECT_ID.iam.gserviceaccount.com" \
   --metadata-from-file startup-script="$SCRIPT_DIR/startup_script.sh"
 
 # Echo the public IP address of the VM
-VM_PUBLIC_IP=$(gcloud compute instances describe "$VM_NAME" --zone="$LOCATION"-a --format="get(networkInterfaces[0].accessConfigs[0].natIP)")
+VM_PUBLIC_IP=$(gcloud compute instances describe "$VM_NAME" --zone="$LOCATION"-b --format="get(networkInterfaces[0].accessConfigs[0].natIP)")
 echo "The public IP address of the VM is: $VM_PUBLIC_IP"

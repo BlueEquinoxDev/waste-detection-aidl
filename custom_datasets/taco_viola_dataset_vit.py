@@ -2,15 +2,12 @@ from torch.utils.data import Dataset
 from pycocotools.coco import COCO
 import os
 from PIL import Image, ImageOps
-#from utilities.config_utils import TaskType, ClassificationCategoryType
-#from utilities.get_supercategory_by_id import get_supercategory_by_id
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 import torch
 from torchvision.transforms import v2 as transforms
 import json
-from utilities.get_supercategory_by_id import get_supercategory_map
 
 class TacoViolaDatasetViT(Dataset):
     """
@@ -233,8 +230,8 @@ class TacoViolaDatasetViT(Dataset):
         # plt.title('Transformed Image')
         # plt.show()
 
-        print(f"TACO IMAGE ******: {type(transformed_img)}")
-        print(f"TACO IMAGE ******: {transformed_img.size()}")
+        # print(f"TACO IMAGE ******: {type(transformed_img)}")
+        # print(f"TACO IMAGE ******: {transformed_img.size()}")
 
         return {
             'pixel_values': transformed_img,
