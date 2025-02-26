@@ -3,36 +3,6 @@ from sklearn.model_selection import train_test_split
 import argparse
 import os
 
-# Parse arguments
-parser = argparse.ArgumentParser(description='Split dataset into training, validation and testing sets')
-parser.add_argument('--dataset_dir', required=False, help='Path to dataset annotations', type=str, default="./data")
-parser.add_argument('--test_percentage', required=False, help='Percentage of images used for the testing set', type=float, default=0.10)
-parser.add_argument('--val_percentage', required=False, help='Percentage of images used for the validation set', type=float, default=0.10)
-parser.add_argument('--seed', required=False, help='Random seed for the split', type=int, default=123)
-parser.add_argument('--verbose', required=False, help='Print information about the split', type=bool, default=False)
-
-args = parser.parse_args()
-
-# Get annotations path
-ann_input_path = os.path.join(args.dataset_dir, 'annotations.json')
-
-# Check if the annotations file exists
-assert os.path.exists(ann_input_path), 'Annotations file not found'
-if args.verbose: print('Annotations file found...')
-
-# Load COCO annotations
-with open(ann_input_path, 'r') as f:
-    coco_data = json.load(f)
-if args.verbose: print('Annotations file loaded...')
-
-# Get image IDs
-image_ids = [image['id'] for image in coco_data['images']]
-
-# Split COCO annotations based on image IDs in training, validation and testing sets
-train_val_ids, test_ids = train_test_split(image_ids, test_size=args.test_percentage, random_state=args.seed)
-train_ids, val_ids = train_test_split(train_val_ids, test_size=args.val_percentage/(1-args.test_percentage), random_state=args.seed)
-if args.verbose: print('Annotations split...')
-
 # Define a function to filter data based on image IDs
 def filter_coco_data(image_ids, coco_data):
     return {
@@ -44,6 +14,93 @@ def filter_coco_data(image_ids, coco_data):
         'categories': coco_data['categories'],
         'scene_categories': coco_data['scene_categories']
     }
+    
+def make_taco_annotations_28_categories():
+
+    taco28_annotation={
+        'info': coco_data['info'],
+        'images': coco_data['images'],
+        'annotations':None,        
+        'licenses': coco_data['licenses'],
+        'categories': None,
+        'scene_categories':[],
+        'scene_annotations':[]
+    }
+    
+    #categories
+    categories_names=sorted(set([c['supercategory'] for c in coco_data['categories']]))
+    taco28_annotation['categories']=[{'supercategory': o,'id':i+1,'name':o}  for i, o in enumerate(categories_names)]
+    taco28_annotation['categories'].append({'supercategory': 'Background','id':0,'name':'Background'})
+    
+    #annotations
+    map=[{'id':o['id'],'category':o['supercategory']} for o in coco_data['categories']]
+    def find_supercategory_name(id):
+        return list(filter(lambda o: o['id']==id,map))[0]['category']
+    
+    def find_supercategory_28_id(supercategory_name):
+        return list(filter(lambda o: o['supercategory']==supercategory_name,taco28_annotation['categories']))[0]['id']
+        
+    def change_annotation(a):
+        old_category_id=a['category_id']
+        new_category_id=find_supercategory_28_id(find_supercategory_name(old_category_id))
+        a['category_id']=new_category_id
+        return a
+    
+    taco28_annotation['annotations']=[change_annotation(a) for a in coco_data['annotations']]
+    
+    return taco28_annotation
+
+# Parse arguments
+parser = argparse.ArgumentParser(description='Split dataset into training, validation and testing sets')
+parser.add_argument('--dataset_dir', required=True, help='Path to dataset annotations', type=str)
+parser.add_argument('--test_percentage', required=False, help='Percentage of images used for the testing set', type=float, default=0.10)
+parser.add_argument('--val_percentage', required=False, help='Percentage of images used for the validation set', type=float, default=0.10)
+parser.add_argument('--seed', required=False, help='Random seed for the split', type=int, default=123)
+parser.add_argument('--verbose', required=False, help='Print information about the split', type=bool, default=False)
+parser.add_argument('--taco28', required=False, help='Generate annotation file for 28 catetories', type=bool, default=False)
+parser.add_argument('--annotation_file', required=False, help='File name of annotations', type=str,default=None)
+
+args = parser.parse_args()
+
+# Get annotations path
+if args.annotation_file==None:
+    ann_input_path = os.path.join(args.dataset_dir, 'annotations.json')
+    train_output_path = os.path.join(args.dataset_dir,'train_annotations.json')
+    val_output_path = os.path.join(args.dataset_dir,'validation_annotations.json')
+    test_output_path = os.path.join(args.dataset_dir,'test_annotations.json')
+else:
+    ann_input_path = os.path.join(args.dataset_dir, 'annotations28.json')
+    train_output_path = os.path.join(args.dataset_dir,'train_annotations28.json')
+    val_output_path = os.path.join(args.dataset_dir,'validation_annotations28.json')
+    test_output_path = os.path.join(args.dataset_dir,'test_annotations28.json')
+    
+# Check if the annotations file exists
+assert os.path.exists(ann_input_path), 'Annotations file not found'
+if args.verbose: print('Annotations file found...')
+
+# Load COCO annotations
+with open(ann_input_path, 'r') as f:
+    coco_data = json.load(f)
+if args.verbose: print('Annotations file loaded...')
+
+#Create a file of annotations with 28 supercategories
+if args.taco28: 
+    print('Create a file of annotations with 28 supercategories annotations28.json...')
+    ann28_path = os.path.join(args.dataset_dir, 'annotations28.json')
+    with open(ann28_path, 'w') as f:
+        annotationns28=make_taco_annotations_28_categories()
+        json.dump(annotationns28, f)
+    exit(0)
+
+# Get image IDs
+image_ids = [image['id'] for image in coco_data['images']]
+
+# Split COCO annotations based on image IDs in training, validation and testing sets
+train_val_ids, test_ids = train_test_split(image_ids, test_size=args.test_percentage, random_state=args.seed)
+train_ids, val_ids = train_test_split(train_val_ids, test_size=args.val_percentage/(1-args.test_percentage), random_state=args.seed)
+
+if args.verbose: print('Annotations split...')
+
 
 # Create new annotations for training, validation and test sets
 if args.verbose: print('Filtering annotations acording to the split...')
@@ -52,12 +109,8 @@ val_dataset = filter_coco_data(val_ids, coco_data)
 test_dataset = filter_coco_data(test_ids, coco_data)
 if args.verbose: print('Filtering completed...')
 
-# Save the splited COCO annotations in different files
-train_output_path = os.path.join(args.dataset_dir,'train_annotations.json')
-val_output_path = os.path.join(args.dataset_dir,'validation_annotations.json')
-test_output_path = os.path.join(args.dataset_dir,'test_annotations.json')
 
-# Make the new json files with the new annotations
+# Save the splited COCO annotations in different files
 if args.verbose: print('Creating train_annotations.json...')
 with open(train_output_path, 'w') as f:
     json.dump(train_dataset, f)

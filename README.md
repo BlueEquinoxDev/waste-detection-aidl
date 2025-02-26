@@ -46,6 +46,8 @@ python split_dataset.py --dataset_dir ./data [--test_percentage 0.1] [--val_perc
 * Use ``--val_percentage`` if you want to use a validation split different than default 0.1 (10%).
 * Use ``--seed`` if you want to have a different random output. Default 123.
 * Use ``--verbose`` if you want to have printed text on the console during execution.
+* Use ``--taco28``  if you want generate a annotation.json file with 28 supercaegories
+* Use ``--annotation_filename``  if you want to inform a diferent file of annotations to split
 
 ### Dataset Classes
 
