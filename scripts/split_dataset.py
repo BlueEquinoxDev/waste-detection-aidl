@@ -57,22 +57,12 @@ parser.add_argument('--test_percentage', required=False, help='Percentage of ima
 parser.add_argument('--val_percentage', required=False, help='Percentage of images used for the validation set', type=float, default=0.10)
 parser.add_argument('--seed', required=False, help='Random seed for the split', type=int, default=123)
 parser.add_argument('--verbose', required=False, help='Print information about the split', type=bool, default=False)
-parser.add_argument('--taco28', required=False, help='Generate annotation file for 28 catetories', type=bool, default=False)
-parser.add_argument('--annotation_file', required=False, help='File name of annotations', type=str,default=None)
+parser.add_argument('--dataset_type', required=False, help='Type of dataset to be used, it can be taco28, taco5 or taco_viola', type=str, default='taco28')
 
 args = parser.parse_args()
 
 # Get annotations path
-if args.annotation_file==None:
-    ann_input_path = os.path.join(args.dataset_dir, 'annotations.json')
-    train_output_path = os.path.join(args.dataset_dir,'train_annotations.json')
-    val_output_path = os.path.join(args.dataset_dir,'validation_annotations.json')
-    test_output_path = os.path.join(args.dataset_dir,'test_annotations.json')
-else:
-    ann_input_path = os.path.join(args.dataset_dir, 'annotations28.json')
-    train_output_path = os.path.join(args.dataset_dir,'train_annotations28.json')
-    val_output_path = os.path.join(args.dataset_dir,'validation_annotations28.json')
-    test_output_path = os.path.join(args.dataset_dir,'test_annotations28.json')
+ann_input_path = os.path.join(args.dataset_dir, 'annotations.json')
     
 # Check if the annotations file exists
 assert os.path.exists(ann_input_path), 'Annotations file not found'
@@ -84,13 +74,25 @@ with open(ann_input_path, 'r') as f:
 if args.verbose: print('Annotations file loaded...')
 
 #Create a file of annotations with 28 supercategories
-if args.taco28: 
-    print('Create a file of annotations with 28 supercategories annotations28.json...')
-    ann28_path = os.path.join(args.dataset_dir, 'annotations28.json')
-    with open(ann28_path, 'w') as f:
+custom_annotations_path = None
+if args.dataset_type.lower() == "taco28": 
+    if args.verbose: print('Create a file of annotations with 28 supercategories annotations28.json...')
+    custom_annotations_path = os.path.join(args.dataset_dir, 'annotations28.json')
+    with open(custom_annotations_path, 'w') as f:
         annotationns28=make_taco_annotations_28_categories()
         json.dump(annotationns28, f)
-    exit(0)
+#    exit(0)
+elif args.dataset_type.lower() == "taco5":
+    pass
+elif args.dataset_type.lower() == "taco_viola":
+    pass
+else:
+    raise ValueError('No annotation file selected, select one of the following: --taco28, --taco5, --taco_viola')
+
+# Load COCO annotations for the dataset to be used
+with open(custom_annotations_path, 'r') as f:
+    coco_data = json.load(f)
+if args.verbose: print(f'Annotations file {custom_annotations_path} loaded...')
 
 # Get image IDs
 image_ids = [image['id'] for image in coco_data['images']]
@@ -100,7 +102,6 @@ train_val_ids, test_ids = train_test_split(image_ids, test_size=args.test_percen
 train_ids, val_ids = train_test_split(train_val_ids, test_size=args.val_percentage/(1-args.test_percentage), random_state=args.seed)
 
 if args.verbose: print('Annotations split...')
-
 
 # Create new annotations for training, validation and test sets
 if args.verbose: print('Filtering annotations acording to the split...')
@@ -112,14 +113,17 @@ if args.verbose: print('Filtering completed...')
 
 # Save the splited COCO annotations in different files
 if args.verbose: print('Creating train_annotations.json...')
+train_output_path = os.path.join(args.dataset_dir, 'train_annotations.json')
 with open(train_output_path, 'w') as f:
     json.dump(train_dataset, f)
 
 if args.verbose: print('Creating validation_annotations.json...')
+val_output_path = os.path.join(args.dataset_dir, 'validation_annotations.json')
 with open(val_output_path, 'w') as f:
     json.dump(val_dataset, f)
 
 if args.verbose: print('Creating test_annotations.json...')
+test_output_path = os.path.join(args.dataset_dir, 'test_annotations.json')
 with open(test_output_path, 'w') as f:
     json.dump(test_dataset, f)
 
