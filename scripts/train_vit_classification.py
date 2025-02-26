@@ -152,8 +152,8 @@ else:
 
 print(f"Number of classes: {num_classes} | Label names: {label_names}")
 
-# model = WasteViT(num_classes=num_classes, id2label = id2label, label2id = label2id)
-model = WasteViT(checkpoint="results/cls-vit-taco39viola11-20250218-200130/checkpoint-5620")
+model = WasteViT(num_classes=num_classes, id2label = id2label, label2id = label2id)
+#model = WasteViT(checkpoint="results/cls-vit-taco39viola11-20250218-200130/checkpoint-5620")
 
 logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")

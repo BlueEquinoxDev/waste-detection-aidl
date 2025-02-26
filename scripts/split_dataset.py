@@ -50,6 +50,42 @@ def make_taco_annotations_28_categories():
     
     return taco28_annotation
 
+
+def make_taco_annotations_5_categories():
+    taco5_annotation={
+        'info': coco_data['info'],
+        'images': None,
+        'annotations':None,        
+        'licenses': coco_data['licenses'],
+        'categories': None,
+        'scene_categories':[],
+        'scene_annotations':[]
+    }
+    
+    # Load the taco5_categories.json file
+    taco5_categories_path = os.path.join(args.dataset_dir, 'taco5_categories.json')
+    with open(taco5_categories_path, 'r') as f:
+        taco5_categories = json.load(f)
+    
+    #categories
+    cluster_class_to_idx = {cls_name: idx for idx, cls_name in enumerate(taco5_categories.keys())}
+    idx_to_cluster_class = {idx: cls_name for idx, cls_name in enumerate(cluster_class_to_idx.keys())}
+    idx_to_keep = set(cluster_class_to_idx.values())
+    taco5_annotation['categories']=[{'supercategory': idx_to_cluster_class[c['id']], 'id':i+1,'name':idx_to_cluster_class[c['id']]} for i, c in enumerate(coco_data['categories']) if c['id'] in idx_to_keep]
+    taco5_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
+    map2taco5={c['id']:i+1 for i, c in enumerate(coco_data['categories']) if c['id'] in idx_to_keep}
+    
+    #annotations
+    taco5_annotation['annotations'] = [a for a in coco_data['annotations'] if a['category_id'] in idx_to_keep]
+    for a in taco5_annotation['annotations']:
+        a['category_id']=map2taco5[a['category_id']]
+    
+    #images
+    image_ids = set([a['image_id'] for a in taco5_annotation['annotations']])
+    taco5_annotation['images'] = [i for i in coco_data['images'] if i['id'] in image_ids]
+    
+    return taco5_annotation
+
 # Parse arguments
 parser = argparse.ArgumentParser(description='Split dataset into training, validation and testing sets')
 parser.add_argument('--dataset_dir', required=True, help='Path to dataset annotations', type=str)
@@ -83,7 +119,11 @@ if args.dataset_type.lower() == "taco28":
         json.dump(annotationns28, f)
 #    exit(0)
 elif args.dataset_type.lower() == "taco5":
-    pass
+    if args.verbose: print('Create a file of annotations with 5 categories annotations5.json...')
+    custom_annotations_path = os.path.join(args.dataset_dir, 'annotations5.json')
+    with open(custom_annotations_path, 'w') as f:
+        annotationns5=make_taco_annotations_5_categories()
+        json.dump(annotationns5, f)
 elif args.dataset_type.lower() == "taco_viola":
     pass
 else:

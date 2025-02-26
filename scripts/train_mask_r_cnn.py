@@ -77,11 +77,11 @@ def collate_fn(batch):
     return tuple(zip(*batch))
 
 # Generate datasets for train & validation
-train_taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/train_annotations28.json",
+train_taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/train_annotations.json",
                                        img_dir="data/images",
                                        transforms=data_transforms_train)
 
-validation_taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/validation_annotations28.json",
+validation_taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/validation_annotations.json",
                                             img_dir="data/images",
                                             transforms=data_transforms_validation)
 
