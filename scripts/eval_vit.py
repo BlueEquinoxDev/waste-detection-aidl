@@ -1,19 +1,17 @@
 import torch
 from PIL import Image
-from transformers import ViTForImageClassification, ViTImageProcessor
 from datasets import load_dataset
 from custom_datasets.viola77_dataset import Viola77Dataset
+from model.waste_vit import WasteViT
 import random
 
-def eval_vit(model_path = "results/checkpoint-2810", image_path = None):
+def eval_vit(model_path = "results/cls-vit-taco5-20250215-113551/checkpoint-900", image_path = None):
     
-    # Load the model
-    model = ViTForImageClassification.from_pretrained(model_path)
-    model.eval()
+    # Create an instance of the model with the checkpoint
+    model = WasteViT(checkpoint=model_path)
 
-    # Load the feature extractor
-    feature_extractor = ViTImageProcessor.from_pretrained(model_path)
 
+    ### Load an image ### 
     # Load the dataset
     dataset = load_dataset("viola77data/recycling-dataset", split="train")
     
@@ -33,7 +31,8 @@ def eval_vit(model_path = "results/checkpoint-2810", image_path = None):
         # If a path is provided, open it
         image = Image.open(image_path)
 
-    inputs = feature_extractor(images=image, return_tensors="pt")
+    # Apply transforms to the image to match the model's requirements
+    inputs = model.feature_extractor(images=image, return_tensors="pt")
 
     # Perform inference
     with torch.no_grad():

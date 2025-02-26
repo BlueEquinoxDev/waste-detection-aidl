@@ -1,13 +1,20 @@
 #!/bin/bash
 
-# Set Variables
-BUCKET_NAME="aidl2025-waste-models"
-LOCAL_CHECKPOINT_PATH="./results/checkpoint-2810"  # Folder containing checkpoint files
-GCS_DESTINATION_PATH="models"  # Base folder in GCS
+# Check if all required arguments are provided
+if [ "$#" -ne 3 ]; then
+    echo "Usage: $0 <local_checkpoint_path> <model_name> <dataset_name>"
+    echo "Example: $0 ./results/seg-mask2former-taco-20240220-123456 MaskFormer TACO"
+    exit 1
+fi
 
-# Define Model and Dataset Names
-MODEL_NAME="ViT"  # Change to your model name
-DATASET_NAME="Viola_TACO"  # Change to the dataset name used to fine-tune the model
+# Set Variables from arguments
+LOCAL_CHECKPOINT_PATH="$1"  # Folder containing checkpoint files
+MODEL_NAME="$2"            # Model name
+DATASET_NAME="$3"          # Dataset name
+
+# Set fixed Variables
+BUCKET_NAME="aidl2025-waste-models"
+GCS_DESTINATION_PATH="models"  # Base folder in GCS
 
 # Generate timestamp (YYYYMMDDHHMM)
 TIMESTAMP=$(date +"%Y%m%d%H%M")
