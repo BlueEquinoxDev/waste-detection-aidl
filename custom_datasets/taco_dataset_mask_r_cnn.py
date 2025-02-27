@@ -74,7 +74,7 @@ class TacoDatasetMaskRCNN(Dataset):
         #dtype=torch.uint8, 
         #device=self.device)
         target["labels"] = torch.tensor(labels, dtype=torch.int64)
-        target["image_id"] = idx
+        target["image_id"] = img_id
         #target["area"] =torch.tensor(areas)
         #target["iscrowd"] =torch.zeros( len(labels,), dtype=torch.int64)
 
