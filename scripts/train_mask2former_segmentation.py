@@ -1,10 +1,10 @@
 from torch.utils.data import DataLoader
-from transformers import MaskFormerImageProcessor
+from transformers import MaskFormerImageProcessor, MaskFormerConfig
 import numpy as np
 from custom_datasets.taco_dataset_mask2former import TacoDatasetMask2Former 
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-from transformers import MaskFormerForInstanceSegmentation
+from transformers import MaskFormerForInstanceSegmentation, AutoImageProcessor, Mask2FormerForUniversalSegmentation
 import torch
 from tqdm.auto import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -17,7 +17,7 @@ h_params ={
     "num_workers": 0,
 }
 
-experiment_name = "seg-mask2former-taco"
+experiment_name = "seg-mask2former-taco-original-no_backbone_frezze-no_augmentation"
 logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
@@ -25,31 +25,33 @@ results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strfti
 # Initialize Tensorboard Writer with the previous folder 'logdir'
 writer=SummaryWriter(log_dir=logdir)
 
-processor = MaskFormerImageProcessor(
-    reduce_labels=True,
-    ignore_index=255,
-    do_resize=False,
-    do_rescale=False,
-    do_normalize=False
-)
+# processor = MaskFormerImageProcessor(
+#     reduce_labels=True,
+#     ignore_index=255,
+#     do_resize=False,
+#     do_rescale=False,
+#     do_normalize=False
+# )
+
+processor = AutoImageProcessor.from_pretrained("facebook/mask2former-swin-small-coco-instance")
 
 # Create transform pipeline that handles both image and mask
 data_transforms_train = A.Compose([
-    A.RandomRotate90(p=0.5),
-    A.HorizontalFlip(p=0.5),
-    A.VerticalFlip(p=0.5),
-    A.ColorJitter(
-        brightness=0.2, 
-        contrast=0.2, 
-        saturation=0.2, 
-        hue=0.1, 
-        p=0.5
-    ),
-    A.GaussianBlur(
-        blur_limit=(3, 7),
-        sigma_limit=(0.1, 2.0),
-        p=0.5
-    ),
+    # A.RandomRotate90(p=0.5),
+    # A.HorizontalFlip(p=0.5),
+    # # A.VerticalFlip(p=0.5),
+    # A.ColorJitter(
+    #     brightness=0.2, 
+    #     contrast=0.2, 
+    #     saturation=0.2, 
+    #     hue=0.1, 
+    #     p=0.5
+    # ),
+    # A.GaussianBlur(
+    #     blur_limit=(3, 7),
+    #     sigma_limit=(0.1, 2.0),
+    #     p=0.5
+    # ),
     A.Resize(height=512, width=512),
     ToTensorV2()
 ])
@@ -89,30 +91,76 @@ train_loader = DataLoader(train_taco_dataset,
                               batch_size = h_params["batch_size"],
                               num_workers = h_params["num_workers"],
                               shuffle=True,
-                              collate_fn=collate_fn)
+                              collate_fn=collate_fn,
+                              pin_memory=True)
 
 validation_loader = DataLoader(validation_taco_dataset,
                                batch_size=h_params["batch_size"],
                                num_workers = h_params["num_workers"],
-                               shuffle=True,
-                               collate_fn=collate_fn)
+                               # shuffle=True,
+                               collate_fn=collate_fn,
+                               pin_memory=True)
 
 # We specify ignore_mismatched_sizes=True to replace the already fine-tuned classification head by a new one
-model = MaskFormerForInstanceSegmentation.from_pretrained("facebook/maskformer-swin-base-ade",
-                                                          id2label=idx2class,
-                                                          ignore_mismatched_sizes=True)
+# model = MaskFormerForInstanceSegmentation.from_pretrained("facebook/maskformer-swin-base-ade", # 101M params
+#                                                           id2label=idx2class,
+#                                                           ignore_mismatched_sizes=True)
+
+# facebook/mask2former-swin-small-coco-instance
+
+# Define model configuration
+model_config = MaskFormerConfig.from_pretrained(
+    "facebook/mask2former-swin-small-coco-instance",
+    num_labels=len(idx2class),
+    output_hidden_states=True,
+    output_attentions=True,
+    use_auxiliary_loss=True,
+    id2label=idx2class
+)
+
+# Load model with configuration
+model = MaskFormerForInstanceSegmentation.from_pretrained(
+    "facebook/mask2former-swin-small-coco-instance",
+    config=model_config,
+    ignore_mismatched_sizes=True
+)
+
+# Ensure output hidden states are enabled
+model.config.output_hidden_states = True
+model.config.use_auxiliary_loss = True
+
+# model = Mask2FormerForUniversalSegmentation.from_pretrained("facebook/mask2former-swin-tiny-ade-semantic", # 47 M params
+#                                                             id2label=idx2class,
+#                                                             ignore_mismatched_sizes=True)
+
+# Freeze backbone's parameters from model.model.pixel_level_module.encoder.model.encoder.layers.0 to ...layers.2
+for param in model.model.pixel_level_module.encoder.model.encoder.layers[:3].parameters():
+    param.requires_grad = False
+
+# Freeze backbone's encoder parameters
+# for param in model.model.pixel_level_module.parameters():
+#     param.requires_grad = False
+
+# Print the number of parameters for each model component
+print(f"Number of parameters in the model: {sum(p.numel() for p in model.parameters())}")
+print(f"Number of parameters in the pixel_level_module: {sum(p.numel() for p in model.model.pixel_level_module.parameters())}")
+print(f"Number of parameters in the pixel_level_module.encoder: {sum(p.numel() for p in model.model.pixel_level_module.encoder.parameters())}")
+print(f"Number of parameters in the pixel_level_module.encoder.model: {sum(p.numel() for p in model.model.pixel_level_module.encoder.model.parameters())}") # + hidden_states_norms
+#print(f"Number of parameters in the pixel_level_module.encoder.hidden_states_norms: {sum(p.numel() for p in model.model.pixel_level_module.hidden_states_norms.parameters())}")
+print(f"Number of parameters in the pixel_level_module.decoder: {sum(p.numel() for p in model.model.pixel_level_module.decoder.parameters())}")
+print(f"Number of parameters in the transformer_module: {sum(p.numel() for p in model.model.transformer_module.parameters())}")
+print(f"Number of parameters in the class_predictor: {sum(p.numel() for p in model.class_predictor.parameters())}")
+print(f"Number of parameters in the mask_embedder: {sum(p.numel() for p in model.mask_embedder.parameters())}")
+print(f"Number of parameters in the matcher: {sum(p.numel() for p in model.matcher.parameters())}")
+print(f"Number of parameters in the criterion: {sum(p.numel() for p in model.criterion.parameters())}")
 
 # batch = next(iter(train_dataloader))
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
-# optimizer = torch.optim.Adam(model.parameters(),
-#                              lr=5e-5,
-#                              weight_decay=1e-2)
-
 optimizer=torch.optim.AdamW(model.parameters(),
-                            lr=1e-4,
+                            lr=1e-3,
                             weight_decay=1e-2)
 
 # Add learning rate scheduler
@@ -227,7 +275,8 @@ def validation_one_epoch():
 
 ### START TRAINING
 print("STARTING TRAINING")
-NUM_EPOCH=1
+NUM_EPOCH=10
+backup = False
 train_loss=[]
 validation_loss=[]
 # Add variables to track best validation loss
@@ -244,16 +293,17 @@ for epoch in range(1,NUM_EPOCH+1):
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
     writer.add_scalar('Segmentation/learning_rate', optimizer.param_groups[0]['lr'], epoch)
     # Save best model:
-    if losses_avg_validation < best_val_loss:
-        best_val_loss = losses_avg_validation
-        save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, 'best_model.pth'))
-    # Update in training loop after validation
-    scheduler.step(losses_avg_validation)
+    if backup:
+        if losses_avg_validation < best_val_loss:
+            best_val_loss = losses_avg_validation
+            save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, 'best_model.pth'))
+        # Update in training loop after validation
+        scheduler.step(losses_avg_validation)
 
-    # Call the script to upload the model checkpoint
-    os.system(f"bash gcp_utils/upload_model_checkpoint.sh {os.path.join(results_dir, 'best_model.pth')} Mask2Former TACO")
-    # Call the script to upload the logs
-    os.system(f"bash gcp_utils/upload_model_checkpoint.sh {logdir} Mask2Former TACO")
+        # Call the script to upload the model checkpoint
+        os.system(f"bash gcp_utils/upload_model_checkpoint.sh {os.path.join(results_dir, 'best_model.pth')} Mask2Former TACO")
+        # Call the script to upload the logs
+        os.system(f"bash gcp_utils/upload_model_checkpoint.sh {logdir} Mask2Former TACO")
 
 print("Final train loss:\n")
 print(train_loss)

@@ -1,0 +1,757 @@
+MaskFormerForInstanceSegmentation(
+  (model): MaskFormerModel(
+    (pixel_level_module): MaskFormerPixelLevelModule(
+      (encoder): MaskFormerSwinBackbone(
+        (model): MaskFormerSwinModel(
+          (embeddings): MaskFormerSwinEmbeddings(
+            (patch_embeddings): MaskFormerSwinPatchEmbeddings(
+              (projection): Conv2d(3, 128, kernel_size=(4, 4), stride=(4, 4))
+            )
+            (norm): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+            (dropout): Dropout(p=0.0, inplace=False)
+          )
+          (encoder): MaskFormerSwinEncoder(
+            (layers): ModuleList(
+              (0): MaskFormerSwinStage(
+                (blocks): ModuleList(
+                  (0): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=128, out_features=128, bias=True)
+                        (key): Linear(in_features=128, out_features=128, bias=True)
+                        (value): Linear(in_features=128, out_features=128, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=128, out_features=128, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): Identity()
+                    (layernorm_after): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=128, out_features=512, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=512, out_features=128, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (1): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=128, out_features=128, bias=True)
+                        (key): Linear(in_features=128, out_features=128, bias=True)
+                        (value): Linear(in_features=128, out_features=128, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=128, out_features=128, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.013043479062616825)
+                    (layernorm_after): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=128, out_features=512, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=512, out_features=128, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                )
+                (downsample): MaskFormerSwinPatchMerging(
+                  (reduction): Linear(in_features=512, out_features=256, bias=False)
+                  (norm): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                )
+              )
+              (1): MaskFormerSwinStage(
+                (blocks): ModuleList(
+                  (0): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=256, out_features=256, bias=True)
+                        (key): Linear(in_features=256, out_features=256, bias=True)
+                        (value): Linear(in_features=256, out_features=256, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=256, out_features=256, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.02608695812523365)
+                    (layernorm_after): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=256, out_features=1024, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=1024, out_features=256, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (1): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=256, out_features=256, bias=True)
+                        (key): Linear(in_features=256, out_features=256, bias=True)
+                        (value): Linear(in_features=256, out_features=256, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=256, out_features=256, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.03913043811917305)
+                    (layernorm_after): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=256, out_features=1024, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=1024, out_features=256, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                )
+                (downsample): MaskFormerSwinPatchMerging(
+                  (reduction): Linear(in_features=1024, out_features=512, bias=False)
+                  (norm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+                )
+              )
+              (2): MaskFormerSwinStage(
+                (blocks): ModuleList(
+                  (0): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.0521739162504673)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (1): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.06521739810705185)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (2): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.0782608762383461)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (3): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.09130435436964035)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (4): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.1043478325009346)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (5): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.11739131063222885)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (6): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.1304347962141037)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (7): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.14347827434539795)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (8): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.156521737575531)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (9): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.16956521570682526)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (10): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.1826086938381195)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (11): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.19565218687057495)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (12): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.2086956650018692)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (13): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.22173914313316345)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (14): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.2347826212644577)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (15): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.24782609939575195)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (16): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.260869562625885)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (17): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=512, out_features=512, bias=True)
+                        (key): Linear(in_features=512, out_features=512, bias=True)
+                        (value): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=512, out_features=512, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.27391305565834045)
+                    (layernorm_after): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=512, out_features=2048, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=2048, out_features=512, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                )
+                (downsample): MaskFormerSwinPatchMerging(
+                  (reduction): Linear(in_features=2048, out_features=1024, bias=False)
+                  (norm): LayerNorm((2048,), eps=1e-05, elementwise_affine=True)
+                )
+              )
+              (3): MaskFormerSwinStage(
+                (blocks): ModuleList(
+                  (0): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=1024, out_features=1024, bias=True)
+                        (key): Linear(in_features=1024, out_features=1024, bias=True)
+                        (value): Linear(in_features=1024, out_features=1024, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=1024, out_features=1024, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.2869565188884735)
+                    (layernorm_after): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=1024, out_features=4096, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=4096, out_features=1024, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                  (1): MaskFormerSwinLayer(
+                    (layernorm_before): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+                    (attention): MaskFormerSwinAttention(
+                      (self): MaskFormerSwinSelfAttention(
+                        (query): Linear(in_features=1024, out_features=1024, bias=True)
+                        (key): Linear(in_features=1024, out_features=1024, bias=True)
+                        (value): Linear(in_features=1024, out_features=1024, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                      (output): MaskFormerSwinSelfOutput(
+                        (dense): Linear(in_features=1024, out_features=1024, bias=True)
+                        (dropout): Dropout(p=0.0, inplace=False)
+                      )
+                    )
+                    (drop_path): MaskFormerSwinDropPath(p=0.30000001192092896)
+                    (layernorm_after): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+                    (intermediate): MaskFormerSwinIntermediate(
+                      (dense): Linear(in_features=1024, out_features=4096, bias=True)
+                      (intermediate_act_fn): GELUActivation()
+                    )
+                    (output): MaskFormerSwinOutput(
+                      (dense): Linear(in_features=4096, out_features=1024, bias=True)
+                      (dropout): Dropout(p=0.0, inplace=False)
+                    )
+                  )
+                )
+              )
+            )
+          )
+          (layernorm): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+          (pooler): AdaptiveAvgPool1d(output_size=1)
+        )
+        (hidden_states_norms): ModuleList(
+          (0): LayerNorm((128,), eps=1e-05, elementwise_affine=True)
+          (1): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+          (2): LayerNorm((512,), eps=1e-05, elementwise_affine=True)
+          (3): LayerNorm((1024,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+      (decoder): MaskFormerPixelDecoder(
+        (fpn): MaskFormerFPNModel(
+          (stem): MaskFormerFPNConvLayer(
+            (0): Conv2d(1024, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+            (1): GroupNorm(32, 256, eps=1e-05, affine=True)
+            (2): ReLU(inplace=True)
+          )
+          (layers): Sequential(
+            (0): MaskFormerFPNLayer(
+              (proj): Sequential(
+                (0): Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+                (1): GroupNorm(32, 256, eps=1e-05, affine=True)
+              )
+              (block): MaskFormerFPNConvLayer(
+                (0): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (1): GroupNorm(32, 256, eps=1e-05, affine=True)
+                (2): ReLU(inplace=True)
+              )
+            )
+            (1): MaskFormerFPNLayer(
+              (proj): Sequential(
+                (0): Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+                (1): GroupNorm(32, 256, eps=1e-05, affine=True)
+              )
+              (block): MaskFormerFPNConvLayer(
+                (0): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (1): GroupNorm(32, 256, eps=1e-05, affine=True)
+                (2): ReLU(inplace=True)
+              )
+            )
+            (2): MaskFormerFPNLayer(
+              (proj): Sequential(
+                (0): Conv2d(128, 256, kernel_size=(1, 1), stride=(1, 1), bias=False)
+                (1): GroupNorm(32, 256, eps=1e-05, affine=True)
+              )
+              (block): MaskFormerFPNConvLayer(
+                (0): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1), bias=False)
+                (1): GroupNorm(32, 256, eps=1e-05, affine=True)
+                (2): ReLU(inplace=True)
+              )
+            )
+          )
+        )
+        (mask_projection): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+    (transformer_module): MaskFormerTransformerModule(
+      (position_embedder): MaskFormerSinePositionEmbedding()
+      (queries_embedder): Embedding(100, 256)
+      (input_projection): Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1))
+      (decoder): DetrDecoder(
+        (layers): ModuleList(
+          (0-5): 6 x DetrDecoderLayer(
+            (self_attn): DetrAttention(
+              (k_proj): Linear(in_features=256, out_features=256, bias=True)
+              (v_proj): Linear(in_features=256, out_features=256, bias=True)
+              (q_proj): Linear(in_features=256, out_features=256, bias=True)
+              (out_proj): Linear(in_features=256, out_features=256, bias=True)
+            )
+            (activation_fn): ReLU()
+            (self_attn_layer_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+            (encoder_attn): DetrAttention(
+              (k_proj): Linear(in_features=256, out_features=256, bias=True)
+              (v_proj): Linear(in_features=256, out_features=256, bias=True)
+              (q_proj): Linear(in_features=256, out_features=256, bias=True)
+              (out_proj): Linear(in_features=256, out_features=256, bias=True)
+            )
+            (encoder_attn_layer_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+            (fc1): Linear(in_features=256, out_features=2048, bias=True)
+            (fc2): Linear(in_features=2048, out_features=256, bias=True)
+            (final_layer_norm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+          )
+        )
+        (layernorm): LayerNorm((256,), eps=1e-05, elementwise_affine=True)
+      )
+    )
+  )
+  (class_predictor): Linear(in_features=256, out_features=30, bias=True)
+  (mask_embedder): MaskformerMLPPredictionHead(
+    (0): PredictionBlock(
+      (0): Linear(in_features=256, out_features=256, bias=True)
+      (1): ReLU()
+    )
+    (1): PredictionBlock(
+      (0): Linear(in_features=256, out_features=256, bias=True)
+      (1): ReLU()
+    )
+    (2): PredictionBlock(
+      (0): Linear(in_features=256, out_features=256, bias=True)
+      (1): Identity()
+    )
+  )
+  (matcher): Matcher MaskFormerHungarianMatcher
+      cost_class: 1.0
+      cost_mask: 20.0
+      cost_dice: 1.0
+  (criterion): MaskFormerLoss(
+    (matcher): Matcher MaskFormerHungarianMatcher
+        cost_class: 1.0
+        cost_mask: 20.0
+        cost_dice: 1.0
+  )
+)
