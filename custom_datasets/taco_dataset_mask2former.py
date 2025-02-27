@@ -83,27 +83,35 @@ class TacoDatasetMask2Former(Dataset):
 
         # Apply transforms to both image and mask
         if self.transforms is not None:
-            # Transform image
-            transformed = self.transforms(image=sample_img)
-            # print(f"transformed: {transformed}")
-            image = transformed['image']  # Now in torch.Tensor format (C,H,W)
-            # Convert image to (H, W, C) format
-            # image = image.permute(1, 2, 0)
-            # print(f"image.shape: {image.shape}")
-            
-            # Transform masks
             if len(masks) > 0:
-                transformed_masks = []
-                for mask in instance_seg:
-                     # Add channel dimension for Albumentations
-                    mask = np.expand_dims(mask, axis=-1)
-                    mask_transformed = self.transforms(image=mask)['image']
-                    transformed_masks.append(mask_transformed)
-                instance_seg = torch.stack(transformed_masks)  # [N, C, H, W]
-                # Remove the extra channel dimension
-                instance_seg = instance_seg.squeeze(1)  # [N, H, W]
+                transformed = self.transforms(image=sample_img, masks=list(instance_seg))
+                image = transformed['image']
+                instance_seg = torch.stack([torch.tensor(m, dtype=torch.uint8) for m in transformed['masks']])
             else:
                 instance_seg = torch.zeros((0, 512, 512))
+
+
+            # # Transform image
+            # transformed = self.transforms(image=sample_img)
+            # # print(f"transformed: {transformed}")
+            # image = transformed['image']  # Now in torch.Tensor format (C,H,W)
+            # # Convert image to (H, W, C) format
+            # # image = image.permute(1, 2, 0)
+            # # print(f"image.shape: {image.shape}")
+            
+            # # Transform masks
+            # if len(masks) > 0:
+            #     transformed_masks = []
+            #     for mask in instance_seg:
+            #          # Add channel dimension for Albumentations
+            #         mask = np.expand_dims(mask, axis=-1)
+            #         mask_transformed = self.transforms(image=mask)['image']
+            #         transformed_masks.append(mask_transformed)
+            #     instance_seg = torch.stack(transformed_masks)  # [N, C, H, W]
+            #     # Remove the extra channel dimension
+            #     instance_seg = instance_seg.squeeze(1)  # [N, H, W]
+            # else:
+            #     instance_seg = torch.zeros((0, 512, 512))
 
         if class_labels.shape[0] == 0:
             # print("No annotations found")
@@ -152,8 +160,6 @@ class TacoDatasetMask2Former(Dataset):
                 images=[image.numpy()], 
                 segmentation_maps=[semantic_seg],  
                 instance_id_to_semantic_id=inst2class,
-                # segmentation_pad_value=0,
-                # padding=255,
                 return_tensors="pt"
             )
             inputs = {k: v.squeeze() if isinstance(v, torch.Tensor) else v[0] for k, v in inputs.items()}
@@ -206,12 +212,13 @@ def visualize_sample(inputs):
         num_masks = mask_labels.shape[0]
         colors = plt.cm.rainbow(np.linspace(0, 1, num_masks))
         
-        # Superpose each mask with a different color and 50% transparency
+        # Superpose each mask with a different color and 70% transparency
         for i, mask in enumerate(mask_labels):
-            # Create masked array for better visualization
-            masked = np.ma.masked_where(mask == 0, mask)
-            axes[1].imshow(masked, cmap=plt.cm.colors.ListedColormap([colors[i]]), 
-                         alpha=0.5)  # 50% transparency
+            if i != 0:
+                # Create masked array for better visualization
+                masked = np.ma.masked_where(mask == 0, mask)
+                axes[1].imshow(masked, cmap=plt.cm.colors.ListedColormap([colors[i]]), 
+                            alpha=0.7)  # 70% transparency
     
     axes[1].set_title(f"Segmentation Masks\nClass Labels: {class_labels}")
     axes[1].axis('off')
