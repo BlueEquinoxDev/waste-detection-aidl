@@ -2,7 +2,20 @@
 
 This repository contains the code developed by Martí Fabregat, Rafel Febrer, Ferran Miró-Gea and Miguel Ortiz in the scope of AIDL postgraduate course in UPC (Universitat Politècnica de Catalunya). With supervision of Amanda Duarte.
 
-A vision transformer (ViT) is trained and evaluated to segment and classify waste. The model has been trained using [TACO Dataset](http://tacodataset.org) by Pedro F Proença and Pedro Simões. For more details check the paper: https://arxiv.org/abs/2003.06975
+Several models for instance segmentation and image classification have been trained and evaluated to segment and classify waste.
+
+The model has been trained using [TACO Dataset](http://tacodataset.org) by Pedro F Proença and Pedro Simões. For more details check the paper: https://arxiv.org/abs/2003.06975
+
+The [Viola77](https://huggingface.co/datasets/viola77data/recycling-dataset) dataset is used as well for classification. Under Apache 2.0 License.
+
+## Models used are:
+### Classification:
+- Restnet
+- ViT: Finetunning based on [google/vit-base-patch16-224](https://huggingface.co/google/vit-base-patch16-224)
+### Instance segmentation
+- Mask R-CNN
+- Mask2Former
+
 
 ## Getting started
 

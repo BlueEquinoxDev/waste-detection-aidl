@@ -20,7 +20,7 @@ from model.waste_vit import WasteViT
 
 # Parse arguments
 parser = argparse.ArgumentParser(description='Select the dataset for model training')
-parser.add_argument('--dataset', required=False, help='Dataset name', type=str, default="TACO5")
+parser.add_argument('--dataset', required=False, help='Dataset name', type=str, default="TACO")
 
 # Check if the given dataset is valid
 valid_datasets = ["TACO5", "TACO28", "VIOLA", "TACO39VIOLA11"]
