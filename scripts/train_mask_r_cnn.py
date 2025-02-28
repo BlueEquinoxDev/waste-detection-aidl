@@ -10,7 +10,8 @@ from pycocotools.cocoeval import COCOeval
 from model.wastemaskrcnn import WasteMaskRCNN
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
-
+from tqdm import tqdm
+from utilities.compute_metrics import compute_dice, compute_iou
 
 h_params ={
     "batch_size": 2,
@@ -30,7 +31,7 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 
 logdir = os.path.join("logs", f"segmentation-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
-# TODO: Initialize Tensorboard Writer with the previous folder 'logdir'
+# Initialize Tensorboard Writer with the previous folder 'logdir'
 writer=SummaryWriter(log_dir=logdir)
 
 # Save checkpoint function
@@ -105,6 +106,8 @@ valiation_loader=DataLoader(validation_taco_dataset,
 model=WasteMaskRCNN(num_classes=len(train_taco_dataset.idx2class))
 model.to(device)
 
+print(f"Number of parameters in the model: {sum(p.numel() for p in model.parameters())}")
+
 # Create the optimizer
 #optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=0.0001)
 optimizer=torch.optim.AdamW(model.parameters(),
@@ -135,6 +138,7 @@ def train_one_epoch():
         loss_dict_printable = {k: f"{v.item():.2f}" for k, v in loss_dict.items()}      
         print(f"[{batch}/{len_dataset}] total loss: {losses.item():.2f} losses: {loss_dict_printable}")     
         losses_avg+= losses.item()
+        break
         
     return losses_avg/len_dataset
         
@@ -158,14 +162,15 @@ def validation_one_epoch():
     
             loss_dict_printable = {k: f"{v.item():.2f}" for k, v in loss_dict.items()}      
             print(f"[{batch}/{len_dataset}] total loss: {losses.item():.2f} losses: {loss_dict_printable}")     
-            losses_avg+=losses.item()    
+            losses_avg+=losses.item()
+        break    
 
     return losses_avg/len_dataset
     
 
 ### START TRAINING
 print("STARING TRAINING")
-NUM_EPOCH=25
+NUM_EPOCH=1
 train_loss=[]
 validation_loss=[]
 for epoch in range(1,NUM_EPOCH+1):
@@ -179,33 +184,15 @@ for epoch in range(1,NUM_EPOCH+1):
     writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
 
-print("Final train loss:\n")
-print(validation_loss)
 
 print("Final validation loss:\n")
 print(validation_loss)
 
 ### START EVALUATION
 print("STARING EVALUATION")
-test_dataset=WasteMaskRCNN(annotations_file="data/test_annotations.json", 
-                           img_dir="data/images", 
-                           transforms=data_transforms_validation)
-idx2class = test_dataset.idx_to_class
-num_classes = len(idx2class)
-
-test_loader=DataLoader(test_dataset,
-                       shuffle=False,
-                       batch_size=h_params["batch_size"], 
-                       num_workers=h_params["num_workers"],
-                       collate_fn=collate_fn)
+print("TODO")
 
 
-for images, targets in enumerate(test_loader):
-    detections, metrics = model.evaluate(images=images, targets=targets)
-
-
-print("Final test accuracy:\n")
-print(f"Metrics: {metrics}")
 
 
 

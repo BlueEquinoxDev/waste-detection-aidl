@@ -19,7 +19,7 @@ load_dotenv()
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 FILE_NAME = "sample.jpg"
-MASK_RCNN_CHECKPOINT = "checkpoint_epoch_8_2025_2_18_21_53.pt"
+MASK_RCNN_CHECKPOINT = "checkpoint_epoch_16_2025_2_28_10_40.pt"#"checkpoint_epoch_8_2025_2_18_21_53.pt"
 IDX2CLASS = None
 MODEL = None
 PREDICT_IMAGE = None

@@ -29,24 +29,25 @@ np.random.seed(sed)
 # (False reduce performance but use the same algorithm always)
 torch.backends.cudnn.benchmark = True
 
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 data_transforms_test = transforms.Compose([            
     transforms.Resize(size=(800,800)),                                           
     transforms.ToDtype(torch.float32, scale=True),
     transforms.ToPureTensor()])
 
-test_taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/test_annotations28.json",
+test_taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/test_annotations.json",
                                       img_dir="data/images",
                                       transforms=data_transforms_test)
 
 
-checkpoint_path = "results/mask_rcnn/checkpoint_epoch_6_2025_2_26_21_30.pt"
-checkpoint = torch.load(checkpoint_path)
+checkpoint_path = "results/mask_rcnn/checkpoint_epoch_11_2025_2_28_6_3.pt"#"results/mask_rcnn/checkpoint_epoch_1_2025_2_27_20_56.pt"
+checkpoint = torch.load(checkpoint_path, map_location=device)
 
 
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone 
 
+print(len(test_taco_dataset.idx2class))
 model = WasteMaskRCNN(num_classes=len(test_taco_dataset.idx2class))   
 
 model.load_state_dict(checkpoint['model_state_dict'])
@@ -102,7 +103,7 @@ def validation_one_epoch():
     pbar = tqdm(test_loader, desc="Computing metrics test dataset", leave=False)
     for batch_idx, data in enumerate(pbar):
     #for  batch, data in enumerate(test_loader):
-        model.train()
+        model.eval()
         images,targets=data            
         images=list(image.to(device) for image in images)   
         targets = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]             
