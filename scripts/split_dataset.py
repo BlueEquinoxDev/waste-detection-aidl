@@ -93,7 +93,7 @@ parser.add_argument('--test_percentage', required=False, help='Percentage of ima
 parser.add_argument('--val_percentage', required=False, help='Percentage of images used for the validation set', type=float, default=0.10)
 parser.add_argument('--seed', required=False, help='Random seed for the split', type=int, default=123)
 parser.add_argument('--verbose', required=False, help='Print information about the split', type=bool, default=False)
-parser.add_argument('--dataset_type', required=False, help='Type of dataset to be used, it can be taco28, taco5 or taco_viola', type=str, default='taco28')
+parser.add_argument('--dataset_type', required=True, help='Type of dataset to be used, it can be taco28, taco5 or classification', type=str)
 
 args = parser.parse_args()
 
@@ -109,8 +109,8 @@ with open(ann_input_path, 'r') as f:
     coco_data = json.load(f)
 if args.verbose: print('Annotations file loaded...')
 
-#Create a file of annotations with 28 supercategories
 custom_annotations_path = None
+#Create a file of annotations with 28 supercategories
 if args.dataset_type.lower() == "taco28": 
     if args.verbose: print('Create a file of annotations with 28 supercategories annotations28.json...')
     custom_annotations_path = os.path.join(args.dataset_dir, 'annotations28.json')
@@ -124,10 +124,10 @@ elif args.dataset_type.lower() == "taco5":
     with open(custom_annotations_path, 'w') as f:
         annotationns5=make_taco_annotations_5_categories()
         json.dump(annotationns5, f)
-elif args.dataset_type.lower() == "taco_viola":
-    pass
+elif args.dataset_type.lower() == "classification":
+    custom_annotations_path = ann_input_path
 else:
-    raise ValueError('No annotation file selected, select one of the following: --taco28, --taco5, --taco_viola')
+    raise ValueError('No annotation file selected, select one of the following: --taco28, --taco5 or --classification')
 
 # Load COCO annotations for the dataset to be used
 with open(custom_annotations_path, 'r') as f:
