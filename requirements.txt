@@ -19,3 +19,4 @@ datasets
 albumentations
 flask
 dotenv
+optuna
