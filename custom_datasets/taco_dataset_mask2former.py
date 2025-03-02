@@ -50,123 +50,73 @@ class TacoDatasetMask2Former(Dataset):
         return self.len_dataset
     
     def __getitem__(self, idx):
-
-        img_id=self.index_to_imageId[idx]                        
+        img_id = self.index_to_imageId[idx]                        
         img_coco_data = self.coco_data.loadImgs([img_id])[0]
         path = os.path.join(self.img_dir, img_coco_data['file_name'])
         annotations = self.coco_data.imgToAnns[img_id]
 
         # Load and process image        
-        sample_img = Image.open(path)
-        sample_img = ImageOps.exif_transpose(sample_img)
-        sample_img = np.array(sample_img)
+        image = Image.open(path)
+        image = ImageOps.exif_transpose(image)
+        image = np.array(image)
         
         # Get masks and labels for each annotation
-        masks =[]
-        labels=[]
+        masks = []
+        labels = []
         for ann in annotations:
             masks.append(self.coco_data.annToMask(ann))
             labels.append(self.category_map[ann['category_id']])
 
         # Stack masks and transpose to (N, H, W) format
-        instance_seg = np.stack(masks) if masks else np.zeros((0, sample_img.shape[0], sample_img.shape[1]))
+        instance_seg = np.stack(masks) if masks else np.zeros((0, image.shape[0], image.shape[1]))
         class_labels = torch.tensor(labels, dtype=torch.int64)
         inst2class = {0: 0}  # Background mapping: 0 -> 0
         for i, label in enumerate(labels):
             inst2class[i + 1] = label
 
-        # print(f"sample_img.shape: {sample_img.shape}")
-        # print(f"sample_img: {sample_img}")
-        # print(f"instance_seg.shape: {instance_seg.shape}")
-        # print(f"class_labels: {class_labels}")
-        # print(f"inst2class: {inst2class}")
-
         # Apply transforms to both image and mask
         if self.transforms is not None:
             if len(masks) > 0:
-                transformed = self.transforms(image=sample_img, masks=list(instance_seg))
-                image = transformed['image']
+                transformed = self.transforms(image=image, masks=list(instance_seg))
+                image = transformed['image']  # In range [0, 1] after normalization
                 instance_seg = torch.stack([torch.tensor(m, dtype=torch.uint8) for m in transformed['masks']])
             else:
+                transformed = self.transforms(image=image)
+                image = transformed['image']
                 instance_seg = torch.zeros((0, 512, 512))
 
-
-            # # Transform image
-            # transformed = self.transforms(image=sample_img)
-            # # print(f"transformed: {transformed}")
-            # image = transformed['image']  # Now in torch.Tensor format (C,H,W)
-            # # Convert image to (H, W, C) format
-            # # image = image.permute(1, 2, 0)
-            # # print(f"image.shape: {image.shape}")
+        # Convert to numpy array in range [0, 1]
+        if isinstance(image, torch.Tensor):
+            image = image.numpy()
             
-            # # Transform masks
-            # if len(masks) > 0:
-            #     transformed_masks = []
-            #     for mask in instance_seg:
-            #          # Add channel dimension for Albumentations
-            #         mask = np.expand_dims(mask, axis=-1)
-            #         mask_transformed = self.transforms(image=mask)['image']
-            #         transformed_masks.append(mask_transformed)
-            #     instance_seg = torch.stack(transformed_masks)  # [N, C, H, W]
-            #     # Remove the extra channel dimension
-            #     instance_seg = instance_seg.squeeze(1)  # [N, H, W]
-            # else:
-            #     instance_seg = torch.zeros((0, 512, 512))
+        # Rescale image to [0, 1] range if needed
+        if image.max() > 1.0 or image.min() < 0.0:
+            image = (image - image.min()) / (image.max() - image.min())
 
         if class_labels.shape[0] == 0:
-            # print("No annotations found")
             inputs = self.processor(
-                images=[image.numpy()],
+                images=[image],
                 return_tensors="pt"
             )
             inputs = {k: v.squeeze() for k, v in inputs.items()}
             inputs["class_labels"] = torch.tensor([0])
             inputs["mask_labels"] = torch.zeros((0, 512, 512))
         else:
-        # Convert instance_seg to numpy of type uint8
-            instance_seg = instance_seg.numpy().astype(np.uint8)
-            # print(f"instance_seg.shape: {instance_seg.shape}")
-            # print(f"np.unique(instance_seg): {np.unique(instance_seg)}")
-            H, W = instance_seg.shape[1], instance_seg.shape[2]
-
-            # Create a semantic segmentation map with background=0
-            semantic_seg = np.zeros((H, W), dtype=np.uint8)
+            # Convert instance_seg to semantic_seg
+            semantic_seg = np.zeros((image.shape[1], image.shape[2]), dtype=np.uint8)
             for i, mask in enumerate(instance_seg):
-                # Assign a unique instance ID (i+1) to the mask region
-                # print(f"i: {i}, mask.shape: {mask.shape}")
                 semantic_seg[mask > 0] = i + 1
 
-            # Add a channel dimension (if required by the processor)
-            # semantic_seg = np.expand_dims(semantic_seg, axis=-1)  # shape: (H, W, 1)
-
-            # Convert semantic_seg to numpy of type uint8
-            semantic_seg = semantic_seg.astype(np.uint8)
-
-            # Ensure the segmentation map is properly padded to match expected input size
-            # print(f"semantic_seg.shape: {semantic_seg.shape}")
-            # print(f"np.unique(semantic_seg): {np.unique(semantic_seg)}")
-            # print(f"semantic_seg.dtype: {semantic_seg.dtype}")
-            # print(f"inst2class: {inst2class}")
-            # target_size = (512, 512, 1)
-            # padded_segmentation = np.zeros(target_size, dtype=np.uint8)
-            
-            # # padded_segmentation[:H, :W] = semantic_seg[:, :, 0]  # Remove extra channel
-
-            # print(f"padded_segmentation.shape: {padded_segmentation.shape}")
-            # print(f"np.unique(padded_segmentation): {np.unique(padded_segmentation)}")
-
-            # Process using the MaskFormer processor
             inputs = self.processor(
-                images=[image.numpy()], 
-                segmentation_maps=[semantic_seg],  
+                images=[image],
+                segmentation_maps=[semantic_seg],
                 instance_id_to_semantic_id=inst2class,
                 return_tensors="pt"
             )
             inputs = {k: v.squeeze() if isinstance(v, torch.Tensor) else v[0] for k, v in inputs.items()}
 
-            ############## DEBUGING #############
-            # visualize_sample(inputs)
-            ######################################
+        inputs["image_id"] = img_id
+        # visualize_sample(inputs)
         return inputs
 
         # Output Format
@@ -183,13 +133,16 @@ def visualize_sample(inputs):
     the segmentation masks.
     Args:
         inputs (dict): A dictionary containing the following keys:
-            - 'pixel_values' (torch.Tensor): A tensor representing the pixel values of the image.
-            - 'pixel_mask' (torch.Tensor): A tensor representing the pixel mask.
-            - 'mask_labels' (torch.Tensor): A tensor containing the segmentation masks.
-            - 'class_labels' (list): A list of class labels corresponding to the masks.
+            - 'pixel_values' (torch.Tensor): A tensor representing the pixel values of the image. Size is (C, H, W).
+            - 'pixel_mask' (torch.Tensor): A tensor representing the pixel mask. Size is (H, W).
+            - 'mask_labels' (torch.Tensor): A tensor containing the segmentation masks. Size is (N, H, W).
+            - 'class_labels' (list): A list of class labels corresponding to the masks. Size is (N).
+            - 'image_id' (int): The image ID.
     Returns:
         None: This function displays the images using matplotlib and does not return any value.
     """
+    # print(f"Input Format\n{inputs}")
+
     # Convert tensor to numpy array and transpose to (H, W, C) format
     pixel_values = inputs['pixel_values'].numpy().transpose(1, 2, 0)
     pixel_mask = inputs['pixel_mask'].numpy()
@@ -223,6 +176,7 @@ def visualize_sample(inputs):
     axes[1].set_title(f"Segmentation Masks\nClass Labels: {class_labels}")
     axes[1].axis('off')
 
+    plt.savefig('test_image.png', dpi=300, bbox_inches='tight')
     plt.tight_layout()
     plt.show()
 

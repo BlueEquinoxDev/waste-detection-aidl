@@ -17,7 +17,7 @@ h_params ={
     "num_workers": 0,
 }
 
-experiment_name = "seg-mask2former-taco-original-no_backbone_frezze-no_augmentation"
+experiment_name = "seg-taco-maskformer-swin-base-ade-no_backbone_frezze-no_augmentation"
 logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
@@ -33,7 +33,13 @@ writer=SummaryWriter(log_dir=logdir)
 #     do_normalize=False
 # )
 
-processor = AutoImageProcessor.from_pretrained("facebook/mask2former-swin-small-coco-instance")
+# Initialize processor with proper configuration
+processor = AutoImageProcessor.from_pretrained(
+    "facebook/maskformer-swin-base-ade",
+    do_resize=True,
+    do_rescale=False,  # Disable rescaling since we handle it in transforms
+    do_normalize=False  # Disable normalization since we handle it in transforms
+)
 
 # Create transform pipeline that handles both image and mask
 data_transforms_train = A.Compose([
@@ -53,12 +59,14 @@ data_transforms_train = A.Compose([
     #     p=0.5
     # ),
     A.Resize(height=512, width=512),
+    A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ToTensorV2()
 ])
 
 # Create transform pipeline that handles both image and mask
 data_transforms_validation = A.Compose([
     A.Resize(height=512, width=512),
+    A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ToTensorV2()
 ])
 
@@ -81,11 +89,20 @@ validation_taco_dataset = TacoDatasetMask2Former(
 idx2class = train_taco_dataset.idx2class
 
 def collate_fn(batch):
-    pixel_values = torch.stack([example["pixel_values"].float() / 255.0 for example in batch])  # Convert to float and normalize
+    pixel_values = torch.stack([example["pixel_values"] for example in batch])  # Don't normalize here
     pixel_mask = torch.stack([example["pixel_mask"] for example in batch])
     class_labels = [example["class_labels"] for example in batch]
     mask_labels = [example["mask_labels"] for example in batch]
-    return {"pixel_values": pixel_values, "pixel_mask": pixel_mask, "class_labels": class_labels, "mask_labels": mask_labels}
+    # Add image_id to the batch
+    image_ids = [example["image_id"] for example in batch]
+    
+    return {
+        "pixel_values": pixel_values, 
+        "pixel_mask": pixel_mask, 
+        "class_labels": class_labels, 
+        "mask_labels": mask_labels,
+        "image_id": image_ids
+    }
 
 train_loader = DataLoader(train_taco_dataset, 
                               batch_size = h_params["batch_size"],
@@ -106,11 +123,9 @@ validation_loader = DataLoader(validation_taco_dataset,
 #                                                           id2label=idx2class,
 #                                                           ignore_mismatched_sizes=True)
 
-# facebook/mask2former-swin-small-coco-instance
-
 # Define model configuration
 model_config = MaskFormerConfig.from_pretrained(
-    "facebook/mask2former-swin-small-coco-instance",
+    "facebook/maskformer-swin-base-ade",
     num_labels=len(idx2class),
     output_hidden_states=True,
     output_attentions=True,
@@ -120,7 +135,7 @@ model_config = MaskFormerConfig.from_pretrained(
 
 # Load model with configuration
 model = MaskFormerForInstanceSegmentation.from_pretrained(
-    "facebook/mask2former-swin-small-coco-instance",
+    "facebook/maskformer-swin-base-ade",
     config=model_config,
     ignore_mismatched_sizes=True
 )
@@ -134,8 +149,8 @@ model.config.use_auxiliary_loss = True
 #                                                             ignore_mismatched_sizes=True)
 
 # Freeze backbone's parameters from model.model.pixel_level_module.encoder.model.encoder.layers.0 to ...layers.2
-for param in model.model.pixel_level_module.encoder.model.encoder.layers[:3].parameters():
-    param.requires_grad = False
+# for param in model.model.pixel_level_module.encoder.model.encoder.layers[:3].parameters():
+#     param.requires_grad = False
 
 # Freeze backbone's encoder parameters
 # for param in model.model.pixel_level_module.parameters():
@@ -160,7 +175,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 optimizer=torch.optim.AdamW(model.parameters(),
-                            lr=1e-3,
+                            lr=5e-5,
                             weight_decay=1e-2)
 
 # Add learning rate scheduler
