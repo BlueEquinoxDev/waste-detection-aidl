@@ -30,7 +30,7 @@ def make_taco_annotations_28_categories():
     #categories
     categories_names=sorted(set([c['supercategory'] for c in coco_data['categories']]))
     taco28_annotation['categories']=[{'supercategory': o,'id':i+1,'name':o}  for i, o in enumerate(categories_names)]
-    taco28_annotation['categories'].append({'supercategory': 'Background','id':0,'name':'Background'})
+    taco28_annotation['categories'].insert(0,{'supercategory': 'Background','id':0,'name':'Background'})
     
     #annotations
     map=[{'id':o['id'],'category':o['supercategory']} for o in coco_data['categories']]
