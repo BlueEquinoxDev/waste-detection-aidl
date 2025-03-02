@@ -10,7 +10,9 @@ from tqdm.auto import tqdm
 from torch.utils.tensorboard import SummaryWriter
 from datetime import datetime
 from utilities.save_model import save_model
+from utilities.maskformer_display_sample_results import display_sample_results
 import os
+
 
 h_params ={
     "batch_size": 1,
@@ -225,7 +227,7 @@ def train_one_epoch():
         running_samples += batch_size
 
         # Print loss every 10 steps
-        if (idx + 1) % 100 == 0:
+        if (idx + 1) % 10 == 0:
             avg_running_loss = running_loss / running_samples
             print(f"\nStep [{idx + 1}/{len_dataset}] - Running Loss: {avg_running_loss:.4f}")
             # Reset running metrics
@@ -235,9 +237,12 @@ def train_one_epoch():
         # Optimization
         optimizer.step()
 
-        # Add memory cleanup after each batch
-        if hasattr(torch.cuda, 'empty_cache'):
-            torch.cuda.empty_cache()
+        if idx > 100:
+            display_sample_results(batch, outputs, processor, mask_threshold = 0.01)
+
+        # # Add memory cleanup after each batch
+        # if hasattr(torch.cuda, 'empty_cache'):
+        #     torch.cuda.empty_cache()
     
     losses_avg = losses_avg / total_samples
     return losses_avg
