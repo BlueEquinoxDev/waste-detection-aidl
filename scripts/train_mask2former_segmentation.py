@@ -15,11 +15,21 @@ import os
 
 
 h_params ={
-    "batch_size": 1,
-    "num_workers": 0,
+    "batch_size": 10,
+    "num_workers": 2,
+    "num_epochs": 20,
+    "learning_rate": 5e-5,
+    "weight_decay": 1e-2,
+    "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
+    "backbone_freeze": False,
+    "augmentation": False,
+    "backup_best_model": True
 }
 
-experiment_name = "seg-taco-maskformer-swin-base-ade-no_backbone_frezze-no_augmentation"
+# experiment_name contains model name, backbone_freeze, augmentation
+experiment_name = "seg-taco-"+h_params["model_name"].split("/")[1]+"-"+str(h_params["backbone_freeze"])+"_backbone_freeze-"+str(h_params["augmentation"])+"_augmentation"
+print("Experiment name: ", experiment_name)
+
 logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
@@ -37,7 +47,7 @@ writer=SummaryWriter(log_dir=logdir)
 
 # Initialize processor with proper configuration
 processor = AutoImageProcessor.from_pretrained(
-    "facebook/maskformer-swin-base-ade",
+    h_params["model_name"],
     do_resize=True,
     do_rescale=False,  # Disable rescaling since we handle it in transforms
     do_normalize=False  # Disable normalization since we handle it in transforms
@@ -106,12 +116,57 @@ def collate_fn(batch):
         "image_id": image_ids
     }
 
+# Computing samples weights for WeightedRandomSampler
+number_of_samples_by_category = {
+    cat: len(train_taco_dataset.coco_data.catToImgs[cat]) 
+    for cat in train_taco_dataset.idx2class.keys() 
+    if cat != 0  # Exclude background class
+}
+print(f"Number of samples by category: {number_of_samples_by_category}")
+
+number_of_samples = sum(number_of_samples_by_category.values())
+print(f"Number of samples: {number_of_samples}")
+
+# Handle categories with zero samples by setting their weight to a high value
+category_weights = {
+    cat: number_of_samples/max(value, 1)  # Use max(value, 1) to avoid division by zero
+    for cat, value in number_of_samples_by_category.items()
+}
+print(f"Category weights: {category_weights}")
+
+# Computing samples weights for WeightedRandomSampler
+samples_weights = []
+
+for idx in range(train_taco_dataset.len_dataset):
+    weights_cat_in_image = []
+    img_id = train_taco_dataset.index_to_imageId[idx]
+    annotations = train_taco_dataset.coco_data.imgToAnns[img_id]
+    
+    for ann in annotations:
+        # Map the original category_id to our remapped category using category_map
+        mapped_category_id = train_taco_dataset.category_map[ann['category_id']]
+        if mapped_category_id in category_weights:
+            weights_cat_in_image.append(category_weights[mapped_category_id])
+    
+    # If no valid categories found, use default weight of 1.0
+    if weights_cat_in_image:
+        samples_weights.append(max(weights_cat_in_image))
+    else:
+        samples_weights.append(1.0)
+
+sampler = torch.utils.data.WeightedRandomSampler(
+    weights=samples_weights, 
+    num_samples=train_taco_dataset.len_dataset, 
+    replacement=True
+)
+
 train_loader = DataLoader(train_taco_dataset, 
                               batch_size = h_params["batch_size"],
                               num_workers = h_params["num_workers"],
-                              shuffle=True,
+                              shuffle=False, # Use WeightedRandomSampler instead
                               collate_fn=collate_fn,
-                              pin_memory=True)
+                              pin_memory=True,
+                              sampler=sampler)
 
 validation_loader = DataLoader(validation_taco_dataset,
                                batch_size=h_params["batch_size"],
@@ -127,7 +182,7 @@ validation_loader = DataLoader(validation_taco_dataset,
 
 # Define model configuration
 model_config = MaskFormerConfig.from_pretrained(
-    "facebook/maskformer-swin-base-ade",
+    h_params["model_name"],
     num_labels=len(idx2class),
     output_hidden_states=True,
     output_attentions=True,
@@ -137,7 +192,7 @@ model_config = MaskFormerConfig.from_pretrained(
 
 # Load model with configuration
 model = MaskFormerForInstanceSegmentation.from_pretrained(
-    "facebook/maskformer-swin-base-ade",
+    h_params["model_name"],
     config=model_config,
     ignore_mismatched_sizes=True
 )
@@ -151,8 +206,9 @@ model.config.use_auxiliary_loss = True
 #                                                             ignore_mismatched_sizes=True)
 
 # Freeze backbone's parameters from model.model.pixel_level_module.encoder.model.encoder.layers.0 to ...layers.2
-# for param in model.model.pixel_level_module.encoder.model.encoder.layers[:3].parameters():
-#     param.requires_grad = False
+if(h_params["backbone_freeze"]):
+    for param in model.model.pixel_level_module.encoder.model.encoder.layers[:3].parameters():
+        param.requires_grad = False
 
 # Freeze backbone's encoder parameters
 # for param in model.model.pixel_level_module.parameters():
@@ -177,8 +233,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
 optimizer=torch.optim.AdamW(model.parameters(),
-                            lr=5e-5,
-                            weight_decay=1e-2)
+                            lr=h_params["learning_rate"],
+                            weight_decay=h_params["weight_decay"])
 
 # Add learning rate scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
@@ -227,7 +283,7 @@ def train_one_epoch():
         running_samples += batch_size
 
         # Print loss every 10 steps
-        if (idx + 1) % 10 == 0:
+        if (idx + 1) % 100 == 0:
             avg_running_loss = running_loss / running_samples
             print(f"\nStep [{idx + 1}/{len_dataset}] - Running Loss: {avg_running_loss:.4f}")
             # Reset running metrics
@@ -237,8 +293,8 @@ def train_one_epoch():
         # Optimization
         optimizer.step()
 
-        if idx > 100:
-            display_sample_results(batch, outputs, processor, mask_threshold = 0.01)
+        # if idx > 100:
+        #     display_sample_results(batch, outputs, processor, mask_threshold = 0.01)
 
         # # Add memory cleanup after each batch
         # if hasattr(torch.cuda, 'empty_cache'):
@@ -295,17 +351,15 @@ def validation_one_epoch():
 
 ### START TRAINING
 print("STARTING TRAINING")
-NUM_EPOCH=10
-backup = False
 train_loss=[]
 validation_loss=[]
 # Add variables to track best validation loss
 best_val_loss = float('inf')
-for epoch in range(1,NUM_EPOCH+1):
+for epoch in range(1,h_params["num_epochs"]+1):
     losses_avg_train=train_one_epoch()
     losses_avg_validation=validation_one_epoch()
-    print(f"TRAINING epoch[{epoch}/{NUM_EPOCH}]: avg. loss: {losses_avg_train:.3f}")
-    print(f"VALIDATION epoch[{epoch}/{NUM_EPOCH}]: avg. loss:{ losses_avg_validation:.3f}")  
+    print(f"TRAINING epoch[{epoch}/{h_params['num_epochs']}]: avg. loss: {losses_avg_train:.3f}")
+    print(f"VALIDATION epoch[{epoch}/{h_params['num_epochs']}]: avg. loss:{ losses_avg_validation:.3f}")  
     train_loss.append(losses_avg_train)
     validation_loss.append(losses_avg_validation)
     # save_model(model, epoch, optimizer, idx2class, results_dir)    
@@ -313,7 +367,7 @@ for epoch in range(1,NUM_EPOCH+1):
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
     writer.add_scalar('Segmentation/learning_rate', optimizer.param_groups[0]['lr'], epoch)
     # Save best model:
-    if backup:
+    if h_params["backup_best_model"]:
         if losses_avg_validation < best_val_loss:
             best_val_loss = losses_avg_validation
             save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, 'best_model.pth'))
