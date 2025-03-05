@@ -343,8 +343,8 @@ def validation_one_epoch():
 
 ### START TRAINING
 print("STARTING TRAINING")
-NUM_EPOCH=10
-backup = False
+NUM_EPOCH=30
+backup = True
 train_loss=[]
 validation_loss=[]
 # Add variables to track best validation loss
@@ -356,7 +356,7 @@ for epoch in range(1,NUM_EPOCH+1):
     print(f"VALIDATION epoch[{epoch}/{NUM_EPOCH}]: avg. loss:{ losses_avg_validation:.3f} iou:{iou_val:.3f}")  
     train_loss.append(losses_avg_train)
     validation_loss.append(losses_avg_validation)
-    # save_model(model, epoch, optimizer, idx2class, results_dir)    
+    save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, f"mask2former_{epoch}.pth"))    
     writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
     writer.add_scalar('Segmentation/learning_rate', optimizer.param_groups[0]['lr'], epoch)
@@ -364,7 +364,7 @@ for epoch in range(1,NUM_EPOCH+1):
     if backup:
         if losses_avg_validation < best_val_loss:
             best_val_loss = losses_avg_validation
-            save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, 'best_model.pth'))
+            save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, 'best_mask2former_model.pth'))
         # Update in training loop after validation
         scheduler.step(losses_avg_validation)
 
