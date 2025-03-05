@@ -7,6 +7,7 @@ import torch
 import json
 from torchvision import tv_tensors
 import matplotlib.pyplot as plt
+from PIL import Image, ImageOps
 
 class TacoDatasetMask2Former(Dataset):
 
@@ -33,18 +34,21 @@ class TacoDatasetMask2Former(Dataset):
         categories = self.coco_data.loadCats(self.coco_data.getCatIds())
         
         # Get unique supercategories
-        supercategories = list(set(cat['supercategory'] for cat in categories))
+        #supercategories = list(set(cat['supercategory'] for cat in categories))
+        
+        self.idx2class= {self.coco_data.cats[i]['id']: self.coco_data.cats[i]['supercategory'] for i in self.coco_data.cats}
+        self.idx2class=dict(sorted(self.idx2class.items()))
         
         # Create mappings (add 1 to indices for background class at 0)
-        self.idx2class = {i+1: supercategory for i, supercategory in enumerate(supercategories)}
-        self.idx2class[0] = "background"  # Add background class
+        #self.idx2class = {i+1: supercategory for i, supercategory in enumerate(supercategories)}
+        #self.idx2class[0] = "background"  # Add background class
         
-        self.class2idx = {supercategory: i+1 for i, supercategory in enumerate(supercategories)}
-        self.class2idx["background"] = 0
+        #self.class2idx = {supercategory: i+1 for i, supercategory in enumerate(supercategories)}
+        #self.class2idx["background"] = 0
         
         # Create category mapping for COCO annotations
-        self.category_map = {cat['id']: self.class2idx[cat['supercategory']] 
-                            for cat in categories}
+        #self.category_map = {cat['id']: self.class2idx[cat['supercategory']] 
+        #                    for cat in categories}
         
     def __len__(self):
         return self.len_dataset
@@ -59,6 +63,9 @@ class TacoDatasetMask2Former(Dataset):
         # Load and process image        
         sample_img = Image.open(path)
         sample_img = ImageOps.exif_transpose(sample_img)
+        
+        orginal_img = sample_img.copy()
+
         sample_img = np.array(sample_img)
         
         # Get masks and labels for each annotation
@@ -66,7 +73,10 @@ class TacoDatasetMask2Former(Dataset):
         labels=[]
         for ann in annotations:
             masks.append(self.coco_data.annToMask(ann))
-            labels.append(self.category_map[ann['category_id']])
+            labels.append(ann['category_id'])
+
+        #print(f"labels: {labels}")
+        #print(f"labels to text: {[self.idx2class[i] for i in labels]}")
 
         # Stack masks and transpose to (N, H, W) format
         instance_seg = np.stack(masks) if masks else np.zeros((0, sample_img.shape[0], sample_img.shape[1]))
@@ -77,19 +87,20 @@ class TacoDatasetMask2Former(Dataset):
 
         # print(f"sample_img.shape: {sample_img.shape}")
         # print(f"sample_img: {sample_img}")
-        # print(f"instance_seg.shape: {instance_seg.shape}")
+        #print(f"instance_seg.shape: {instance_seg.shape}")
         # print(f"class_labels: {class_labels}")
-        # print(f"inst2class: {inst2class}")
+        #print(f"inst2class: {inst2class}")
 
         # Apply transforms to both image and mask
         if self.transforms is not None:
             if len(masks) > 0:
                 transformed = self.transforms(image=sample_img, masks=list(instance_seg))
                 image = transformed['image']
-                instance_seg = torch.stack([torch.tensor(m, dtype=torch.uint8) for m in transformed['masks']])
+                instance_seg = torch.stack([m.type(torch.uint8) for m in transformed['masks']])
             else:
                 instance_seg = torch.zeros((0, 512, 512))
-
+            
+            #print(f"instance_seg.shape after tansforms: {instance_seg.shape}")
 
             # # Transform image
             # transformed = self.transforms(image=sample_img)
@@ -114,7 +125,7 @@ class TacoDatasetMask2Former(Dataset):
             #     instance_seg = torch.zeros((0, 512, 512))
 
         if class_labels.shape[0] == 0:
-            # print("No annotations found")
+            print("No annotations found")
             inputs = self.processor(
                 images=[image.numpy()],
                 return_tensors="pt"
@@ -141,6 +152,12 @@ class TacoDatasetMask2Former(Dataset):
 
             # Convert semantic_seg to numpy of type uint8
             semantic_seg = semantic_seg.astype(np.uint8)
+            #print(f"semantic_seg.shape: {semantic_seg.shape}")
+            #print(f"semantic_seg unique: {np.unique(semantic_seg)}")
+            #print(f"instance2class: {inst2class}")
+            #print(f"labels: {[self.idx2class[i] for i in inst2class.values()]}")
+
+            original_mask = semantic_seg.copy()
 
             # Ensure the segmentation map is properly padded to match expected input size
             # print(f"semantic_seg.shape: {semantic_seg.shape}")
@@ -157,15 +174,20 @@ class TacoDatasetMask2Former(Dataset):
 
             # Process using the MaskFormer processor
             inputs = self.processor(
-                images=[image.numpy()], 
-                segmentation_maps=[semantic_seg],  
+                images=image.numpy(), 
+                segmentation_maps=semantic_seg,  
                 instance_id_to_semantic_id=inst2class,
-                return_tensors="pt"
+                return_tensors="pt",
+                do_resize=False,
+                do_rescale=False,
+                do_normalize=False
             )
             inputs = {k: v.squeeze() if isinstance(v, torch.Tensor) else v[0] for k, v in inputs.items()}
-
+            inputs["original_image"] = orginal_img
+            inputs["original_mask"] = original_mask
+            
             ############## DEBUGING #############
-            # visualize_sample(inputs)
+            #visualize_sample(inputs, idx2class=self.idx2class)
             ######################################
         return inputs
 
@@ -175,7 +197,7 @@ class TacoDatasetMask2Former(Dataset):
         # class_labels torch.Size([1])
         # mask_labels torch.Size([0, 512, 512])
 
-def visualize_sample(inputs):
+def visualize_sample(inputs, idx2class):
     """
     Visualize a sample from the dataset.
     This function takes a dictionary of inputs containing pixel values, pixel masks, 
@@ -197,7 +219,7 @@ def visualize_sample(inputs):
     class_labels = inputs['class_labels'].tolist()
     
     # Create figure with two subplots
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    fig, axes = plt.subplots(1, len(class_labels)+1, figsize=(12, 6))
 
     # Display the original image
     axes[0].imshow(pixel_values)
@@ -205,8 +227,13 @@ def visualize_sample(inputs):
     axes[0].axis('off')
 
     # Display image with superposed masks
-    axes[1].imshow(pixel_values)  # Base image
+    #axes[1].imshow(pixel_values)  # Base image
+    print(f"mask_labels.shape: {mask_labels.shape}")
+    print(f"Class labels: {class_labels}")
+    print(f"Class labels names {[idx2class[i] for i in class_labels]}")
+    print(f"All class labels: {idx2class}")
     
+
     if mask_labels.size > 0:
         # Generate distinct colors for each mask
         num_masks = mask_labels.shape[0]
@@ -214,16 +241,13 @@ def visualize_sample(inputs):
         
         # Superpose each mask with a different color and 70% transparency
         for i, mask in enumerate(mask_labels):
-            if i != 0:
-                # Create masked array for better visualization
-                masked = np.ma.masked_where(mask == 0, mask)
-                axes[1].imshow(masked, cmap=plt.cm.colors.ListedColormap([colors[i]]), 
-                            alpha=0.7)  # 70% transparency
+            # Create masked array for better visualization
+            #masked = np.ma.masked_where(mask == 0, mask)
+
+            axes[i+1].imshow(mask)
     
-    axes[1].set_title(f"Segmentation Masks\nClass Labels: {class_labels}")
-    axes[1].axis('off')
+            axes[i+1].set_title(f"Segmentation Masks\nClass Labels: {idx2class[class_labels[i]]}")
+            axes[i+1].axis('off') 
 
     plt.tight_layout()
     plt.show()
-
-
