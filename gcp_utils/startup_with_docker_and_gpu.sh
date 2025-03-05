@@ -1,3 +1,15 @@
+##### HOW TO USE #####
+# git clone -b mask2former-ferran https://github.com/BlueEquinoxDev/waste-detection-aidl.git
+# cd waste-detection-aidl
+# chmod +x gcp_utils/startup_with_docker_and_gpu.sh
+# ./gcp_utils/startup_with_docker_and_gpu.sh
+
+# Once changes are made the the scripts
+# Change the command to be executed at the docker-compose.yml file. Then:
+# docker-compose build
+# docker-compose up
+######################
+
 #!/bin/bash
 set -e  # Exit immediately if a command exits with a non-zero status
 
@@ -22,7 +34,7 @@ curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-
 
 echo "Updating system and installing NVIDIA toolkit..."
 sudo apt update
-sudo apt install -y nvidia-container-toolkit nvidia-docker2
+sudo apt install -y nvidia-container-toolkit nvidia-docker2 docker-compose docker
 
 echo "Restarting Docker..."
 sudo systemctl restart docker

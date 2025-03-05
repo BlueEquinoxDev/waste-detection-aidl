@@ -15,8 +15,8 @@ import os
 
 
 h_params ={
-    "batch_size": 10,
-    "num_workers": 2,
+    "batch_size": 1,
+    "num_workers": 0,
     "num_epochs": 20,
     "learning_rate": 5e-5,
     "weight_decay": 1e-2,
