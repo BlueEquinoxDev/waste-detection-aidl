@@ -14,9 +14,7 @@ from utilities.maskformer_display_sample_results import display_sample_results
 import os
 import evaluate
 from PIL import Image, ImageOps
-
-LOAD_CHECKPOINT = True
-CHECKPOINT_PATH = "results/seg-mask2former-taco-original-no_backbone_frezze-no_augmentation-20250306-141900/mask2former_30.pth/checkpoint_epoch_30_2025_3_7_4_17.pt"
+# from skimage.transform import resize
 
 h_params ={
     "batch_size": 1,
@@ -25,10 +23,12 @@ h_params ={
     "learning_rate": 5e-5,
     "weight_decay": 1e-2,
     "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
-    "dataset_name": "taco1",
+    "dataset_name": "taco5",
     "backbone_freeze": True,
     "augmentation": True,
-    "backup_best_model": True
+    "backup_best_model": True,
+    "load_checkpoint": True,
+    "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco5-encoder_freeze-with_augmentation-20250305-190831/best_mask2former_model.pth/checkpoint_epoch_19_2025_3_5_22_56.pt"
 }
 
 # experiment_name contains model name, backbone_freeze, augmentation
@@ -190,8 +190,8 @@ model = Mask2FormerForUniversalSegmentation.from_pretrained(
 model.config.output_hidden_states = True
 model.config.use_auxiliary_loss = True
 
-if LOAD_CHECKPOINT:
-    checkpoint_path = CHECKPOINT_PATH
+if h_params["load_checkpoint"]:
+    checkpoint_path = h_params["checkpoint_path"]
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
 
@@ -237,7 +237,7 @@ optimizer=torch.optim.AdamW(model.parameters(),
                             lr=h_params["learning_rate"],
                             weight_decay=h_params["weight_decay"])
 # Load optimizer state
-if LOAD_CHECKPOINT:
+if h_params["load_checkpoint"]:
     optimizer_state_dict = checkpoint['optimizer_state_dict']
     optimizer.load_state_dict(optimizer_state_dict)
 
@@ -255,21 +255,12 @@ def train_one_epoch():
     """
     model.train()
     losses_avg = 0
-    running_loss = 0  # For periodic printing
     total_samples = 0
-    running_samples = 0  # For periodic printing
     len_dataset = len(train_loader)
     
     for idx, batch in enumerate(tqdm(train_loader)):
-        # Reset the parameter gradients
         optimizer.zero_grad()
 
-        #print(f"Pixel Values: {batch['pixel_values'].shape}")
-        #print(f"Mask Labels: {batch['mask_labels'][0].shape}")
-        #print(f"Class Labels: {batch['class_labels'][0].shape}")
-        #print(f"Pixel Mask: {batch['pixel_mask'].shape}")
-
-        # Forward pass
         try:
             outputs = model(
                 pixel_values=batch["pixel_values"].to(device),
@@ -281,53 +272,38 @@ def train_one_epoch():
             print(f"Error in batch {idx}: {e}")
             continue
         
-        
-        # Backward propagation
         loss = outputs.loss
         loss.backward()
-
-        # Gradient clipping before optimizer step
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        optimizer.step()
 
         batch_size = batch["pixel_values"].size(0)
         losses_avg += loss.item() * batch_size
         total_samples += batch_size
-        
-        # Track running loss for periodic printing
-        running_loss += loss.item() * batch_size
-        running_samples += batch_size
 
-        # Print loss every 10 steps
-        if (idx + 1) % 100 == 0:
-            avg_running_loss = running_loss / running_samples
-            print(f"\nStep [{idx + 1}/{len_dataset}] - Running Loss: {avg_running_loss:.4f}")
-            # Reset running metrics
-            running_loss = 0
-            running_samples = 0
-
-        # Optimization
-        optimizer.step()
-
-        # Add memory cleanup after each batch
         if hasattr(torch.cuda, 'empty_cache'):
             torch.cuda.empty_cache()
         
-
-        target_sizes = [image.size for image in batch['original_images']]
+        # Use ground truth masks to determine target sizes.
+        # Assuming batch['original_masks'] is a list of arrays with shape (height, width)
+        target_sizes = [(mask.shape[1], mask.shape[0]) for mask in batch['original_masks']]
+        
         pred_maps = processor.post_process_instance_segmentation(
             outputs, target_sizes=target_sizes, threshold=0.5
         )
-        #print("Predictions:") 
-        #print(outputs.masks_queries_logits)
-        #print([pred_map["segmentation"] for pred_map in pred_maps])
-        #print(batch['original_masks'])
-        #print(pred_maps)
-        # metric.add_batch(references=batch['original_masks'], predictions=[pred_map["segmentation"] for pred_map in pred_maps])
 
-    
+        # Resize predicted masks to match ground truth masks
+        resized_pred_maps = []
+        for pred_map, target_size in zip(pred_maps, target_sizes):
+            pred_mask = pred_map["segmentation"].cpu().numpy()  # Convert to NumPy array
+            pred_mask_pil = Image.fromarray(pred_mask.astype(np.uint8))
+            pred_mask_resized = pred_mask_pil.resize(target_size, Image.NEAREST)
+            resized_pred_maps.append(np.array(pred_mask_resized))
+
+        metric.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
+
     losses_avg = losses_avg / total_samples
-    # iou = metric.compute(num_labels=len(idx2class), ignore_index=255)['mean_iou']
-    iou = 0
+    iou = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)['mean_iou']
     return losses_avg, iou
 
 def validation_one_epoch():
@@ -373,7 +349,7 @@ def validation_one_epoch():
         if hasattr(torch.cuda, 'empty_cache'):
             torch.cuda.empty_cache()
         
-        target_sizes = [image.size for image in batch['original_images']]
+        target_sizes = [(mask.shape[1], mask.shape[0]) for mask in batch['original_masks']]
         pred_maps = processor.post_process_instance_segmentation(
             outputs, target_sizes=target_sizes, threshold=0.5
         )
@@ -382,11 +358,19 @@ def validation_one_epoch():
         #print([np.unique(pred_map["segmentation"]) for pred_map in pred_maps])
         #print(batch['original_masks'])
         #print(pred_maps)
-        #metric.add_batch(references=batch['original_masks'], predictions=[pred_map["segmentation"] for pred_map in pred_maps])
+        # Resize predicted masks to match ground truth masks
+        resized_pred_maps = []
+        for pred_map, target_size in zip(pred_maps, target_sizes):
+            pred_mask = pred_map["segmentation"].cpu().numpy()
+            pred_mask_pil = Image.fromarray(pred_mask.astype(np.uint8))
+            pred_mask_resized = pred_mask_pil.resize(target_size, Image.NEAREST)
+            resized_pred_maps.append(np.array(pred_mask_resized))
+
+        metric.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
 
     losses_avg = losses_avg / total_samples
-    # iou = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)['mean_iou']
-    iou = 0
+    iou = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)['mean_iou']
+    # iou = 0
     return losses_avg, iou
     
 
