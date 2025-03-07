@@ -14,10 +14,15 @@ import os
 import evaluate
 from PIL import Image, ImageOps
 
+LOAD_CHECKPOINT = True
+CHECKPOINT_PATH = "results/seg-mask2former-taco-original-no_backbone_frezze-no_augmentation-20250306-141900/mask2former_30.pth/checkpoint_epoch_30_2025_3_7_4_17.pt"
+
 h_params ={
     "batch_size": 2,
     "num_workers": 0,
 }
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 experiment_name = "seg-mask2former-taco-original-no_backbone_frezze-no_augmentation"
 logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
@@ -129,14 +134,14 @@ validation_loader = DataLoader(validation_taco_dataset,
 # facebook/mask2former-swin-small-coco-instance
 
 # Define model configuration
-model_config = MaskFormerConfig.from_pretrained(
-    "facebook/mask2former-swin-small-coco-instance",
-    num_labels=len(idx2class),
-    output_hidden_states=True,
-    output_attentions=True,
-    use_auxiliary_loss=True,
-    id2label=idx2class
-)
+#model_config = MaskFormerConfig.from_pretrained(
+#    "facebook/mask2former-swin-small-coco-instance",
+#    num_labels=len(idx2class),
+#    output_hidden_states=True,
+#    output_attentions=True,
+#    use_auxiliary_loss=True,
+#    id2label=idx2class
+#)
 
 # Load model with configuration
 model = Mask2FormerForUniversalSegmentation.from_pretrained(
@@ -147,10 +152,14 @@ model = Mask2FormerForUniversalSegmentation.from_pretrained(
 )
 
 
-
 # Ensure output hidden states are enabled
 model.config.output_hidden_states = True
 model.config.use_auxiliary_loss = True
+
+if LOAD_CHECKPOINT:
+    checkpoint_path = CHECKPOINT_PATH
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
 
 # model = Mask2FormerForUniversalSegmentation.from_pretrained("facebook/mask2former-swin-tiny-ade-semantic", # 47 M params
 #                                                             id2label=idx2class,
@@ -186,12 +195,16 @@ for param in model.model.pixel_level_module.encoder.parameters():
 
 # batch = next(iter(train_dataloader))
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 model.to(device)
 
 optimizer=torch.optim.AdamW(model.parameters(),
                             lr=1e-3,
                             weight_decay=1e-2)
+# Load optimizer state
+if LOAD_CHECKPOINT:
+    optimizer_state_dict = checkpoint['optimizer_state_dict']
+    optimizer.load_state_dict(optimizer_state_dict)
 
 # Add learning rate scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)

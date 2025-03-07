@@ -13,6 +13,7 @@ from PIL import Image
 
 #from model.vits import ViT
 from app.model.wastemaskrcnn import WasteMaskRCNN
+from app.model.wastemask2former import WasteMask2Former
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -20,6 +21,7 @@ UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 FILE_NAME = "sample.jpg"
 MASK_RCNN_CHECKPOINT = "checkpoint_epoch_16_2025_2_28_10_40.pt"#"checkpoint_epoch_8_2025_2_18_21_53.pt"
+MASK2FORMER_CHECKPOINT = "checkpoint_epoch_14_2025_3_7_13_33.pt"
 IDX2CLASS = None
 MODEL = None
 PREDICT_IMAGE = None
@@ -40,9 +42,20 @@ def _load_MASK_RCNN():
     MODEL=WasteMaskRCNN(num_classes=len(IDX2CLASS))
     MODEL.load_state_dict(checkpoint['model_state_dict'])
 
+def _load_MASK2FORMER():
+    global MODEL, IDX2CLASS
+    checkpoint_path = pathlib.Path(__file__).parent.absolute() / os.path.join("checkpoint", MASK2FORMER_CHECKPOINT)
+
+    checkpoint = torch.load(checkpoint_path, weights_only=True, map_location=torch.device('cpu'))
+
+    IDX2CLASS = checkpoint['idx2classes']
+    MODEL=WasteMask2Former(num_classes=len(IDX2CLASS))
+    MODEL.model.load_state_dict(checkpoint['model_state_dict'])
+
 
 with app.app_context():
-    _load_MASK_RCNN()
+    #_load_MASK_RCNN()
+    _load_MASK2FORMER()
     
 
 def predict_images(images):
