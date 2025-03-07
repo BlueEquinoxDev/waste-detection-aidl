@@ -163,14 +163,14 @@ validation_loader = DataLoader(validation_taco_dataset,
 #                                                           ignore_mismatched_sizes=True)
 
 # Define model configuration
-model_config = MaskFormerConfig.from_pretrained(
-    h_params["model_name"],
-    num_labels=len(idx2class),
-    output_hidden_states=True,
-    output_attentions=True,
-    use_auxiliary_loss=True,
-    id2label=idx2class
-)
+# model_config = MaskFormerConfig.from_pretrained(
+#     h_params["model_name"],
+#     num_labels=len(idx2class),
+#     output_hidden_states=True,
+#     output_attentions=True,
+#     use_auxiliary_loss=True,
+#     id2label=idx2class
+# )
 
 # Load model with configuration
 model = Mask2FormerForUniversalSegmentation.from_pretrained(
@@ -309,7 +309,7 @@ def train_one_epoch():
         #print([pred_map["segmentation"] for pred_map in pred_maps])
         #print(batch['original_masks'])
         #print(pred_maps)
-        #metric.add_batch(references=batch['original_masks'], predictions=[pred_map["segmentation"] for pred_map in pred_maps])
+        # metric.add_batch(references=batch['original_masks'], predictions=[pred_map["segmentation"] for pred_map in pred_maps])
 
     
     losses_avg = losses_avg / total_samples
