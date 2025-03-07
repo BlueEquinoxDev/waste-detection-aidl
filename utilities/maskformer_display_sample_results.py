@@ -22,7 +22,7 @@ def apply_mask(image, mask, color, alpha=0.5):
                                  image[..., c])
     return image
 
-def display_sample_results(batch, outputs, processor, sample_index=0, mask_threshold=0.5):
+def display_sample_results(batch, outputs, processor, sample_index=0, mask_threshold=0.5, checkpoint_path = "NA"):
     """
     Displays the input image with overlays of ground truth and predicted instance masks/labels.
     
@@ -94,15 +94,19 @@ def display_sample_results(batch, outputs, processor, sample_index=0, mask_thres
         gt_labels = np.array(batch["class_labels"][sample_index])
     
     # Create copies for overlay visualization.
-    gt_overlay = image.copy()
-    pred_overlay = image.copy()
+    # Convert image to grayscale
+    grayscale = 0.299 * image[..., 0] + 0.587 * image[..., 1] + 0.114 * image[..., 2]
+    
+    # Create 3-channel grayscale images for overlays
+    gt_overlay = np.stack([grayscale, grayscale, grayscale], axis=-1)
+    pred_overlay = np.stack([grayscale, grayscale, grayscale], axis=-1)
     
     # Overlay ground truth masks.
     gt_annotations = []
     for i in range(gt_masks.shape[0]):
         color = [random.random() for _ in range(3)]
         mask = gt_masks[i]
-        gt_overlay = apply_mask(gt_overlay, mask, color, alpha=0.5)
+        gt_overlay = apply_mask(gt_overlay, mask, color, alpha=0.8)
         # np.where should now return two arrays if mask is 2D.
         ys, xs = np.where(mask > 0)
         if len(xs) > 0 and len(ys) > 0:
@@ -119,7 +123,7 @@ def display_sample_results(batch, outputs, processor, sample_index=0, mask_thres
             # If mask is soft, threshold it.
             if mask.dtype != np.uint8 and mask.max() <= 1.0:
                 mask = (mask > mask_threshold).astype(np.uint8)
-            pred_overlay = apply_mask(pred_overlay, mask, color, alpha=0.5)
+            pred_overlay = apply_mask(pred_overlay, mask, color, alpha=0.8)
             # Ensure mask is 2D.
             if mask.ndim != 2:
                 mask = mask.squeeze()
@@ -134,7 +138,7 @@ def display_sample_results(batch, outputs, processor, sample_index=0, mask_thres
         print("No predicted masks available for sample", sample_index)
     
     # Plot the results.
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    fig, axes = plt.subplots(1, 3, figsize=(18, 7))
     
     axes[0].imshow(image)
     axes[0].set_title("Input Image")
@@ -151,6 +155,9 @@ def display_sample_results(batch, outputs, processor, sample_index=0, mask_thres
     for (x, y, label) in pred_annotations:
         axes[2].text(x, y, label, color="white", fontsize=12, weight="bold")
     axes[2].axis("off")
+
+    # Print the checkpoint_path in the bottom of the image
+    fig.text(0.5, 0.05, checkpoint_path, ha='center', va='center', fontsize=10)
     
     plt.tight_layout()
     plt.show()

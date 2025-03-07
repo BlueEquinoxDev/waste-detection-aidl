@@ -147,7 +147,7 @@ class TacoDatasetMask2Former(Dataset):
                 # Assign a unique instance ID (i+1) to the mask region
                 # print(f"i: {i}, mask.shape: {mask.shape}")
                 semantic_seg[mask > 0] = i + 1
-                
+
             # Add a channel dimension (if required by the processor)
             # semantic_seg = np.expand_dims(semantic_seg, axis=-1)  # shape: (H, W, 1)
 
@@ -186,6 +186,7 @@ class TacoDatasetMask2Former(Dataset):
             inputs = {k: v.squeeze() if isinstance(v, torch.Tensor) else v[0] for k, v in inputs.items()}
             inputs["original_image"] = orginal_img
             inputs["original_mask"] = original_mask
+            inputs["image_id"] = img_id
             
             ############## DEBUGING #############
             #visualize_sample(inputs, idx2class=self.idx2class)
@@ -197,6 +198,18 @@ class TacoDatasetMask2Former(Dataset):
         # pixel_mask torch.Size([512, 512])
         # class_labels torch.Size([1])
         # mask_labels torch.Size([0, 512, 512])
+
+def visualize_batch(batch, idx2class, results_masks=None):
+
+    batch_size = batch['pixel_values'].shape[0]
+
+    for i in range(batch_size):
+        inputs = {k: v[i] for k, v in batch.items()}
+        if results_masks is not None:
+            inputs['results_masks'] = results_masks[i]
+        visualize_sample(inputs, idx2class)
+
+
 
 def visualize_sample(inputs, idx2class):
     """
@@ -221,9 +234,12 @@ def visualize_sample(inputs, idx2class):
     pixel_mask = inputs['pixel_mask'].numpy()
     mask_labels = inputs['mask_labels'].numpy()
     class_labels = inputs['class_labels'].tolist()
+    results_masks = inputs.get('results_masks', None)
+    # Determine number of subplots (original, masks, results_masks if available)
+    num_subplots = 3 if results_masks is not None else 2
     
-    # Create figure with two subplots
-    fig, axes = plt.subplots(1, len(class_labels)+1, figsize=(12, 6))
+    # Create figure with subplots
+    fig, axes = plt.subplots(1, num_subplots, figsize=(15, 6))
 
     # Display the original image
     axes[0].imshow(pixel_values)
@@ -231,13 +247,12 @@ def visualize_sample(inputs, idx2class):
     axes[0].axis('off')
 
     # Display image with superposed masks
-    #axes[1].imshow(pixel_values)  # Base image
+    axes[1].imshow(pixel_values)  # Base image
     print(f"mask_labels.shape: {mask_labels.shape}")
     print(f"Class labels: {class_labels}")
     print(f"Class labels names {[idx2class[i] for i in class_labels]}")
     print(f"All class labels: {idx2class}")
     
-
     if mask_labels.size > 0:
         # Generate distinct colors for each mask
         num_masks = mask_labels.shape[0]
@@ -253,6 +268,50 @@ def visualize_sample(inputs, idx2class):
     
     axes[1].set_title(f"Segmentation Masks\nClass Labels: {class_labels}")
     axes[1].axis('off')
+
+    # Display results masks if available
+    if results_masks is not None:
+        axes[2].imshow(pixel_values)  # Base image
+
+        print(f"Results masks: {results_masks}")
+        
+        # Handle different types of results_masks
+        if isinstance(results_masks, dict):
+            # For COCO format results with RLE-encoded masks
+            from pycocotools import mask as mask_util
+            
+            # Create a mask from the RLE encoding
+            if 'segmentation' in results_masks:
+                rle = results_masks['segmentation']
+                binary_mask = mask_util.decode(rle)
+                
+                # Resize mask if needed (your image might be 512x512 but mask is 128x128)
+                if binary_mask.shape != (pixel_values.shape[0], pixel_values.shape[1]):
+                    from skimage.transform import resize
+                    binary_mask = resize(binary_mask, (pixel_values.shape[0], pixel_values.shape[1]), 
+                                        order=0, preserve_range=True).astype(np.uint8)
+                
+                # Display the mask
+                masked_result = np.ma.masked_where(binary_mask == 0, binary_mask)
+                axes[2].imshow(masked_result, cmap='jet', alpha=0.7)
+                
+                # Add category and score as text
+                category_id = results_masks.get('category_id', 'Unknown')
+                score = results_masks.get('score', 0)
+                axes[2].text(10, 30, f"Cat: {category_id}, Score: {score:.2f}", 
+                           color='white', backgroundcolor='black', fontsize=10)
+            else:
+                axes[2].text(pixel_values.shape[1]//2, pixel_values.shape[0]//2, 
+                           "Invalid mask format", color='red', fontsize=12)
+                
+        elif isinstance(results_masks, list):
+            num_result_masks = len(results_masks)
+            result_colors = plt.cm.rainbow(np.linspace(0, 1, num_result_masks))
+            
+            for i, mask in enumerate(results_masks):
+                masked_result = np.ma.masked_where(mask == 0, mask)
+                axes[2].imshow(masked_result, cmap=plt.cm.colors.ListedColormap([result_colors[i]]), 
+                            alpha=0.7)
 
     plt.savefig('test_image.png', dpi=300, bbox_inches='tight')
     plt.tight_layout()

@@ -120,6 +120,7 @@ def collate_fn(batch):
     mask_labels = [example["mask_labels"] for example in batch]
     original_images = [example["original_image"] for example in batch]
     original_masks = [example["original_mask"] for example in batch]
+    image_ids = [example["image_id"] for example in batch]
 
     #print(f"class_labels_collate_fn")
     #[print(example["class_labels"]) for example in batch]
@@ -132,7 +133,15 @@ def collate_fn(batch):
     #        img = Image.fromarray(visual_mask)
     #        img.show()
 
-    return {"pixel_values": pixel_values, "pixel_mask": pixel_mask, "class_labels": class_labels, "mask_labels": mask_labels, "original_images":original_images, "original_masks":original_masks}
+    return {
+        "pixel_values": pixel_values,
+        "pixel_mask": pixel_mask,
+        "class_labels": class_labels,
+        "mask_labels": mask_labels,
+        "original_images": original_images,
+        "original_masks": original_masks,
+        "image_id": image_ids
+    }
 
 train_loader = DataLoader(train_taco_dataset, 
                               batch_size = h_params["batch_size"],
