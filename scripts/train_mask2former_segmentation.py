@@ -15,6 +15,9 @@ import os
 import evaluate
 from PIL import Image, ImageOps
 
+LOAD_CHECKPOINT = True
+CHECKPOINT_PATH = "results/seg-mask2former-taco-original-no_backbone_frezze-no_augmentation-20250306-141900/mask2former_30.pth/checkpoint_epoch_30_2025_3_7_4_17.pt"
+
 h_params ={
     "batch_size": 1,
     "num_workers": 0,
@@ -31,6 +34,8 @@ h_params ={
 # experiment_name contains model name, backbone_freeze, augmentation
 experiment_name = "seg-"+h_params["model_name"].split("/")[1]+"-"+h_params["dataset_name"]+"-"+str(h_params["backbone_freeze"])+"_backbone_freeze-"+str(h_params["augmentation"])+"_augmentation"
 print("Experiment name: ", experiment_name)
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
@@ -181,10 +186,14 @@ model = Mask2FormerForUniversalSegmentation.from_pretrained(
 )
 
 
-
 # Ensure output hidden states are enabled
 model.config.output_hidden_states = True
 model.config.use_auxiliary_loss = True
+
+if LOAD_CHECKPOINT:
+    checkpoint_path = CHECKPOINT_PATH
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
 
 # model = Mask2FormerForUniversalSegmentation.from_pretrained("facebook/mask2former-swin-tiny-ade-semantic", # 47 M params
 #                                                             id2label=idx2class,
@@ -221,12 +230,16 @@ if(h_params["backbone_freeze"]):
 
 # batch = next(iter(train_dataloader))
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 model.to(device)
 
 optimizer=torch.optim.AdamW(model.parameters(),
                             lr=h_params["learning_rate"],
                             weight_decay=h_params["weight_decay"])
+# Load optimizer state
+if LOAD_CHECKPOINT:
+    optimizer_state_dict = checkpoint['optimizer_state_dict']
+    optimizer.load_state_dict(optimizer_state_dict)
 
 # Add learning rate scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
