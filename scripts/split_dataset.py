@@ -86,6 +86,30 @@ def make_taco_annotations_5_categories():
     
     return taco5_annotation
 
+def make_taco_annotations_1_categories():
+    taco1_annotation={
+        'info': coco_data['info'],
+        'images': coco_data['images'],
+        'annotations':None,        
+        'licenses': coco_data['licenses'],
+        'categories': None,
+        'scene_categories':[],
+        'scene_annotations':[]
+    }
+    
+    
+    
+    taco1_annotation['categories']=[{'supercategory': "waste", 'id':1, 'name': "waste"}]
+    taco1_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
+        
+    #annotations
+    taco1_annotation['annotations'] = [a for a in coco_data['annotations']]
+    for a in taco1_annotation['annotations']:
+        a['category_id']=1
+        
+    return taco1_annotation
+
+
 # Parse arguments
 parser = argparse.ArgumentParser(description='Split dataset into training, validation and testing sets')
 parser.add_argument('--dataset_dir', required=True, help='Path to dataset annotations', type=str)
@@ -93,7 +117,7 @@ parser.add_argument('--test_percentage', required=False, help='Percentage of ima
 parser.add_argument('--val_percentage', required=False, help='Percentage of images used for the validation set', type=float, default=0.10)
 parser.add_argument('--seed', required=False, help='Random seed for the split', type=int, default=123)
 parser.add_argument('--verbose', required=False, help='Print information about the split', type=bool, default=False)
-parser.add_argument('--dataset_type', required=True, help='Type of dataset to be used, it can be taco28, taco5 or classification', type=str)
+parser.add_argument('--dataset_type', required=True, help='Type of dataset to be used, it can be taco1, taco28, taco5 or classification', type=str)
 
 args = parser.parse_args()
 
@@ -118,6 +142,12 @@ if args.dataset_type.lower() == "taco28":
         annotationns28=make_taco_annotations_28_categories()
         json.dump(annotationns28, f)
 #    exit(0)
+elif args.dataset_type.lower() == "taco1":
+    if args.verbose: print('Create a file of annotations with 1 supercategory annotations1.json...')
+    custom_annotations_path = os.path.join(args.dataset_dir, 'annotations1.json')
+    with open(custom_annotations_path, 'w') as f:
+        annotationns1=make_taco_annotations_1_categories()
+        json.dump(annotationns1, f)
 elif args.dataset_type.lower() == "taco5":
     if args.verbose: print('Create a file of annotations with 5 categories annotations5.json...')
     custom_annotations_path = os.path.join(args.dataset_dir, 'annotations5.json')

@@ -7,6 +7,7 @@ import torch
 import json
 from torchvision import tv_tensors
 import matplotlib.pyplot as plt
+from PIL import Image, ImageOps
 
 class TacoDatasetMask2Former(Dataset):
 
@@ -33,18 +34,21 @@ class TacoDatasetMask2Former(Dataset):
         categories = self.coco_data.loadCats(self.coco_data.getCatIds())
         
         # Get unique supercategories
-        supercategories = list(set(cat['supercategory'] for cat in categories))
+        #supercategories = list(set(cat['supercategory'] for cat in categories))
+        
+        self.idx2class= {self.coco_data.cats[i]['id']: self.coco_data.cats[i]['supercategory'] for i in self.coco_data.cats}
+        self.idx2class=dict(sorted(self.idx2class.items()))
         
         # Create mappings (add 1 to indices for background class at 0)
-        self.idx2class = {i+1: supercategory for i, supercategory in enumerate(supercategories)}
-        self.idx2class[0] = "background"  # Add background class
+        #self.idx2class = {i+1: supercategory for i, supercategory in enumerate(supercategories)}
+        #self.idx2class[0] = "background"  # Add background class
         
-        self.class2idx = {supercategory: i+1 for i, supercategory in enumerate(supercategories)}
-        self.class2idx["background"] = 0
+        #self.class2idx = {supercategory: i+1 for i, supercategory in enumerate(supercategories)}
+        #self.class2idx["background"] = 0
         
         # Create category mapping for COCO annotations
-        self.category_map = {cat['id']: self.class2idx[cat['supercategory']] 
-                            for cat in categories}
+        #self.category_map = {cat['id']: self.class2idx[cat['supercategory']] 
+        #                    for cat in categories}
         
     def __len__(self):
         return self.len_dataset
@@ -56,16 +60,22 @@ class TacoDatasetMask2Former(Dataset):
         annotations = self.coco_data.imgToAnns[img_id]
 
         # Load and process image        
-        image = Image.open(path)
-        image = ImageOps.exif_transpose(image)
-        image = np.array(image)
+        sample_img = Image.open(path)
+        sample_img = ImageOps.exif_transpose(sample_img)
+        
+        orginal_img = sample_img.copy()
+
+        sample_img = np.array(sample_img)
         
         # Get masks and labels for each annotation
         masks = []
         labels = []
         for ann in annotations:
             masks.append(self.coco_data.annToMask(ann))
-            labels.append(self.category_map[ann['category_id']])
+            labels.append(ann['category_id'])
+
+        #print(f"labels: {labels}")
+        #print(f"labels to text: {[self.idx2class[i] for i in labels]}")
 
         # Stack masks and transpose to (N, H, W) format
         instance_seg = np.stack(masks) if masks else np.zeros((0, image.shape[0], image.shape[1]))
@@ -74,26 +84,49 @@ class TacoDatasetMask2Former(Dataset):
         for i, label in enumerate(labels):
             inst2class[i + 1] = label
 
+        # print(f"sample_img.shape: {sample_img.shape}")
+        # print(f"sample_img: {sample_img}")
+        #print(f"instance_seg.shape: {instance_seg.shape}")
+        # print(f"class_labels: {class_labels}")
+        #print(f"inst2class: {inst2class}")
+
         # Apply transforms to both image and mask
         if self.transforms is not None:
             if len(masks) > 0:
-                transformed = self.transforms(image=image, masks=list(instance_seg))
-                image = transformed['image']  # In range [0, 1] after normalization
-                instance_seg = torch.stack([torch.tensor(m, dtype=torch.uint8) for m in transformed['masks']])
+                transformed = self.transforms(image=sample_img, masks=list(instance_seg))
+                image = transformed['image']
+                instance_seg = torch.stack([m.type(torch.uint8) for m in transformed['masks']])
             else:
                 transformed = self.transforms(image=image)
                 image = transformed['image']
                 instance_seg = torch.zeros((0, 512, 512))
-
-        # Convert to numpy array in range [0, 1]
-        if isinstance(image, torch.Tensor):
-            image = image.numpy()
             
-        # Rescale image to [0, 1] range if needed
-        if image.max() > 1.0 or image.min() < 0.0:
-            image = (image - image.min()) / (image.max() - image.min())
+            #print(f"instance_seg.shape after tansforms: {instance_seg.shape}")
+
+            # # Transform image
+            # transformed = self.transforms(image=sample_img)
+            # # print(f"transformed: {transformed}")
+            # image = transformed['image']  # Now in torch.Tensor format (C,H,W)
+            # # Convert image to (H, W, C) format
+            # # image = image.permute(1, 2, 0)
+            # # print(f"image.shape: {image.shape}")
+            
+            # # Transform masks
+            # if len(masks) > 0:
+            #     transformed_masks = []
+            #     for mask in instance_seg:
+            #          # Add channel dimension for Albumentations
+            #         mask = np.expand_dims(mask, axis=-1)
+            #         mask_transformed = self.transforms(image=mask)['image']
+            #         transformed_masks.append(mask_transformed)
+            #     instance_seg = torch.stack(transformed_masks)  # [N, C, H, W]
+            #     # Remove the extra channel dimension
+            #     instance_seg = instance_seg.squeeze(1)  # [N, H, W]
+            # else:
+            #     instance_seg = torch.zeros((0, 512, 512))
 
         if class_labels.shape[0] == 0:
+            print("No annotations found")
             inputs = self.processor(
                 images=[image],
                 return_tensors="pt"
@@ -107,16 +140,48 @@ class TacoDatasetMask2Former(Dataset):
             for i, mask in enumerate(instance_seg):
                 semantic_seg[mask > 0] = i + 1
 
+            # Add a channel dimension (if required by the processor)
+            # semantic_seg = np.expand_dims(semantic_seg, axis=-1)  # shape: (H, W, 1)
+
+            # Convert semantic_seg to numpy of type uint8
+            semantic_seg = semantic_seg.astype(np.uint8)
+            #print(f"semantic_seg.shape: {semantic_seg.shape}")
+            #print(f"semantic_seg unique: {np.unique(semantic_seg)}")
+            #print(f"instance2class: {inst2class}")
+            #print(f"labels: {[self.idx2class[i] for i in inst2class.values()]}")
+
+            original_mask = semantic_seg.copy()
+
+            # Ensure the segmentation map is properly padded to match expected input size
+            # print(f"semantic_seg.shape: {semantic_seg.shape}")
+            # print(f"np.unique(semantic_seg): {np.unique(semantic_seg)}")
+            # print(f"semantic_seg.dtype: {semantic_seg.dtype}")
+            # print(f"inst2class: {inst2class}")
+            # target_size = (512, 512, 1)
+            # padded_segmentation = np.zeros(target_size, dtype=np.uint8)
+            
+            # # padded_segmentation[:H, :W] = semantic_seg[:, :, 0]  # Remove extra channel
+
+            # print(f"padded_segmentation.shape: {padded_segmentation.shape}")
+            # print(f"np.unique(padded_segmentation): {np.unique(padded_segmentation)}")
+
+            # Process using the MaskFormer processor
             inputs = self.processor(
-                images=[image],
-                segmentation_maps=[semantic_seg],
+                images=image.numpy(), 
+                segmentation_maps=semantic_seg,  
                 instance_id_to_semantic_id=inst2class,
-                return_tensors="pt"
+                return_tensors="pt",
+                do_resize=False,
+                do_rescale=False,
+                do_normalize=False
             )
             inputs = {k: v.squeeze() if isinstance(v, torch.Tensor) else v[0] for k, v in inputs.items()}
-
-        inputs["image_id"] = img_id
-        # visualize_sample(inputs)
+            inputs["original_image"] = orginal_img
+            inputs["original_mask"] = original_mask
+            
+            ############## DEBUGING #############
+            #visualize_sample(inputs, idx2class=self.idx2class)
+            ######################################
         return inputs
 
         # Output Format
@@ -125,7 +190,7 @@ class TacoDatasetMask2Former(Dataset):
         # class_labels torch.Size([1])
         # mask_labels torch.Size([0, 512, 512])
 
-def visualize_sample(inputs):
+def visualize_sample(inputs, idx2class):
     """
     Visualize a sample from the dataset.
     This function takes a dictionary of inputs containing pixel values, pixel masks, 
@@ -150,7 +215,7 @@ def visualize_sample(inputs):
     class_labels = inputs['class_labels'].tolist()
     
     # Create figure with two subplots
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    fig, axes = plt.subplots(1, len(class_labels)+1, figsize=(12, 6))
 
     # Display the original image
     axes[0].imshow(pixel_values)
@@ -158,8 +223,13 @@ def visualize_sample(inputs):
     axes[0].axis('off')
 
     # Display image with superposed masks
-    axes[1].imshow(pixel_values)  # Base image
+    #axes[1].imshow(pixel_values)  # Base image
+    print(f"mask_labels.shape: {mask_labels.shape}")
+    print(f"Class labels: {class_labels}")
+    print(f"Class labels names {[idx2class[i] for i in class_labels]}")
+    print(f"All class labels: {idx2class}")
     
+
     if mask_labels.size > 0:
         # Generate distinct colors for each mask
         num_masks = mask_labels.shape[0]
@@ -179,5 +249,3 @@ def visualize_sample(inputs):
     plt.savefig('test_image.png', dpi=300, bbox_inches='tight')
     plt.tight_layout()
     plt.show()
-
-
