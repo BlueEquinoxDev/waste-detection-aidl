@@ -21,3 +21,4 @@ flask
 dotenv
 optuna
 tensorboard
+evaluate

@@ -135,11 +135,19 @@ class TacoDatasetMask2Former(Dataset):
             inputs["class_labels"] = torch.tensor([0])
             inputs["mask_labels"] = torch.zeros((0, 512, 512))
         else:
-            # Convert instance_seg to semantic_seg
-            semantic_seg = np.zeros((image.shape[1], image.shape[2]), dtype=np.uint8)
-            for i, mask in enumerate(instance_seg):
-                semantic_seg[mask > 0] = i + 1
+        # Convert instance_seg to numpy of type uint8
+            instance_seg = instance_seg.numpy().astype(np.uint8)
+            # print(f"instance_seg.shape: {instance_seg.shape}")
+            # print(f"np.unique(instance_seg): {np.unique(instance_seg)}")
+            H, W = instance_seg.shape[1], instance_seg.shape[2]
 
+            # Create a semantic segmentation map with background=0
+            semantic_seg = np.zeros((H, W), dtype=np.uint8)
+            for i, mask in enumerate(instance_seg):
+                # Assign a unique instance ID (i+1) to the mask region
+                # print(f"i: {i}, mask.shape: {mask.shape}")
+                semantic_seg[mask > 0] = i + 1
+                
             # Add a channel dimension (if required by the processor)
             # semantic_seg = np.expand_dims(semantic_seg, axis=-1)  # shape: (H, W, 1)
 

@@ -16,19 +16,20 @@ import evaluate
 from PIL import Image, ImageOps
 
 h_params ={
-    "batch_size": 2,
+    "batch_size": 1,
     "num_workers": 0,
     "num_epochs": 20,
     "learning_rate": 5e-5,
     "weight_decay": 1e-2,
     "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
-    "backbone_freeze": False,
-    "augmentation": False,
+    "dataset_name": "taco1",
+    "backbone_freeze": True,
+    "augmentation": True,
     "backup_best_model": True
 }
 
 # experiment_name contains model name, backbone_freeze, augmentation
-experiment_name = "seg-taco-"+h_params["model_name"].split("/")[1]+"-"+str(h_params["backbone_freeze"])+"_backbone_freeze-"+str(h_params["augmentation"])+"_augmentation"
+experiment_name = "seg-"+h_params["model_name"].split("/")[1]+"-"+h_params["dataset_name"]+"-"+str(h_params["backbone_freeze"])+"_backbone_freeze-"+str(h_params["augmentation"])+"_augmentation"
 print("Experiment name: ", experiment_name)
 
 logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
@@ -59,31 +60,38 @@ writer=SummaryWriter(log_dir=logdir)
 processor = MaskFormerImageProcessor.from_pretrained(h_params["model_name"])
 
 # Create transform pipeline that handles both image and mask
-data_transforms_train = A.Compose([
-    A.RandomRotate90(p=0.5),
-    A.HorizontalFlip(p=0.5),
-    # # A.VerticalFlip(p=0.5),
-    A.ColorJitter(
-        brightness=0.2, 
-        contrast=0.2, 
-        saturation=0.2, 
-        hue=0.1, 
-        p=0.5
-    ),
-    A.GaussianBlur(
-        blur_limit=(3, 7),
-        sigma_limit=(0.1, 2.0),
-        p=0.5
-    ),
-    A.Resize(height=512, width=512),
-    A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ToTensorV2()
-])
+if h_params["augmentation"]:
+    data_transforms_train = A.Compose([
+        A.RandomRotate90(p=0.5),
+        A.HorizontalFlip(p=0.5),
+        # # A.VerticalFlip(p=0.5),
+        A.ColorJitter(
+            brightness=0.2, 
+            contrast=0.2, 
+            saturation=0.2, 
+            hue=0.1, 
+            p=0.5
+        ),
+        A.GaussianBlur(
+            blur_limit=(3, 7),
+            sigma_limit=(0.1, 2.0),
+            p=0.5
+        ),
+        A.Resize(height=512, width=512),
+        # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ToTensorV2()
+    ])
+else:
+    data_transforms_train = A.Compose([
+        A.Resize(height=512, width=512),
+        # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ToTensorV2()
+    ])
 
 # Create transform pipeline that handles both image and mask
 data_transforms_validation = A.Compose([
     A.Resize(height=512, width=512),
-    A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    # A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ToTensorV2()
 ])
 
@@ -106,7 +114,7 @@ validation_taco_dataset = TacoDatasetMask2Former(
 idx2class = train_taco_dataset.idx2class
 
 def collate_fn(batch):
-    pixel_values = torch.stack([example["pixel_values"] for example in batch])  # Don't normalize here
+    pixel_values = torch.stack([example["pixel_values"].float() / 255.0 for example in batch])  # Convert to float and normalize
     pixel_mask = torch.stack([example["pixel_mask"] for example in batch])
     class_labels = [example["class_labels"] for example in batch]
     mask_labels = [example["mask_labels"] for example in batch]
@@ -129,10 +137,9 @@ def collate_fn(batch):
 train_loader = DataLoader(train_taco_dataset, 
                               batch_size = h_params["batch_size"],
                               num_workers = h_params["num_workers"],
-                              shuffle=False, # Use WeightedRandomSampler instead
+                              shuffle=True,
                               collate_fn=collate_fn,
-                              pin_memory=True,
-                              sampler=sampler)
+                              pin_memory=True)
 
 validation_loader = DataLoader(validation_taco_dataset,
                                batch_size=h_params["batch_size"],
@@ -219,9 +226,10 @@ metric = evaluate.load("mean_iou")
 
 def train_one_epoch():
     """
-    Function to train 1 epoch of Mask R-CNN with periodic loss printing
-    returns:
-        -  avg loss in training
+    Function to train one epoch of Mask2Former model.
+
+    Returns:
+        tuple: A tuple containing the average training loss and mean IoU.
     """
     model.train()
     losses_avg = 0
@@ -296,15 +304,16 @@ def train_one_epoch():
 
     
     losses_avg = losses_avg / total_samples
-    #iou = metric.compute(num_labels=len(idx2class), ignore_index=255)['mean_iou'] #num_labels=len(idx2class), ignore_index=255, reduce_labels=True
+    # iou = metric.compute(num_labels=len(idx2class), ignore_index=255)['mean_iou']
     iou = 0
     return losses_avg, iou
 
 def validation_one_epoch():
     """
-    Function to validate 1 epoch of Mask R-CNN
-    returns:
-        -  avg loss in validation
+    Function to validate one epoch of Mask2Former model.
+
+    Returns:
+        tuple: A tuple containing the average validation loss and mean IoU.
     """
     model.eval()
     losses_avg=0
@@ -354,7 +363,7 @@ def validation_one_epoch():
         #metric.add_batch(references=batch['original_masks'], predictions=[pred_map["segmentation"] for pred_map in pred_maps])
 
     losses_avg = losses_avg / total_samples
-    #iou = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)['mean_iou']
+    # iou = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)['mean_iou']
     iou = 0
     return losses_avg, iou
     
@@ -377,6 +386,8 @@ for epoch in range(1,h_params["num_epochs"]+1):
     writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
     writer.add_scalar('Segmentation/learning_rate', optimizer.param_groups[0]['lr'], epoch)
+    writer.add_scalar('Segmentation/train_iou', iou_train, epoch)
+    writer.add_scalar('Segmentation/val_iou', iou_val, epoch)
     # Save best model:
     if h_params["backup_best_model"]:
         if losses_avg_validation < best_val_loss:
