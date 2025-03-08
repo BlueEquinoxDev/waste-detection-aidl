@@ -23,7 +23,7 @@ sudo pip3 install Pillow scikit-learn
 
 echo "Running dataset scripts..."
 sudo python3 -m scripts.download
-sudo python3 -m scripts.split_dataset
+sudo python3 -m scripts.split_dataset --dataset_dir data --dataset_type taco1
 
 echo "Setting up NVIDIA Container Toolkit..."
 distribution=$(. /etc/os-release; echo $ID$VERSION_ID)
