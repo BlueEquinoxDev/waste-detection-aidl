@@ -20,9 +20,10 @@ h_params = {
     "batch_size": 1,  # Force batch size to 1
     "num_workers": 0,
     "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
-    # "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco1-True_backbone_freeze-True_augmentation-20250307-105643/best_mask2former_model.pth/checkpoint_epoch_1_2025_3_7_11_41.pt",
+    "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco1-True_backbone_freeze-True_augmentation-20250307-105643/best_mask2former_model.pth/checkpoint_epoch_1_2025_3_7_11_41.pt",
     # "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco1-encoder_freeze-with_augmentation-20250305-121712/mask2former_30.pth/checkpoint_epoch_30_2025_3_5_16_59.pt",
-    "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco5-encoder_freeze-with_augmentation-20250305-190831/best_mask2former_model.pth/checkpoint_epoch_19_2025_3_5_22_56.pt",
+    # "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco5-encoder_freeze-with_augmentation-20250305-190831/best_mask2former_model.pth/checkpoint_epoch_19_2025_3_5_22_56.pt",
+    # "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco5-True_backbone_freeze-True_augmentation-20250307-233024/best_mask2former_model.pth/checkpoint_epoch_18_2025_3_7_23_50.pt",
     # "checkpoint_path": "results/seg-taco-mask2former-swin-tiny-ade-semantic-False_backbone_freeze-False_augmentation-20250304-105327/best_model.pth/checkpoint_epoch_1_2025_3_4_11_4.pt",
     "dataset_name": "taco1",
 }
@@ -188,7 +189,7 @@ def validation_one_epoch():
             # results_masks = coco_result_format(image_id, predictions)
             # visualize_batch(batch, idx2class, results_masks)
 
-            display_sample_results(batch, outputs, processor, sample_index=0, mask_threshold=0.2, checkpoint_path=h_params["checkpoint_path"])
+            display_sample_results(batch, outputs, processor, sample_index=0, mask_threshold=0.35, checkpoint_path=h_params["checkpoint_path"])
         
     print("COCO metrics for masks:\n")            
     coco_result = test_loader.dataset.coco_data.loadRes(results_masks)
