@@ -38,7 +38,7 @@ class WasteMaskRCNN(nn.Module):
             return self.model(inputs)
         return self.model(inputs,targets)
             
-    def __get_model_instance_segmentation__(self,num_classes):
+    def __get_model_instance_segmentation__(self, num_classes):
         # load an instance segmentation model pre-trained on COCO
         model = torchvision.models.detection.maskrcnn_resnet50_fpn_v2(weights=torchvision.models.detection.MaskRCNN_ResNet50_FPN_V2_Weights.DEFAULT,
                                                                       box_detections_per_img=512,

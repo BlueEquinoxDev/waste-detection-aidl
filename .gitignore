@@ -180,3 +180,6 @@ app/checkpoint/checkpoint.pt
 app/checkpoint/checkpoint*.pt
 results/
 gcp_utils/config/config.env
+data/annotations1.json
+data/annotations5.json
+data/annotations28.json

@@ -20,3 +20,6 @@ albumentations
 flask
 dotenv
 optuna
+tensorboard
+evaluate
+scikit-image
