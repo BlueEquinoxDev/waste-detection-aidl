@@ -97,8 +97,6 @@ def make_taco_annotations_1_categories():
         'scene_annotations':[]
     }
     
-    
-    
     taco1_annotation['categories']=[{'supercategory': "waste", 'id':1, 'name': "waste"}]
     taco1_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
         
@@ -141,21 +139,24 @@ if args.dataset_type.lower() == "taco28":
     with open(custom_annotations_path, 'w') as f:
         annotationns28=make_taco_annotations_28_categories()
         json.dump(annotationns28, f)
-#    exit(0)
+
 elif args.dataset_type.lower() == "taco1":
     if args.verbose: print('Create a file of annotations with 1 supercategory annotations1.json...')
     custom_annotations_path = os.path.join(args.dataset_dir, 'annotations1.json')
     with open(custom_annotations_path, 'w') as f:
         annotationns1=make_taco_annotations_1_categories()
         json.dump(annotationns1, f)
+
 elif args.dataset_type.lower() == "taco5":
     if args.verbose: print('Create a file of annotations with 5 categories annotations5.json...')
     custom_annotations_path = os.path.join(args.dataset_dir, 'annotations5.json')
     with open(custom_annotations_path, 'w') as f:
         annotationns5=make_taco_annotations_5_categories()
         json.dump(annotationns5, f)
+
 elif args.dataset_type.lower() == "classification":
     custom_annotations_path = ann_input_path
+    
 else:
     raise ValueError('No annotation file selected, select one of the following: --taco28, --taco5 or --classification')
 

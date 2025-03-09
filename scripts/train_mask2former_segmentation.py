@@ -15,19 +15,21 @@ import os
 import evaluate
 from PIL import Image, ImageOps
 # from skimage.transform import resize
+from utilities.maskformer_display_sample_results import display_sample_results
 
+# Define hyperparameters
 h_params ={
-    "batch_size": 1,
+    "batch_size": 2,
     "num_workers": 0,
-    "num_epochs": 20,
-    "learning_rate": 5e-5,
+    "num_epochs": 60,
+    "learning_rate": 1e-3,
     "weight_decay": 1e-2,
     "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
-    "dataset_name": "taco5",
-    "backbone_freeze": True,
+    "dataset_name": "taco1",
+    "backbone_freeze": False,
     "augmentation": True,
     "backup_best_model": True,
-    "load_checkpoint": True,
+    "load_checkpoint": False, #True,
     "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco5-encoder_freeze-with_augmentation-20250305-190831/best_mask2former_model.pth/checkpoint_epoch_19_2025_3_5_22_56.pt"
 }
 
@@ -203,10 +205,19 @@ if h_params["load_checkpoint"]:
 #print("Model loaded...")
 #print(model)
 
+
 if(h_params["backbone_freeze"]):
     for param in model.model.pixel_level_module.encoder.parameters():
         param.requires_grad = False
-
+else:
+    for param in model.model.pixel_level_module.encoder.parameters():
+        param.requires_grad = False
+    # Unfreeze the last 3 layers of the encoder
+    for param in model.model.pixel_level_module.encoder.encoder.layers[-1].parameters():
+        param.requires_grad = True
+# print all parameters that require grad
+for name, param in model.named_parameters():
+    print(name, param.requires_grad)
 
 # Freeze backbone's encoder parameters
 # for param in model.model.pixel_level_module.parameters():
@@ -299,12 +310,16 @@ def train_one_epoch():
             pred_mask_pil = Image.fromarray(pred_mask.astype(np.uint8))
             pred_mask_resized = pred_mask_pil.resize(target_size, Image.NEAREST)
             resized_pred_maps.append(np.array(pred_mask_resized))
+        
 
+        #display_sample_results(batch, outputs, processor, sample_index=0, mask_threshold=0.35, checkpoint_path=h_params["checkpoint_path"])
         metric.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
 
     losses_avg = losses_avg / total_samples
-    iou = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)['mean_iou']
-    return losses_avg, iou
+    metrics = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
+    #mAP = metric_2.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
+    #print(f"mAP: {mAP}")
+    return losses_avg, metrics
 
 def validation_one_epoch():
     """
@@ -369,9 +384,9 @@ def validation_one_epoch():
         metric.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
 
     losses_avg = losses_avg / total_samples
-    iou = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)['mean_iou']
-    # iou = 0
-    return losses_avg, iou
+    metrics = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
+
+    return losses_avg, metrics
     
 
 
@@ -382,18 +397,29 @@ validation_loss=[]
 # Add variables to track best validation loss
 best_val_loss = float('inf')
 for epoch in range(1,h_params["num_epochs"]+1):
-    losses_avg_train, iou_train = train_one_epoch()
-    losses_avg_validation, iou_val = validation_one_epoch()
-    print(f"TRAINING epoch[{epoch}/{h_params['num_epochs']}]: avg. loss: {losses_avg_train:.3f} iou:{iou_train:.3f}")
-    print(f"VALIDATION epoch[{epoch}/{h_params['num_epochs']}]: avg. loss:{ losses_avg_validation:.3f} iou:{iou_val:.3f}")  
+    losses_avg_train, metrics_train = train_one_epoch()
+    losses_avg_validation, metrics_val = validation_one_epoch()
+    print(f"TRAINING epoch[{epoch}/{h_params['num_epochs']}]: avg. loss: {losses_avg_train:.3f} iou:{metrics_train}")
+    print(f"VALIDATION epoch[{epoch}/{h_params['num_epochs']}]: avg. loss:{ losses_avg_validation:.3f} iou:{metrics_val}")  
     train_loss.append(losses_avg_train)
     validation_loss.append(losses_avg_validation)
     save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, f"mask2former_{epoch}.pth"))    
     writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
     writer.add_scalar('Segmentation/learning_rate', optimizer.param_groups[0]['lr'], epoch)
-    writer.add_scalar('Segmentation/train_iou', iou_train, epoch)
-    writer.add_scalar('Segmentation/val_iou', iou_val, epoch)
+    for key, value in metrics_train.items():
+        if isinstance(value, np.ndarray):
+            writer.add_scalars(f'Segmentation/train_{key}', {str(i):v for i, v in enumerate(value)}, epoch)
+        else:
+            writer.add_scalar(f'Segmentation/train_{key}', value, epoch)
+    
+    for key, value in metrics_val.items():
+        if isinstance(value, np.ndarray):
+            writer.add_scalars(f'Segmentation/val_{key}', {str(i):v for i, v in enumerate(value)}, epoch)
+        else:
+            writer.add_scalar(f'Segmentation/val_{key}', value, epoch)
+    #writer.add_scalar('Segmentation/train_iou', iou_train, epoch)
+    #writer.add_scalar('Segmentation/val_iou', iou_val, epoch)
     # Save best model:
     if h_params["backup_best_model"]:
         if losses_avg_validation < best_val_loss:
