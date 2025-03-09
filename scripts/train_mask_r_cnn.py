@@ -17,6 +17,8 @@ from typing import List
 from torchvision.ops import nms
 from pycocotools.mask import encode
 import evaluate
+from torchmetrics.detection import MeanAveragePrecision
+from torchmetrics.segmentation import MeanIoU
 
 h_params ={
     "batch_size": 1,
@@ -145,7 +147,9 @@ optimizer=torch.optim.AdamW(model.parameters(),
 # Define the scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
 
-metric = evaluate.load("mean_iou")
+#metric = evaluate.load("mean_iou")
+mAP_train = MeanAveragePrecision(iou_type="segm")
+#mIoU_train = MeanIoU(num_classes=len(idx2class))
 
 def train_one_epoch():
     """
@@ -172,18 +176,40 @@ def train_one_epoch():
         
         #loss_dict_printable = {k: f"{v.item():.2f}" for k, v in loss_dict.items()}      
         #print(f"[{batch_idx}/{len_dataset}] total loss: {losses.item():.2f} losses: {loss_dict_printable}")     
-        losses_avg+= losses.item() 
+        losses_avg += losses.item() 
 
         with torch.no_grad():
-            predicts=model(images)
+            predicts = model(images)
         
-        references = segmentation_maps(masks=[t["masks"] for t in targets])
-        pred_maps = segmentation_maps(masks=[p["masks"].squeeze(dim=1) for p in predicts])
-        metric.add_batch(references=references, predictions=pred_maps)
-    
-    metrics = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
-    return losses_avg/len_dataset, metrics
+        #references = segmentation_maps(masks=[t["masks"] for t in targets])
+        #pred_maps = segmentation_maps(masks=[p["masks"].squeeze(dim=1) for p in predicts])
+        #metric.add_batch(references=references, predictions=pred_maps)
 
+        # Format predictions
+            for pred in predicts:
+                pred['masks'] = (pred['masks'].squeeze(1) > 0.5).byte()  # Convert to binary mask
+            
+            # Format targets
+            """
+            formatted_targets = []
+            for target in targets:
+                formatted_target = {
+                    'boxes': target['boxes'],
+                    'labels': target['labels'],
+                    'masks': target['masks'].byte(),  # Convert to binary mask
+                    'image_id': target['image_id']
+                }
+                formatted_targets.append(formatted_target)
+            """
+        mAP_train.update(predicts, targets)
+        
+
+    mAP_result = mAP_train.compute()
+    print(mAP_result)
+    #metrics = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
+    return losses_avg/len_dataset, mAP_result
+
+"""
 def segmentation_maps(masks):
     segmentations = []
     for mask in masks:
@@ -245,7 +271,9 @@ def coco_result_format(images_id:List[int], predictions:List[torch.Tensor],thres
                     "score":prediction['scores'][i].item(),
                     "segmentation":mask_to_coco_format(threshold,prediction['masks'][i])})    
     return results
-    
+""" 
+
+mAP_val = MeanAveragePrecision(iou_type="segm")
 
 def validation_one_epoch():
     """
@@ -274,13 +302,33 @@ def validation_one_epoch():
         with torch.no_grad():
             predicts=model(images)
             
+            # Format predictions
+            for pred in predicts:
+                pred['masks'] = (pred['masks'].squeeze(1) > 0.5).byte()  # Convert to binary mask
+            """
+            # Format targets
+            formatted_targets = []
+            for target in targets:
+                formatted_target = {
+                    'boxes': target['boxes'],
+                    'labels': target['labels'],
+                    'masks': target['masks'].byte(),  # Convert to binary mask
+                    'image_id': target['image_id']
+                }
+                formatted_targets.append(formatted_target)
+            """
+        mAP_val.update(predicts, targets)
+        
+        
+    """
+
         images_id=[t['image_id'] for t in targets]                
         results.extend(coco_result_format(images_id,predicts))
-        
         
         references = segmentation_maps(masks=[t["masks"] for t in targets])
         pred_maps = segmentation_maps(masks=[p["masks"].squeeze(dim=1) for p in predicts])
         metric.add_batch(references=references, predictions=pred_maps)
+        break
 
     if not results:
         stats = list(range(0, 12))
@@ -294,8 +342,10 @@ def validation_one_epoch():
         stats = coco_eval.stats
     
     metrics = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
+    """
+    mAP_result = mAP_val.compute()
 
-    return losses_avg/len_dataset, stats, metrics
+    return losses_avg/len_dataset, mAP_result #stats, metrics
     
 
 ### START TRAINING
@@ -305,7 +355,7 @@ train_loss=[]
 validation_loss=[]
 for epoch in range(1,NUM_EPOCH+1):
     losses_avg_train, metrics_train=train_one_epoch()
-    losses_avg_validation, stats, metrics_val=validation_one_epoch()
+    losses_avg_validation, metrics_val=validation_one_epoch() # stats
     scheduler.step(losses_avg_validation)
     print(f"TRAINING epoch[{epoch}/{NUM_EPOCH}]: avg. loss: {losses_avg_train:.3f}")
     print(f"VALIDATION epoch[{epoch}/{NUM_EPOCH}]: avg. loss:{ losses_avg_validation:.3f}")  
@@ -315,6 +365,7 @@ for epoch in range(1,NUM_EPOCH+1):
     writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
 
+    """
     writer.add_scalar('Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]', stats[0], epoch)
     writer.add_scalar('Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ]', stats[1], epoch)
     writer.add_scalar('Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ]', stats[2], epoch)
@@ -327,7 +378,8 @@ for epoch in range(1,NUM_EPOCH+1):
     writer.add_scalar('Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ]', stats[9], epoch)
     writer.add_scalar('Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ]', stats[10], epoch)
     writer.add_scalar('Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ]', stats[11], epoch)
-
+    """
+    
     for key, value in metrics_train.items():
         if isinstance(value, np.ndarray):
             writer.add_scalars(f'Segmentation/train_{key}', {str(i):v for i, v in enumerate(value)}, epoch)
@@ -367,8 +419,3 @@ for images, targets in enumerate(test_loader):
 
 print("Final test accuracy:\n")
 print(f"Metrics: {metrics}")
-
-
-
-
-
