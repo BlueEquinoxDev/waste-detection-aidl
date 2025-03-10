@@ -4,8 +4,47 @@ This repository contains the code developed by Martí Fabregat, Rafel Febrer, Fe
 
 Several models for instance segmentation and image classification have been trained and evaluated to segment and classify waste.
 
-<!-- @import "[TOC]" {cmd="toc" depthFrom=1 depthTo=4 orderedList=false} -->
-
+## Table of Contents
+- [Getting started](#getting-started)
+  - [Requirements](#requirements)
+  - [Datasets](#datasets)
+    - [TACO Dataset](#taco-dataset)
+    - [Viola77](#viola77)
+  - [Exploratory data analysis](#exploratory-data-analysis)
+- [Training](#training)
+  - [Image Classification with ResNet-50](#image-classification-with-resnet-50)
+    - [Split dataset](#split-dataset)
+    - [Dataset classes](#dataset-classes)
+      - [ResNet-50 for Viola77](#resnet-50-for-viola77)
+      - [ResNet-50 for Taco](#resnet-50-for-taco)
+    - [Train](#train)
+    - [Evaluate](#evaluate)
+    - [Results](#results)
+  - [Image Classification with ViT](#image-classification-with-vit)
+    - [Split dataset](#split-dataset-1)
+    - [Dataset classes](#dataset-classes-1)
+      - [ViT for Viola77](#vit-for-viola77)
+      - [ViT for Taco + Viola77](#vit-for-taco--viola77)
+    - [Train](#train-1)
+    - [Evaluate](#evaluate-1)
+    - [Results](#results-1)
+  - [Instance segmentation with Mask R-CNN](#instance-segmentation-with-mask-r-cnn)
+    - [Split dataset](#split-dataset-2)
+    - [Dataset classes](#dataset-classes-2)
+    - [Train](#train-2)
+    - [Evaluate](#evaluate-2)
+    - [Results](#results-2)
+  - [Instance segmentation with Mask2Former](#instance-segmentation-with-mask2former)
+    - [Split dataset](#split-dataset-3)
+    - [Dataset classes](#dataset-classes-3)
+    - [Train](#train-3)
+    - [Evaluate](#evaluate-3)
+    - [Results](#results-3)
+- [MLOps](#mlops)
+  - [Running the application with Docker](#running-the-application-with-docker)
+  - [Google Cloud](#google-cloud)
+  - [API](#api)
+- [Demo](#demo)
 
 ## Getting started
 
