@@ -162,11 +162,16 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=taco1 [--test_
 * Use ``--val_percentage`` if you want to use a validation split different than default 0.1 (10%).
 * Use ``--seed`` if you want to have a different random output. Default 123.
 * Use ``--verbose`` (bool) if you want to have printed text on the console during execution.
+
 #### Dataset classes
 The Taco Dataset for mask R-CNN class in ``custom_datasets/taco_dataset_mask_r_cnn_update.py`` has the functionality to load the Taco Dataset in for Instance Segmentation.
+
 #### Train
-Run ``python run_mask_r_cnn_update.py``
+Run ``python -m scripts.train_mask_r_cnn``
+
 #### Evaluate
+Run ``python -m scripts.test_mask_r_cnn``
+
 #### Results
 
 ### Instance segmentation with Mask2Former
@@ -178,8 +183,13 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=taco1 [--test_
 ```
 
 #### Dataset classes
+
 #### Train
+Run ``python -m scripts.train_mask2former_segmentation``
+
 #### Evaluate
+Run ``python -m scripts.test_mask2former_segmentation``
+
 #### Results
 
 

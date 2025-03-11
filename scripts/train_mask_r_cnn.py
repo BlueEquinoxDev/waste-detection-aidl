@@ -49,7 +49,7 @@ def save_model(model, epoch):
         "idx2classes": idx2class
     }  
 
-    save_path = os.path.join("results","mask_rcnn")
+    save_path = os.path.join("results",f"mask_rcnn_{datetime.now().strftime('%Y%m%d-%H%M%S')}")
     if not os.path.exists(save_path):
         os.makedirs(save_path)
     
@@ -439,3 +439,4 @@ mAP_test_results = mAP_test.compute()
 print("Final test metrics:\n")
 for metric_name, metric_value in mAP_test_results:
     print(f"{metric_name}: {metric_value}")
+
