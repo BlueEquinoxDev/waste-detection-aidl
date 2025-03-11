@@ -168,7 +168,6 @@ def train_one_epoch():
         images, targets = data    
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]
-        
         loss_dict = model(images, targets)
         losses = sum(loss for loss in loss_dict.values())
         losses.backward()
@@ -284,7 +283,7 @@ def validation_one_epoch():
     losses_avg=0
     len_dataset=len(valiation_loader)
 
-    results = []
+    # results = []
 
     pbar = tqdm(valiation_loader, desc="Computing loss for validation dataset", leave=False)
     for batch_idx, data in enumerate(pbar):
@@ -384,13 +383,19 @@ for epoch in range(1,NUM_EPOCH+1):
         if isinstance(value, np.ndarray):
             writer.add_scalars(f'Segmentation/train_{key}', {str(i):v for i, v in enumerate(value)}, epoch)
         else:
-            writer.add_scalar(f'Segmentation/train_{key}', value, epoch)
+            if key == 'classes':
+                pass
+            else:
+                writer.add_scalar(f'Segmentation/train_{key}', value, epoch)
     
     for key, value in metrics_val.items():
         if isinstance(value, np.ndarray):
             writer.add_scalars(f'Segmentation/val_{key}', {str(i):v for i, v in enumerate(value)}, epoch)
         else:
-            writer.add_scalar(f'Segmentation/val_{key}', value, epoch)
+            if key == 'classes':
+                pass
+            else:
+                writer.add_scalar(f'Segmentation/val_{key}', value, epoch)
     
 print("Final train loss:\n")
 print(validation_loss)
@@ -399,7 +404,7 @@ print("Final validation loss:\n")
 print(validation_loss)
 
 ### START EVALUATION
-print("STARING EVALUATION")
+print("STARING EVALUATION on TEST DATASET...")
 test_dataset=WasteMaskRCNN(annotations_file="data/test_annotations.json", 
                            img_dir="data/images", 
                            transforms=data_transforms_validation)
@@ -412,10 +417,25 @@ test_loader=DataLoader(test_dataset,
                        num_workers=h_params["num_workers"],
                        collate_fn=collate_fn)
 
+mAP_test = MeanAveragePrecision(iou_type="segm")
 
-for images, targets in enumerate(test_loader):
-    detections, metrics = model.evaluate(images=images, targets=targets)
+pbar = tqdm(test_loader, desc="Computing metrics for test dataset", leave=False)
+for batch_idx, data in enumerate(pbar):
+    model.eval()
+    images, targets = data            
+    images=list(image.to(device) for image in images)   
+    targets = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]             
+        
+    with torch.no_grad():
+        predicts = model(images)
+            
+        # Format predictions
+        for pred in predicts:
+            pred['masks'] = (pred['masks'].squeeze(1) > 0.5).byte()  # Convert to binary mask
+            
+        mAP_test.update(predicts, targets)
+mAP_test_results = mAP_test.compute()
 
-
-print("Final test accuracy:\n")
-print(f"Metrics: {metrics}")
+print("Final test metrics:\n")
+for metric_name, metric_value in mAP_test_results:
+    print(f"{metric_name}: {metric_value}")
