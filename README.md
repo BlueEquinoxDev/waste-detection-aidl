@@ -73,13 +73,29 @@ The model has been trained using [TACO Dataset](http://tacodataset.org) by Pedro
 
 To download the dataset images simply use:
 ```
-python download.py
+python -m scripts.download
 ```
+
+In case of image classification the taco dataset is divided in its annotations and the background is removed, so that the waste is surrounded by back pixels.
+This allows to use the Taco Dataset as a waste image classification dataset.
+
+For image segmentation the Taco dataset is used "as it is".
+
+The categories that will be used for classification and segmentation depend on the subversion of Taco Dataset selected.
+
+* **Taco28** - Contains the complete Taco Dataset using the 28 supercategories as labels.
+* **Taco5** - Contains a subsample of the images of the original Taco Dataset. (5 labels only). It is an "easier" task.
+* **Taco1** - Contains the complete Taco Dataset using only 1 category as label ("waste").
 
 #### Viola77
 
 The [Viola77](https://huggingface.co/datasets/viola77data/recycling-dataset) dataset is used as well for classification. Under Apache 2.0 License.
 
+#### Combination of Datasets
+
+A combination of Taco and Viola77 Datasets have been created to increase the number of images for image classification tasks to test models under different situations.
+
+* **taco30viola11** - Contains a Taco Dataset subsection of annotations that match the Viola categories plus the Viola Dataset, so it is the Dataset with the biggest number of images for classification.
 
 ### Exploratory data analysis
 
@@ -90,6 +106,19 @@ The dataset is in COCO format. It contains the source pictures, anotations and l
 
 ### Image Classification with ResNet-50
 #### Split dataset
+To split the annotations for training and evaluation on **ResNet-50** use ``split_dataset.py`` according to this explanation. It has several optional flags.
+```
+python -m scripts.split_dataset --dataset_dir=data --dataset_type=classification [--test_percentage=0.1] [--val_percentage=0.1] [--seed=123] [--verbose=False] 
+```
+* Indicate the annotations directory using ``--dataset_dir``.
+* Indicate the dataset to use with ``--dataset_type`` flag. In case of classification use:
+    * ``--dataset_type=classification``
+    (Use it to run classification in taco28, taco5 or taco30viola11).
+##### Optional:
+* Use ``--test_percentage`` if you want to use a test split different than default 0.1 (10%).
+* Use ``--val_percentage`` if you want to use a validation split different than default 0.1 (10%).
+* Use ``--seed`` if you want to have a different random output. Default 123.
+* Use ``--verbose`` (bool) if you want to have printed text on the console during execution.
 #### Dataset classes
 ##### ResNet-50 for Viola77
 ##### ResNet-50 for Taco
@@ -99,6 +128,11 @@ The dataset is in COCO format. It contains the source pictures, anotations and l
 
 ### Image Classification with ViT
 #### Split dataset
+To split the annotations for training and evaluation on **ViT** use ``split_dataset.py`` following the same procedure as in **ResNet-50**.
+```
+python -m scripts.split_dataset --dataset_dir=data --dataset_type=classification [--test_percentage=0.1] [--val_percentage=0.1] [--seed=123] [--verbose=False] 
+```
+
 #### Dataset classes
 ##### ViT for Viola77
 The Viola77 dataset for Image classification in ``custom_datasets/viola77_dataset.py`` has the functionality to load the Viola77 Dataset in for Image Classification.
@@ -113,20 +147,21 @@ Run ``python run_classification_vit_viola_taco.py``
 
 ### Instance segmentation with Mask R-CNN
 #### Split dataset
-To split the annotations for training and evaluation use ``split_dataset.py``. It has several optional flags.
+To split the annotations for training and evaluation in **Mask R-CNN** use ``split_dataset.py``.
+
 ```
-python split_dataset.py --dataset_dir ./data [--test_percentage 0.1] [--val_percentage 0.1] [--seed 123] [--verbose False] [--]
+python -m scripts.split_dataset --dataset_dir=data --dataset_type=taco1 [--test_percentage=0.1] [--val_percentage=0.1] [--seed=123] [--verbose=False]
 ```
 * Indicate the annotations directory using ``--dataset_dir``.
-* Indicate the dataset to use ``--dataset_type``. It depends on the task to do. It can be:
-    * ``classification`` for classification tasks (Use it to run classification in taco28, taco5, taco30viola11).
-    * ``taco28`` for segmentation in taco28 dataset (Taco dataset with 28 categories, includes all data)
-    * ``taco5`` for segmentation in taco5 dataset (Taco dataset with a subsample of 5 categories)
+* Indicate the dataset to use with ``--dataset_type`` flag. It depends on the task to do. It can be:
+    * ``taco28`` for **instance segmentation** in *taco28* dataset (Taco dataset with 28 categories, includes all data)
+    * ``taco5`` for **instance segmentation** in *taco5* dataset (Taco dataset with a subsample of 5 categories)
+    * ``taco1`` for **instance segmentation** in *taco1* dataset (Taco dataset only segmenting waste from background, includes all data)
 ##### Optional:
 * Use ``--test_percentage`` if you want to use a test split different than default 0.1 (10%).
 * Use ``--val_percentage`` if you want to use a validation split different than default 0.1 (10%).
 * Use ``--seed`` if you want to have a different random output. Default 123.
-* Use ``--verbose`` if you want to have printed text on the console during execution.
+* Use ``--verbose`` (bool) if you want to have printed text on the console during execution.
 #### Dataset classes
 The Taco Dataset for mask R-CNN class in ``custom_datasets/taco_dataset_mask_r_cnn_update.py`` has the functionality to load the Taco Dataset in for Instance Segmentation.
 #### Train
@@ -136,6 +171,12 @@ Run ``python run_mask_r_cnn_update.py``
 
 ### Instance segmentation with Mask2Former
 #### Split dataset
+To split the annotations for training and evaluation on **Mask2Former** use ``split_dataset.py`` following the same procedure as in **Mask R-CNN**.
+
+```
+python -m scripts.split_dataset --dataset_dir=data --dataset_type=taco1 [--test_percentage=0.1] [--val_percentage=0.1] [--seed=123] [--verbose=False]
+```
+
 #### Dataset classes
 #### Train
 #### Evaluate
