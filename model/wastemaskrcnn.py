@@ -46,7 +46,7 @@ class WasteMaskRCNN(nn.Module):
         # get number of input features for the classifier
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         # replace the pre-trained head with a new one
-        model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+        model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
         # now get the number of input features for the mask classifier
         in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
         hidden_layer = 256
@@ -54,7 +54,7 @@ class WasteMaskRCNN(nn.Module):
         model.roi_heads.mask_predictor = MaskRCNNPredictor(
             in_features_mask,
             hidden_layer,
-            num_classes
+            num_classes+1
         )
         #for p in model.backbone.parameters():p.requires_grad=False
         return model

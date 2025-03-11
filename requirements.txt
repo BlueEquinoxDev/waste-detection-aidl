@@ -23,3 +23,5 @@ optuna
 tensorboard
 evaluate
 scikit-image
+torchmetrics[detection]
+torchmetrics[segmentation]

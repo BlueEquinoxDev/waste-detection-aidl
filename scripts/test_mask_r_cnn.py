@@ -42,13 +42,13 @@ data_transforms_test = transforms.Compose([
     transforms.ToDtype(torch.float32, scale=True),
     transforms.ToPureTensor()])
 
-test_taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/test_annotations.json",
+test_taco_dataset=TacoDatasetMaskRCNN(annotations_file="data/test_annotations28.json",
                                       img_dir="data/images",
                                       transforms=data_transforms_test)
 
 
-checkpoint_path = "results/mask_rcnn/checkpoint_epoch_6_2025_2_26_21_30.pt"
-checkpoint = torch.load(checkpoint_path)
+checkpoint_path = "app/checkpoint/checkpoint_epoch_14_2025_3_7_13_33.pt"
+checkpoint = torch.load(checkpoint_path, weights_only=True, map_location=torch.device('cpu'))
 
 
 from torchvision.models.detection.backbone_utils import resnet_fpn_backbone 
@@ -61,10 +61,10 @@ model.to(device)
 
 
 def mask_to_coco_format(threshold,mask):
-        a=mask.cpu().squeeze().numpy()
-        a=(a>=threshold).astype(np.uint8)
-        a=np.asfortranarray(a)
-        return encode(a)
+    a=mask.cpu().squeeze().numpy()
+    a=(a>=threshold).astype(np.uint8)
+    a=np.asfortranarray(a)
+    return encode(a)
         
 
 def bbox_to_coco_format(bbox:torch.Tensor)->None:

@@ -30,6 +30,7 @@ class TacoDatasetMaskRCNN(Dataset):
         self.index_to_imageId={i:img_id for i,img_id in enumerate(self.coco_data.imgs.keys())}
         
         self.idx2class= {self.coco_data.cats[i]['id']: self.coco_data.cats[i]['supercategory'] for i in self.coco_data.cats}
+        self.idx2class=dict(sorted(self.idx2class.items()))
         
 
 

@@ -48,10 +48,12 @@ def display_sample_results(batch, outputs, processor, sample_index=0, mask_thres
     image = batch["pixel_values"][sample_index].permute(1, 2, 0).cpu().numpy()
     image = np.clip(image, 0, 1)
     height, width = image.shape[:2]
-    
+    target_sizes = [(mask.shape[1], mask.shape[0]) for mask in batch['original_masks']]
+
     # Use the processor to post-process the outputs.
+    print(f"Image shape: {(height, width)}")
     results = processor.post_process_instance_segmentation(
-        outputs, threshold=mask_threshold, target_sizes=[(height, width)]
+        outputs, threshold=mask_threshold, target_sizes=target_sizes#target_sizes=[(height, width)]
     )
     
     instance_results = results[sample_index]

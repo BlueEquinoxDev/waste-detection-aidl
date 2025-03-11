@@ -64,10 +64,10 @@ class WasteMask2Former(nn.Module):
         raw_images = images.copy()
         if preprocessing:
             images = self.preprocessing(images=images)
-        print(f"images: {images}")
+        #print(f"images: {images}")
         target_sizes = [img.shape[-2:] for img in images]
 
-        print(f"id2class: {idx2class}")
+        #print(f"id2class: {idx2class}")
         
         inst2cls = {}
         for i, label in enumerate(idx2class.keys()):
@@ -81,7 +81,7 @@ class WasteMask2Former(nn.Module):
             instance_id_to_semantic_id=inst2cls,
             return_tensors="pt"
         ).to("cpu")
-        print(f"inputs: {inputs}")
+        #print(f"inputs: {inputs}")
         
         self.model.to("cpu")
         self.model.eval()
@@ -99,13 +99,14 @@ class WasteMask2Former(nn.Module):
             mask = pred_map['segmentation']
             segments_info = pred_map['segments_info']
             print(f"segments_info: {segments_info}")
-            print(f"pred_maps.shape: {mask.shape}")
+            #print(f"pred_maps.shape: {mask.shape}")
 
             n_detections = len(mask.unique())
             print(f"Nr of detections: {n_detections}")
 
-            seg_map = self.draw_segmentation_map(mask, segments_info)
+            seg_map = self.draw_segmentation_map(mask, segments_info, idx2class)
             result = self.__image_overlay__(images[i], seg_map)
+
 
             result.show()
             
@@ -113,7 +114,7 @@ class WasteMask2Former(nn.Module):
 
         return pred_maps, processed_images
     
-    def draw_segmentation_map(self, labels, segments_info):
+    def draw_segmentation_map(self, labels, segments_info, idx2class):
         """
         :param labels: Label array from the model.Should be of shape 
             <height x width>. No channel information required.
@@ -136,21 +137,24 @@ class WasteMask2Former(nn.Module):
             else:
                 segment = -1
             print(f"segment: {segment}")
+            if segment != 0 and segment != -1: print(f"Detected class: {idx2class[segment]}")
+            
             index = (labels == label_num).cpu().detach().numpy()
-            print(f"index: {index}")
             random_color = [randint(0, 255) for _ in range(3)]
             if label_num == -1 and segment == -1:
                 red_map[index] = np.array(0)
                 green_map[index] = np.array(0)
                 blue_map[index] = np.array(0)
-            elif segment == 0:
-                red_map[index] = np.array(0)
-                green_map[index] = np.array(0) 
-                blue_map[index] = np.array(0)
+            #elif segment == 0:
+            #    red_map[index] = np.array(0)
+            #    green_map[index] = np.array(0) 
+            #    blue_map[index] = np.array(0)
             else:
                 red_map[index] = np.array(random_color[0])
                 green_map[index] = np.array(random_color[1])
                 blue_map[index] = np.array(random_color[2])
+            
+            print()
             
         segmentation_map = np.stack([red_map, green_map, blue_map], axis=2)
         
@@ -162,7 +166,6 @@ class WasteMask2Former(nn.Module):
         :param segmented_image: Segmentation map in RGB format. 
         """
         image = image
-        print(f"image.shape: {image.shape}")
         image = Image.fromarray(image.permute(1, 2, 0).numpy().astype(np.uint8))
         mask = Image.fromarray(segmented_image)
         image = Image.blend(image, mask, 0.5)
