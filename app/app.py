@@ -17,10 +17,12 @@ from app.model.wastemask2former import WasteMask2Former
 from dotenv import load_dotenv
 load_dotenv()
 
+MODEL_NAME = "MASK_R-CNN"#MASK2FORMER or MASK_R-CNN
+
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 FILE_NAME = "sample.jpg"
-MASK_RCNN_CHECKPOINT = "checkpoint_epoch_16_2025_2_28_10_40.pt"#"checkpoint_epoch_8_2025_2_18_21_53.pt"
+MASK_RCNN_CHECKPOINT = "checkpoint_epoch_30_maskrcnn_taco5.pt" #"checkpoint_epoch_16_2025_2_28_10_40.pt"#"checkpoint_epoch_8_2025_2_18_21_53.pt"
 MASK2FORMER_CHECKPOINT = "checkpoint_epoch_14_mask2former_taco28.pt"#"checkpoint_mask2former_cloud.pt"
 IDX2CLASS = None
 MODEL = None
@@ -54,8 +56,13 @@ def _load_MASK2FORMER():
 
 
 with app.app_context():
-    #_load_MASK_RCNN()
-    _load_MASK2FORMER()
+    if MODEL_NAME == "MASK_R-CNN":
+        _load_MASK_RCNN()
+    elif MODEL_NAME == "MASK2FORMER":
+        _load_MASK2FORMER()
+    else:
+        print("Model Not found")
+        exit(0)
     
 
 def predict_images(images):

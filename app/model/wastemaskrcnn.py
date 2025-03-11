@@ -46,7 +46,7 @@ class WasteMaskRCNN(nn.Module):
         # get number of input features for the classifier
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         # replace the pre-trained head with a new one
-        model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
+        model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes+1)
         # now get the number of input features for the mask classifier
         in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
         hidden_layer = 256
@@ -54,7 +54,7 @@ class WasteMaskRCNN(nn.Module):
         model.roi_heads.mask_predictor = MaskRCNNPredictor(
             in_features_mask,
             hidden_layer,
-            num_classes
+            num_classes+1
         )
         #for p in model.backbone.parameters():p.requires_grad=False
         return model
@@ -82,8 +82,8 @@ class WasteMaskRCNN(nn.Module):
         self.model.eval()
         with torch.no_grad():
             detections = self.model(images)
-            #print("Print detections")
-            #print(detections)
+            print("Print detections")
+            print(detections)
             if targets is not None:
                 # Compute metrics
                 metrics = None
@@ -96,7 +96,7 @@ class WasteMaskRCNN(nn.Module):
                 return detections, metrics
             else:
                 iou_threshold = 0.2
-                scores_threshold = 0.6
+                scores_threshold = 0.5
                 processed_images = []
                 processed_detections = []
     
@@ -126,13 +126,14 @@ class WasteMaskRCNN(nn.Module):
 
                     # Get COCO labels
                     named_labels = [v for k, v in idx2class.items()]
+                    print(named_labels)
 
                     draw = ImageDraw.Draw(im_copy)
                     for box, score, label, mask in zip(boxes, scores, labels, masks):
                         if score > scores_threshold:
                             coords = box.cpu().tolist()
                             draw.rectangle(coords, width=1, outline=(0, 255, 0))
-                            text = f"{named_labels[label]} {score*100:.2f}%"
+                            text = f"{named_labels[label-1]} {score*100:.2f}%"
                             draw.text([coords[0], coords[1]-20], text, fill=(0, 255, 0), font_size=20)
                     processed_images.append(im_copy)
                     processed_detections.append({
