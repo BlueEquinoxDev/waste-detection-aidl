@@ -17,13 +17,30 @@ from typing import List
 from torchvision.ops import nms
 from pycocotools.mask import encode
 import evaluate
+from utilities.save_model import save_model
 from torchmetrics.detection import MeanAveragePrecision
 from torchmetrics.segmentation import MeanIoU
+
 
 h_params ={
     "batch_size": 1,
     "num_workers": 0,
+    "num_epochs": 20,
+    "learning_rate": 1e-3,
+    "weight_decay": 1e-2,
+    "model_name": "Mask_R-CNN",
+    "dataset_name": "taco28",
+    "backup_best_model": True,
+    "load_checkpoint": True, #True,
+    "checkpoint_path": "results/mask_rcnn/checkpoint_epoch_7_2025_3_12_9_10.pt"
 }
+
+# experiment_name contains model name, backbone_freeze, augmentation
+experiment_name = "seg-"+h_params["model_name"]+"-"+h_params["dataset_name"]
+print("Experiment name: ", experiment_name)
+
+logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
 seed=23
 torch.manual_seed(seed)
@@ -36,31 +53,8 @@ torch.backends.cudnn.benchmark = True
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-logdir = os.path.join("logs", f"segmentation-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
-
-# TODO: Initialize Tensorboard Writer with the previous folder 'logdir'
+# Initialize Tensorboard Writer with the previous folder 'logdir'
 writer=SummaryWriter(log_dir=logdir)
-
-# Save checkpoint function
-def save_model(model, epoch):
-    checkpoint = {
-        "model_state_dict":  model.state_dict(),
-        "optimizer_state_dict":optimizer.state_dict(),
-        "idx2classes": idx2class
-    }  
-
-    save_path = os.path.join("results",f"mask_rcnn_{datetime.now().strftime('%Y%m%d-%H%M%S')}")
-    if not os.path.exists(save_path):
-        os.makedirs(save_path)
-    
-    # using now() to get current time
-    current_time = datetime.now()
-    filename = f"{current_time.year}_{current_time.month}_{current_time.day}_{current_time.hour}_{current_time.minute}"
-
-    torch.save(checkpoint, os.path.join(save_path, f"checkpoint_epoch_{epoch}_{filename}.pt"))
-
-   
-    
 
 # Create the datasets for train and validate
 data_transforms_train = transforms.Compose([            
@@ -138,11 +132,19 @@ valiation_loader=DataLoader(validation_taco_dataset,
 model=WasteMaskRCNN(num_classes=len(train_taco_dataset.idx2class))
 model.to(device)
 
+if h_params["load_checkpoint"]:
+    checkpoint_path = h_params["checkpoint_path"]
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+
 # Create the optimizer
-#optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=0.0001)
 optimizer=torch.optim.AdamW(model.parameters(),
-                            lr=1e-3,
-                            weight_decay=1e-2)
+                            lr=h_params["learning_rate"],
+                            weight_decay=h_params["weight_decay"])
+# Load optimizer state
+if h_params["load_checkpoint"]:
+    optimizer_state_dict = checkpoint['optimizer_state_dict']
+    optimizer.load_state_dict(optimizer_state_dict)
 
 # Define the scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3)
@@ -349,20 +351,27 @@ def validation_one_epoch():
 
 ### START TRAINING
 print("STARING TRAINING")
-NUM_EPOCH=50
-train_loss=[]
-validation_loss=[]
-for epoch in range(1,NUM_EPOCH+1):
+NUM_EPOCH = h_params["num_epochs"]
+train_loss = []
+validation_loss = []
+for epoch in range(1, NUM_EPOCH+1):
     losses_avg_train, metrics_train=train_one_epoch()
     losses_avg_validation, metrics_val=validation_one_epoch() # stats
-    scheduler.step(losses_avg_validation)
+    #scheduler.step(losses_avg_validation)
     print(f"TRAINING epoch[{epoch}/{NUM_EPOCH}]: avg. loss: {losses_avg_train:.3f}")
     print(f"VALIDATION epoch[{epoch}/{NUM_EPOCH}]: avg. loss:{ losses_avg_validation:.3f}")  
     train_loss.append(losses_avg_train)
     validation_loss.append(losses_avg_validation)
-    save_model(model, epoch=epoch)    
+    if h_params["backup_best_model"]:
+        if losses_avg_validation < best_val_loss:
+            best_val_loss = losses_avg_validation
+            save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, 'best_mask_rcnn_model.pth'))
+        # Update in training loop after validation
+        scheduler.step(losses_avg_validation)
+    
     writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
+
 
     """
     writer.add_scalar('Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ]', stats[0], epoch)
