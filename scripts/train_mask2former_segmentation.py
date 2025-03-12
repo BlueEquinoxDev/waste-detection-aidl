@@ -393,8 +393,9 @@ best_val_loss = float('inf')
 for epoch in range(1,h_params["num_epochs"]+1):
     losses_avg_train, metrics_train = train_one_epoch()
     losses_avg_validation, metrics_val = validation_one_epoch()
-    print(f"TRAINING epoch[{epoch}/{h_params['num_epochs']}]: avg. loss: {losses_avg_train:.3f} iou:{iou_train:.3f}")
-    print(f"VALIDATION epoch[{epoch}/{h_params['num_epochs']}]: avg. loss:{ losses_avg_validation:.3f} iou:{iou_val:.3f}")  
+    print(metrics_train)
+    print(f"TRAINING epoch[{epoch}/{h_params['num_epochs']}]: avg. loss: {losses_avg_train:.3f}")
+    print(f"VALIDATION epoch[{epoch}/{h_params['num_epochs']}]: avg. loss:{ losses_avg_validation:.3f}")  
     train_loss.append(losses_avg_train)
     validation_loss.append(losses_avg_validation)
 
