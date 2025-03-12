@@ -20,10 +20,10 @@ h_params ={
     "batch_size": 1,
     "num_workers": 0,
     "num_epochs": 20,
-    "learning_rate": 5e-5,
+    "learning_rate": 1e-4,
     "weight_decay": 1e-2,
     "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
-    "dataset_name": "taco5",
+    "dataset_name": "taco1",
     "backbone_freeze": True,
     "augmentation": True,
     "backup_best_model": True,
@@ -310,7 +310,7 @@ def train_one_epoch():
         metric_train.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
 
     losses_avg = losses_avg / total_samples
-    metrics_result = metric_train.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
+    metrics_result = metric_train.compute(num_labels=len(idx2class)+1, ignore_index=255, reduce_labels=True)
     return losses_avg, metrics_result
 
 metric_val = evaluate.load("mean_iou")
@@ -378,7 +378,7 @@ def validation_one_epoch():
         metric_val.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
 
     losses_avg = losses_avg / total_samples
-    metrics_result = metric_val.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
+    metrics_result = metric_val.compute(num_labels=len(idx2class)+1, ignore_index=255, reduce_labels=True)
     # iou = 0
     return losses_avg, metrics_result
     

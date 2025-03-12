@@ -14,16 +14,17 @@ from PIL import Image
 #from model.vits import ViT
 from app.model.wastemaskrcnn import WasteMaskRCNN
 from app.model.wastemask2former import WasteMask2Former
+from app.config import MODEL_NAME, MASK_RCNN_CHECKPOINT, MASK2FORMER_CHECKPOINT 
 from dotenv import load_dotenv
 load_dotenv()
 
-MODEL_NAME = "MASK_R-CNN"#MASK2FORMER or MASK_R-CNN
+#MODEL_NAME = "MASK_R-CNN" #MASK2FORMER or MASK_R-CNN
+#MASK_RCNN_CHECKPOINT = "checkpoint_epoch_7_mask_rcnn_taco1.pt" #"checkpoint_epoch_30_maskrcnn_taco5.pt" #"checkpoint_epoch_16_2025_2_28_10_40.pt"#"checkpoint_epoch_8_2025_2_18_21_53.pt"
+#MASK2FORMER_CHECKPOINT = "checkpoint_epoch_14_mask2former_taco28.pt" #"checkpoint_mask2former_cloud.pt"
 
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 FILE_NAME = "sample.jpg"
-MASK_RCNN_CHECKPOINT = "checkpoint_epoch_30_maskrcnn_taco5.pt" #"checkpoint_epoch_16_2025_2_28_10_40.pt"#"checkpoint_epoch_8_2025_2_18_21_53.pt"
-MASK2FORMER_CHECKPOINT = "checkpoint_epoch_14_mask2former_taco28.pt"#"checkpoint_mask2former_cloud.pt"
 IDX2CLASS = None
 MODEL = None
 PREDICT_IMAGE = None

@@ -104,6 +104,7 @@ class WasteMaskRCNN(nn.Module):
                     print("detections file in detections area")
                     
                     keep_idx = torchvision.ops.nms(detection_items["boxes"], detection_items["scores"], iou_threshold)
+                    #keep_idx = range(0, len(detection_items["scores"]))
                     boxes = [b for i, b in enumerate(detection_items["boxes"]) if i in keep_idx]
                     scores = [s for i, s in enumerate(detection_items["scores"]) if i in keep_idx]
                     labels = [l for i, l in enumerate(detection_items["labels"]) if i in keep_idx]
