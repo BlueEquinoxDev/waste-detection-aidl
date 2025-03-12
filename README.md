@@ -95,7 +95,7 @@ The [Viola77](https://huggingface.co/datasets/viola77data/recycling-dataset) dat
 
 A combination of Taco and Viola77 Datasets have been created to increase the number of images for image classification tasks to test models under different situations.
 
-* **taco30viola11** - Contains a Taco Dataset subsection of annotations that match the Viola categories plus the Viola Dataset, so it is the Dataset with the biggest number of images for classification.
+* **taco39viola11** - Contains a Taco Dataset subsection of annotations that match the Viola categories plus the Viola Dataset, so it is the Dataset with the biggest number of images for classification.
 
 ### Exploratory data analysis
 
