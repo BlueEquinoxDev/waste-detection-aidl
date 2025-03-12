@@ -99,6 +99,9 @@ The dataset is in COCO format. It contains the source pictures, anotations and l
 
 ### Image Classification with ViT
 #### Split dataset
+
+To split the TACO dataset into train, test and validation run ``python -m scripts.split_dataset --dataset_dir data --dataset_type classification``
+
 #### Dataset classes
 ##### ViT for Viola77
 The Viola77 dataset for Image classification in ``custom_datasets/viola77_dataset.py`` has the functionality to load the Viola77 Dataset in for Image Classification.

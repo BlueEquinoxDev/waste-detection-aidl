@@ -5,7 +5,7 @@ from custom_datasets.viola77_dataset import Viola77Dataset
 from model.waste_vit import WasteViT
 import random
 
-def eval_vit(model_path = "results/cls-vit-taco5-20250215-113551/checkpoint-900", image_path = None):
+def eval_vit(model_path = "results/202502012134_ViT_Viola_TACO", image_path = None):
     
     # Create an instance of the model with the checkpoint
     model = WasteViT(checkpoint=model_path)
