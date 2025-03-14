@@ -31,7 +31,7 @@ dataset_name = parser.parse_args().dataset
 if dataset_name not in valid_datasets:
     raise ValueError(f"Dataset must be one of {valid_datasets}")
 
-experiment_name = f"cls-vit-{dataset_name.lower()}-{parser.parse_args().freeze_layers if parser.parse_args().freeze_layers != 0 else 'no'}_frozen_layers-with_lr_scheduler_enhanced-Augmentation"
+experiment_name = f"cls-vit-{dataset_name.lower()}-{parser.parse_args().freeze_layers if parser.parse_args().freeze_layers != 0 else 'no'}_frozen_layers-SGD_Optimizer_with_Dropout-Augmentation"
 
 # Define data transforms
 data_transforms_train = transforms.Compose([
@@ -232,6 +232,14 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=4,  # Effective batch size = 8 * 4 = 32
 )
 
+# Define SGD optimizer
+optimizer = torch.optim.SGD(
+    model.parameters(),
+    lr=training_args.learning_rate,  # Use same LR as in TrainingArguments
+    momentum=0.9,                    # Adds momentum for better convergence
+    weight_decay=training_args.weight_decay
+)
+
 # Define the Trainer
 trainer = Trainer(
     model=model,
@@ -240,6 +248,7 @@ trainer = Trainer(
     eval_dataset=val_dataset,
     compute_metrics=metrics_function,
     tokenizer=model.feature_extractor,  # Changed from tokenizer to processing_class
+    optimizers=(optimizer, None)  # Pass optimizer to avoid error
 )
 
 # Train the model

@@ -1,5 +1,5 @@
 import torch
-from transformers import ViTImageProcessor, ViTForImageClassification
+from transformers import ViTImageProcessor, ViTForImageClassification, ViTConfig
 from transformers.modeling_outputs import SequenceClassifierOutput
 
 class WasteViT(ViTForImageClassification):
@@ -8,7 +8,7 @@ class WasteViT(ViTForImageClassification):
         if checkpoint:
             
             # Load the model's configuration
-            config = ViTForImageClassification.from_pretrained(checkpoint).config
+            config = ViTConfig.from_pretrained(checkpoint)
             
             # Initialize with the config object
             super().__init__(config=config)
@@ -23,13 +23,16 @@ class WasteViT(ViTForImageClassification):
             if num_classes is None or id2label is None or label2id is None:
                 raise ValueError("num_classes, id2label, and label2id must be provided if no checkpoint is given.")
             
-            config = ViTForImageClassification.from_pretrained(
+            config = ViTConfig.from_pretrained(
                 'google/vit-base-patch16-224',
                 num_labels=num_classes,
                 id2label=id2label,
                 label2id=label2id,
                 ignore_mismatched_sizes=True
-            ).config
+            )
+
+            config.attention_probs_dropout_prob = 0.48699113095794067
+            config.hidden_dropout_prob = 0.48699113095794067
             
             super().__init__(config=config)
             self.feature_extractor = ViTImageProcessor.from_pretrained('google/vit-base-patch16-224')
