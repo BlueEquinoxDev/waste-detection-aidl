@@ -69,20 +69,25 @@ class WasteMask2Former(nn.Module):
 
         #print(f"id2class: {idx2class}")
         
-        inst2cls = {}
-        for i, label in enumerate(idx2class.keys()):
-            inst2cls[i] = label
+        #inst2cls = {0: 0, 1:1}
+        #for i, label in enumerate(idx2class.keys()):
+        #    inst2cls[i] = label
 
-        print(f"inst2cls: {inst2cls}")
+        #print(f"inst2cls: {inst2cls}")
 
-        
+        print(self.processor)
         inputs = self.processor(
             images=[img.numpy() for img in images],
-            instance_id_to_semantic_id=inst2cls,
-            return_tensors="pt"
+            #instance_id_to_semantic_id=inst2cls,
+            return_tensors="pt",
+            do_resize=False,
+            do_rescale=False,
+            do_normalize=False
         ).to("cpu")
-        #print(f"inputs: {inputs}")
+        print(f"inputs: {inputs}")
         
+        inputs["pixel_values"] = inputs["pixel_values"].float() / 255.0 
+
         self.model.to("cpu")
         self.model.eval()
         with torch.no_grad():
@@ -91,18 +96,20 @@ class WasteMask2Former(nn.Module):
             pred_maps = self.processor.post_process_instance_segmentation(
                 outputs, target_sizes=target_sizes
             )
-            #print(f"pred_maps: {pred_maps}")
+            print(f"pred_maps: {pred_maps}")
 
         processed_images = []
         for i, pred_map in enumerate(pred_maps):
             # Overlay original image with masks
             mask = pred_map['segmentation']
             segments_info = pred_map['segments_info']
+            print(f"mask.unique: {np.unique(mask)}")
             print(f"segments_info: {segments_info}")
             #print(f"pred_maps.shape: {mask.shape}")
-
+            
             n_detections = len(mask.unique())
             print(f"Nr of detections: {n_detections}")
+            print(f"mask.unique(): {mask.unique()}")
 
             seg_map = self.draw_segmentation_map(mask, segments_info, idx2class)
             result = self.__image_overlay__(images[i], seg_map)
@@ -141,7 +148,7 @@ class WasteMask2Former(nn.Module):
             
             index = (labels == label_num).cpu().detach().numpy()
             random_color = [randint(0, 255) for _ in range(3)]
-            if label_num == -1 and segment == -1:
+            if label_num == -1:
                 red_map[index] = np.array(0)
                 green_map[index] = np.array(0)
                 blue_map[index] = np.array(0)

@@ -15,6 +15,7 @@ import os
 import evaluate
 from PIL import Image, ImageOps
 # from skimage.transform import resize
+import torchvision.transforms as T
 
 h_params ={
     "batch_size": 1,
@@ -27,8 +28,8 @@ h_params ={
     "backbone_freeze": True,
     "augmentation": True,
     "backup_best_model": True,
-    "load_checkpoint": False,
-    "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco5-encoder_freeze-with_augmentation-20250305-190831/best_mask2former_model.pth/checkpoint_epoch_19_2025_3_5_22_56.pt"
+    "load_checkpoint": True,
+    "checkpoint_path": "app/checkpoint/checkpoint_epoch_18_mask2former_taco1.pt"#"results/seg-mask2former-swin-tiny-ade-semantic-taco5-encoder_freeze-with_augmentation-20250305-190831/best_mask2former_model.pth/checkpoint_epoch_19_2025_3_5_22_56.pt"
 }
 
 # experiment_name contains model name, backbone_freeze, augmentation
@@ -126,9 +127,10 @@ def collate_fn(batch):
     original_images = [example["original_image"] for example in batch]
     original_masks = [example["original_mask"] for example in batch]
     image_ids = [example["image_id"] for example in batch]
+    inst2class = [example["inst2class"] for example in batch]
 
-    #print(f"class_labels_collate_fn")
-    #[print(example["class_labels"]) for example in batch]
+    print(f"class_labels_collate_fn")
+    [print(example["class_labels"]) for example in batch]
     
 
     #for batch_index in range(len(batch)):
@@ -145,7 +147,8 @@ def collate_fn(batch):
         "mask_labels": mask_labels,
         "original_images": original_images,
         "original_masks": original_masks,
-        "image_id": image_ids
+        "image_id": image_ids,
+        "inst2class":inst2class
     }
 
 train_loader = DataLoader(train_taco_dataset, 
@@ -291,27 +294,8 @@ def train_one_epoch():
         if hasattr(torch.cuda, 'empty_cache'):
             torch.cuda.empty_cache()
         
-        # Use ground truth masks to determine target sizes.
-        # Assuming batch['original_masks'] is a list of arrays with shape (height, width)
-        target_sizes = [(mask.shape[1], mask.shape[0]) for mask in batch['original_masks']]
-        
-        pred_maps = processor.post_process_instance_segmentation(
-            outputs, target_sizes=target_sizes, threshold=0.5
-        )
-
-        # Resize predicted masks to match ground truth masks
-        resized_pred_maps = []
-        for pred_map, target_size in zip(pred_maps, target_sizes):
-            pred_mask = pred_map["segmentation"].cpu().numpy()  # Convert to NumPy array
-            pred_mask_pil = Image.fromarray(pred_mask.astype(np.uint8))
-            pred_mask_resized = pred_mask_pil.resize(target_size, Image.NEAREST)
-            resized_pred_maps.append(np.array(pred_mask_resized))
-
-        metric_train.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
-
     losses_avg = losses_avg / total_samples
-    metrics_result = metric_train.compute(num_labels=len(idx2class)+1, ignore_index=255, reduce_labels=True)
-    return losses_avg, metrics_result
+    return losses_avg
 
 metric_val = evaluate.load("mean_iou")
 
@@ -372,13 +356,14 @@ def validation_one_epoch():
         for pred_map, target_size in zip(pred_maps, target_sizes):
             pred_mask = pred_map["segmentation"].cpu().numpy()
             pred_mask_pil = Image.fromarray(pred_mask.astype(np.uint8))
-            pred_mask_resized = pred_mask_pil.resize(target_size, Image.NEAREST)
+            #pred_mask_resized = pred_mask_pil.resize(target_size, Image.NEAREST)
+            pred_mask_resized = pred_mask_pil
             resized_pred_maps.append(np.array(pred_mask_resized))
 
         metric_val.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
 
     losses_avg = losses_avg / total_samples
-    metrics_result = metric_val.compute(num_labels=len(idx2class)+1, ignore_index=255, reduce_labels=True)
+    metrics_result = metric_val.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
     # iou = 0
     return losses_avg, metrics_result
     
@@ -391,9 +376,8 @@ validation_loss=[]
 # Add variables to track best validation loss
 best_val_loss = float('inf')
 for epoch in range(1,h_params["num_epochs"]+1):
-    losses_avg_train, metrics_train = train_one_epoch()
+    losses_avg_train = train_one_epoch()
     losses_avg_validation, metrics_val = validation_one_epoch()
-    print(metrics_train)
     print(f"TRAINING epoch[{epoch}/{h_params['num_epochs']}]: avg. loss: {losses_avg_train:.3f}")
     print(f"VALIDATION epoch[{epoch}/{h_params['num_epochs']}]: avg. loss:{ losses_avg_validation:.3f}")  
     train_loss.append(losses_avg_train)
@@ -404,12 +388,7 @@ for epoch in range(1,h_params["num_epochs"]+1):
     writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
     writer.add_scalar('Segmentation/learning_rate', optimizer.param_groups[0]['lr'], epoch)
-    for key, value in metrics_train.items():
-        if isinstance(value, np.ndarray):
-            writer.add_scalars(f'Segmentation/train_{key}', {str(i):v for i, v in enumerate(value)}, epoch)
-        else:
-            writer.add_scalar(f'Segmentation/train_{key}', value, epoch)
-    
+
     for key, value in metrics_val.items():
         if isinstance(value, np.ndarray):
             writer.add_scalars(f'Segmentation/val_{key}', {str(i):v for i, v in enumerate(value)}, epoch)

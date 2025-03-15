@@ -368,7 +368,7 @@ for epoch in range(1, NUM_EPOCH+1):
             save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, 'best_mask_rcnn_model.pth'))
         # Update in training loop after validation
         scheduler.step(losses_avg_validation)
-    
+    save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, f"rcnn_model.pth"))
     writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
 

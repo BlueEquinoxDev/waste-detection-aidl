@@ -20,12 +20,8 @@ h_params = {
     "batch_size": 1,  # Force batch size to 1
     "num_workers": 0,
     "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
-    "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco1-True_backbone_freeze-True_augmentation-20250307-105643/best_mask2former_model.pth/checkpoint_epoch_1_2025_3_7_11_41.pt",
-    # "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco1-encoder_freeze-with_augmentation-20250305-121712/mask2former_30.pth/checkpoint_epoch_30_2025_3_5_16_59.pt",
-    # "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco5-encoder_freeze-with_augmentation-20250305-190831/best_mask2former_model.pth/checkpoint_epoch_19_2025_3_5_22_56.pt",
-    # "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco5-True_backbone_freeze-True_augmentation-20250307-233024/best_mask2former_model.pth/checkpoint_epoch_18_2025_3_7_23_50.pt",
-    # "checkpoint_path": "results/seg-taco-mask2former-swin-tiny-ade-semantic-False_backbone_freeze-False_augmentation-20250304-105327/best_model.pth/checkpoint_epoch_1_2025_3_4_11_4.pt",
-    "dataset_name": "taco1",
+    "checkpoint_path": "app/checkpoint/checkpoint_epoch_18_mask2former_taco1.pt",
+    "dataset_name": "taco1", 
 }
 
 # Initialize processor with proper configuration
@@ -76,14 +72,15 @@ test_loader = DataLoader(test_taco_dataset,
 
 checkpoint = torch.load(h_params["checkpoint_path"], map_location=device)
 
-model_config = MaskFormerConfig.from_pretrained(
+
+"""model_config = MaskFormerConfig.from_pretrained(
     h_params["model_name"],
     num_labels=len(idx2class),
     output_hidden_states=True,
     output_attentions=True,
     use_auxiliary_loss=True,
     id2label=idx2class
-)
+)"""
 
 # Load model with configuration
 model = Mask2FormerForUniversalSegmentation.from_pretrained(
@@ -95,13 +92,13 @@ model = Mask2FormerForUniversalSegmentation.from_pretrained(
 
 # Update model's state dict
 try:
-    model.load_state_dict(checkpoint['model_state_dict'], strict=False)
+    model.load_state_dict(checkpoint['model_state_dict'])  # , strict=False
 except RuntimeError as e:
     print(f"Warning: Some weights could not be loaded: {e}")
 
 model.to(device)
 
-def coco_result_format(image_id: str, prediction: dict, threshold: float = 0.01) -> None:
+def coco_result_format(image_id: str, prediction: dict, threshold: float = 0.5) -> None:
     # Process each item in the batch
     batch_size = prediction['labels'].shape[0]
     
@@ -122,19 +119,19 @@ def coco_result_format(image_id: str, prediction: dict, threshold: float = 0.01)
         
         # Process each prediction that meets confidence threshold
         for i in range(len(scores)):
-            if scores[i].item() > threshold:
+            if scores[0][i].item() > threshold:
                 # Format mask result
                 results_masks.append({
                     "image_id": current_image_id,
-                    "category_id": labels[i].item(),
+                    "category_id": labels[0][i].item(),
                     "segmentation": mask_to_coco_format(masks[i]),
-                    "score": scores[i].item()
+                    "score": scores[0][i].item()
                 })
     return results_masks
 
 results_masks=[]
 images_not_predicts=[]
-def validation_one_epoch():      
+def test_one_epoch():      
     pbar = tqdm(test_loader, desc="Computing metrics test dataset", leave=False)
     model.eval()
     for batch_idx, batch in enumerate(pbar):
@@ -178,18 +175,18 @@ def validation_one_epoch():
             # plt.axis('off')
             # plt.show()
             
-            # # Add batch dimension back for COCO evaluation format
-            # predictions = {
-            #     'labels': pred_class_logits.argmax(dim=-1).unsqueeze(0),
-            #     'masks': (pred_masks > 0.5).unsqueeze(0),
-            #     'scores': pred_class_logits.softmax(dim=-1).max(dim=-1)[0].unsqueeze(0)
-            # }
+            # Add batch dimension back for COCO evaluation format
+            predictions = {
+                'labels': pred_class_logits.argmax(dim=-1).unsqueeze(0),
+                'masks': (pred_masks > 0.5).unsqueeze(0),
+                'scores': pred_class_logits.softmax(dim=-1).max(dim=-1)[0].unsqueeze(0)
+            }
             
-            # # Format results for COCO evaluation
-            # results_masks = coco_result_format(image_id, predictions)
+            # Format results for COCO evaluation
+            results_masks.append(coco_result_format(image_id, predictions))
             # visualize_batch(batch, idx2class, results_masks)
 
-            display_sample_results(batch, outputs, processor, sample_index=0, mask_threshold=0.35, checkpoint_path=h_params["checkpoint_path"])
+            #display_sample_results(batch, outputs, processor, sample_index=0, mask_threshold=0.35, checkpoint_path=h_params["checkpoint_path"])
         
     print("COCO metrics for masks:\n")            
     coco_result = test_loader.dataset.coco_data.loadRes(results_masks)
@@ -198,7 +195,7 @@ def validation_one_epoch():
     coco_eval.accumulate()
     coco_eval.summarize()
     
-validation_one_epoch()
+test_one_epoch()
 
 # sample = test_taco_dataset[2]
 # img = sample["pixel_values"]

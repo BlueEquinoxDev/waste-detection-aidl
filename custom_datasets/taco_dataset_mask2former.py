@@ -187,6 +187,9 @@ class TacoDatasetMask2Former(Dataset):
             inputs["original_image"] = orginal_img
             inputs["original_mask"] = original_mask
             inputs["image_id"] = img_id
+            inputs["inst2class"] = inst2class
+
+            #print(inputs)
             
             ############## DEBUGING #############
             #visualize_sample(inputs, idx2class=self.idx2class)
