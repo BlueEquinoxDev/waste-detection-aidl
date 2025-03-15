@@ -21,11 +21,10 @@ headers = {'Content-type': 'application/json'}
   
 files = [
     (image_file, img_base64),
-    ('test.jpg', img_base64)
 ]
 
 response = requests.post(url=api, files=files)
-
+print("HERE!")
 if response.status_code == 200:
     data = response.json()
     #print(data)

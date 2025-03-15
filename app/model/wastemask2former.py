@@ -118,8 +118,16 @@ class WasteMask2Former(nn.Module):
             result.show()
             
             processed_images.append(result)
+        
+        processed_pred_maps = []
+        for pred in pred_maps:
+            processed_pred_maps.append({
+                "segmentation": pred["segmentation"].tolist(),
+                "segments_info": pred["segments_info"],
+            })
+        print(processed_pred_maps)
 
-        return pred_maps, processed_images
+        return processed_pred_maps, processed_images
     
     def draw_segmentation_map(self, labels, segments_info, idx2class):
         """
@@ -161,7 +169,6 @@ class WasteMask2Former(nn.Module):
                 green_map[index] = np.array(random_color[1])
                 blue_map[index] = np.array(random_color[2])
             
-            print()
             
         segmentation_map = np.stack([red_map, green_map, blue_map], axis=2)
         

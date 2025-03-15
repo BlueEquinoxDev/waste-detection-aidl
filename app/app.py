@@ -14,13 +14,11 @@ from PIL import Image
 #from model.vits import ViT
 from app.model.wastemaskrcnn import WasteMaskRCNN
 from app.model.wastemask2former import WasteMask2Former
-from app.config import MODEL_NAME, MASK_RCNN_CHECKPOINT, MASK2FORMER_CHECKPOINT 
 from dotenv import load_dotenv
 load_dotenv()
 
-#MODEL_NAME = "MASK_R-CNN" #MASK2FORMER or MASK_R-CNN
-#MASK_RCNN_CHECKPOINT = "checkpoint_epoch_7_mask_rcnn_taco1.pt" #"checkpoint_epoch_30_maskrcnn_taco5.pt" #"checkpoint_epoch_16_2025_2_28_10_40.pt"#"checkpoint_epoch_8_2025_2_18_21_53.pt"
-#MASK2FORMER_CHECKPOINT = "checkpoint_epoch_14_mask2former_taco28.pt" #"checkpoint_mask2former_cloud.pt"
+MODEL_NAME = os.getenv("MODEL_NAME") #MASK2FORMER or MASK_R-CNN
+CHECKPOINT = os.getenv("CHECKPOINT") # Checkpoint name
 
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -37,7 +35,7 @@ app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY")
 
 def _load_MASK_RCNN():
     global MODEL, IDX2CLASS
-    checkpoint_path = pathlib.Path(__file__).parent.absolute() / os.path.join("checkpoint", MASK_RCNN_CHECKPOINT)
+    checkpoint_path = pathlib.Path(__file__).parent.absolute() / os.path.join("checkpoint", CHECKPOINT)
 
     checkpoint = torch.load(checkpoint_path, weights_only=True, map_location=torch.device('cpu'))
 
@@ -47,7 +45,7 @@ def _load_MASK_RCNN():
 
 def _load_MASK2FORMER():
     global MODEL, IDX2CLASS
-    checkpoint_path = pathlib.Path(__file__).parent.absolute() / os.path.join("checkpoint", MASK2FORMER_CHECKPOINT)
+    checkpoint_path = pathlib.Path(__file__).parent.absolute() / os.path.join("checkpoint", CHECKPOINT)
 
     checkpoint = torch.load(checkpoint_path, weights_only=True, map_location=torch.device('cpu'))
 

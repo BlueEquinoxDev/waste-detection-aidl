@@ -4,6 +4,8 @@ This repository contains the code developed by Martí Fabregat, Rafel Febrer, Fe
 
 Several models for instance segmentation and image classification have been trained and evaluated to segment and classify waste.
 
+To do Project goal --> Marti
+
 ## Table of Contents
 - [Getting started](#getting-started)
   - [Requirements](#requirements)
@@ -102,9 +104,11 @@ A combination of Taco and Viola77 Datasets have been created to increase the num
 Explore the notebook ``demo.ipynb``, modified version of the original notebook from the [TACO Repository](https://github.com/pedropro/TACO) that inspects the dataset.
 The dataset is in COCO format. It contains the source pictures, anotations and labels. For more details related with the datasource please refer to [TACO Repository](https://github.com/pedropro/TACO).
 
+To do: Notebook for Viola --> Martí
+
 ## Training
 
-### Image Classification with ResNet-50
+### Image Classification with ResNet-50 --> to do Marti
 #### Split dataset
 To split the annotations for training and evaluation on **ResNet-50** use ``split_dataset.py`` according to this explanation. It has several optional flags.
 ```
@@ -126,7 +130,7 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=classification
 #### Evaluate
 #### Results
 
-### Image Classification with ViT
+### Image Classification with ViT --> To do Ferran
 #### Split dataset
 To split the annotations for training and evaluation on **ViT** use ``split_dataset.py`` following the same procedure as in **ResNet-50**.
 ```
@@ -145,7 +149,7 @@ Run ``python run_classification_vit_viola_taco.py``
 #### Evaluate
 #### Results
 
-### Instance segmentation with Mask R-CNN
+### Instance segmentation with Mask R-CNN --> To do Miquel
 #### Split dataset
 To split the annotations for training and evaluation in **Mask R-CNN** use ``split_dataset.py``.
 
@@ -174,7 +178,7 @@ Run ``python -m scripts.test_mask_r_cnn``
 
 #### Results
 
-### Instance segmentation with Mask2Former
+### Instance segmentation with Mask2Former --> To do Rafa
 #### Split dataset
 To split the annotations for training and evaluation on **Mask2Former** use ``split_dataset.py`` following the same procedure as in **Mask R-CNN**.
 
@@ -195,14 +199,14 @@ Run ``python -m scripts.test_mask2former_segmentation``
 
 ## MLOps
 
-### Running the application with Docker
+### Running the application with Docker --> To do Ferran
 Build the image with:
 ```docker build -t waste-detection-app .```
 
 Run specific Python file:
 ```docker run --rm waste-detection-app <FILE_NAME.py>```
 
-### Google Cloud
+### Google Cloud --> To do Ferran
 This repository automates the setup of the GCP infrastructure. It contains the following Bash scripts:
 - `./setup_gcp_infrastructure.sh ` for setting up a VM, pull a Git repository and run the `startup_script.sh`.
 - `./delete_gcp_infrastructure.sh ` for deletting the infrastructure.
@@ -212,7 +216,35 @@ This repository automates the setup of the GCP infrastructure. It contains the f
 Further details in [Link]
 
 ### API
-Here how to use the API
+To evaluate images outside the dataset an API with WebApp has been developed.
+
+#### API configuration:
+Before launching the API you need to create a `.env` file in the project root folder.
+
+The `.env` file contains 3 variables, for example:
+```
+FLASK_SECRET_KEY=secret_key
+MODEL_NAME=MASK2FORMER
+CHECKPOINT=checkpoint_epoch_7_mask_rcnn_taco1.pt
+```
+The `MODEL_NAME` can be `MASK2FORMER` or `MASK_R-CNN`. The API has not been abilitated yet for classification models.
+
+The checkpoints of the models to test for the app should be placed in the folder `app/checkpoint`.
+![alt text](API_folders.png)
+
+### Running the API
+To run the api in local and in debug mode, do:
+```python -m app.app```
+The flask app will be launched in your localhost.
 
 ## Demo
+By using the developed API the user can detect waste using the API or by using the web app. In the following points is explained how to interact with.
+
+### Test images with API
 Here how to deploy and test the GUI
+
+###
+
+## Next Steps --> To do Marti
+- Implement the GUI in 
+
