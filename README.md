@@ -398,7 +398,7 @@ CHECKPOINT=checkpoint_epoch_7_mask_rcnn_taco1.pt
 The `MODEL_NAME` can be `MASK2FORMER` or `MASK_R-CNN`. The API has not been abilitated yet for classification models.
 
 The checkpoints of the models to test for the app should be placed in the folder `app/checkpoint`.
-![alt text](readme_images/API_folders.png)
+![api_folders](readme_images/API_folders.png)
 
 ### Running the API
 To run the api in local and in debug mode, do:
@@ -420,15 +420,15 @@ The WebApp allows to process images in a more user frendly approach.
 To use the user interface open your prefered browser and connect to your localhost port 8000: http://localhost:8000.
 
 If the API is running you should get to the home page:
-![alt text](readme_images/webapp_home.png)
+![web_app_home](readme_images/webapp_home.png)
 **Select a picture** and click on **Upload**.
 
 You should see your picture in the web.
-![alt text](readme_images/upload_image.png)
+![upload_image](readme_images/upload_image.png)
 Click on **Predict** to generate the segmentations.
 
 The output will be different according to the model used in the API. Here an example:
-![alt text](readme_images/web_prediction.png)
+![web_pred](readme_images/web_prediction.png)
 To try another picture use the **Try a different image** button.
 
 ## Next Steps --> To do Marti
