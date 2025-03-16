@@ -287,7 +287,7 @@ Run ``python -m scripts.test_mask_r_cnn``
 
 #### Results
 
-### Instance segmentation with Mask2Former --> To do Rafa
+### Instance segmentation with Mask2Former
 #### Split dataset
 To split the annotations for training and evaluation on **Mask2Former** use ``split_dataset.py`` following the same procedure as in **Mask R-CNN**.
 
@@ -298,6 +298,8 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=taco1 [--test_
 #### Dataset classes
 
 #### Train
+The mask2former model has been finetunned using the weights from ``facebook/mask2former-swin-tiny-ade-semantic``.
+
 To train mask2former model in any of the datasets, do:
 ```
 python -m scripts.train_mask2former_segmentation --dataset_type=taco1 [--batch_size=1] [--checkpoint_path=your_checkpoint_path]
