@@ -125,7 +125,85 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=classification
 * Use ``--verbose`` (bool) if you want to have printed text on the console during execution.
 #### Dataset classes
 ##### ResNet-50 for Viola77
-##### ResNet-50 for Taco
+
+This repository provides an implementation of ResNet-50 for waste classification using the Viola77 dataset. It includes scripts for hyperparameter optimization using Optuna, model training, and evaluation. 
+
+##### Prerequisites
+
+Ensure you have the following dependencies installed:
+
+```bash
+pip install torch torchvision transformers optuna numpy pandas matplotlib seaborn scikit-learn tqdm datasets
+```
+
+##### Scripts Overview
+
+###### 1. `viola_dataset_resnet.py`
+- **Description:** Custom PyTorch dataset class for the Viola77 dataset.
+- **Inputs:**
+  - Hugging Face dataset
+- **Outputs:**
+  - Preprocessed dataset for training and testing
+
+###### 2. `optuna_resnet_hparams.py`
+- **Description:** Uses Optuna to find the best hyperparameters for training the ResNet-50 model.
+- **Inputs:**
+  - Search space includes learning rate, dropout rate and optimizer type.
+- **Outputs:**
+  - Saves the best hyperparameters in `hparams.json`.
+
+###### 3. `train_resnet_classification.py`
+- **Description:** Trains a ResNet-50 model on the Viola77 dataset.
+- **Inputs:**
+  - Dataset from Hugging Face (`viola77data/recycling-dataset`)
+  - If `enhanced_hparams=True`, loads hyperparameters from `hparams.json`
+- **Outputs:**
+  - Saves the trained model as `best_resnet50.pth`
+  - Generates training metrics and confusion matrices
+
+###### 3.1. Modification:
+Added `enhanced_hparams` flag. If `True`, executes `optuna_resnet_hparams.py` first to determine the best hyperparameters before training.
+
+###### 4. `test_resnet_classification.py`
+- **Description:** Evaluates the trained ResNet-50 model on the test dataset.
+- **Inputs:**
+  - Loads `best_resnet50.pth`
+  - Uses the Viola77 test dataset
+- **Outputs:**
+  - Accuracy, classification report, confusion matrix
+
+##### How to Run
+
+1. **Train the Model**
+- Without optimized hyperparameters:
+```bash
+python -m scripts.train_resnet_classification
+```
+- With optimized hyperparameters:
+```bash
+python -m scripts.train_resnet_classification.py --enhanced_hparams True
+```
+
+2. **Test the Model**
+```bash
+python -m scripts.test_resnet_classification.py
+```
+
+##### Results
+
+Include plots and metrics here:
+
+- **Training Loss & Accuracy:**
+  - ![Training Plot](./metrics/resnet/TRAIN_metrics.png)
+- **Confusion Matrix (Train & Test):**
+  - ![Train CM](./metrics/resnet/TRAIN_confusion_matrix.png)
+  - ![Test CM](./metrics/resnet/TEST_confusion_matrix.png)
+- **Classification Report:**
+  - `./metrics/resnet/classification_report.txt`
+- **Overall Accuracy:**
+  - `./metrics/resnet/accuracy.txt`
+
+
 #### Train
 #### Evaluate
 #### Results
