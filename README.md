@@ -207,11 +207,13 @@ Include plots and metrics here:
   - ![image](https://github.com/user-attachments/assets/2e889327-4b91-4f3f-a6ef-ce6375c5285e)
     
 - **Classification Report:**
+```
                    precision    recall  f1-score   support
 
         aluminium       1.00      0.96      0.98        25
         batteries       0.92      1.00      0.96        24
         cardboard       0.97      1.00      0.98        28
+  
 disposable plates       0.96      1.00      0.98        26
             glass       1.00      0.97      0.98        29
      hard plastic       0.90      0.93      0.91        28
@@ -224,7 +226,7 @@ disposable plates       0.96      1.00      0.98        26
          accuracy                           0.97       311
         macro avg       0.97      0.97      0.97       311
      weighted avg       0.97      0.97      0.97       311
-
+```
      
 - **Overall Accuracy:**
   - Overall Accuracy: **0.9678**
