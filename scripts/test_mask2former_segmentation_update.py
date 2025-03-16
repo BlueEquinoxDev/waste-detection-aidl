@@ -13,6 +13,12 @@ from custom_datasets.taco_dataset_mask2former import TacoDatasetMask2Former, vis
 from utilities.maskformer_display_sample_results import display_sample_results
 from torchmetrics.segmentation import MeanIoU
 from PIL import Image, ImageOps
+import argparse
+
+# Parse arguments
+parser = argparse.ArgumentParser(description='Train mask2former')
+parser.add_argument('--checkpoint_path', required=True, help='Checkpoint path', type=str)
+args = parser.parse_args()
 
 # Set device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -22,9 +28,9 @@ h_params = {
     "batch_size": 1,  # Force batch size to 1
     "num_workers": 0,
     "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
-    "checkpoint_path": "app/checkpoint/checkpoint_epoch_18_mask2former_taco1.pt",
-    "dataset_name": "taco1", 
+    "checkpoint_path": args.checkpoint_path,#"app/checkpoint/checkpoint_epoch_16_mask2former_taco5.pt", #"app/checkpoint/checkpoint_epoch_18_mask2former_taco1.pt", #"app/checkpoint/checkpoint_epoch_20_mask2former_taco28.pt",
 }
+
 
 # Initialize processor with proper configuration
 processor = MaskFormerImageProcessor.from_pretrained(h_params["model_name"])
@@ -87,9 +93,18 @@ try:
 except RuntimeError as e:
     print(f"Warning: Some weights could not be loaded: {e}")
 
+idx2class[0] = "Background"
+idx2class=dict(sorted(idx2class.items()))
+"""
+model.config.backbone_config.id2label = idx2class
+model.config.backbone_config.label2id = {v: k for k, v in idx2class.items()}
+model.config.ignore_value = 0"""
 model.to(device)
 
-metric = MeanIoU(num_classes=len(idx2class)+1, per_class=True, include_background=True, input_format="index")
+"""with open("model_config.txt", "w") as f:
+    f.write(str(model.config))"""
+
+metric = MeanIoU(num_classes=len(idx2class), per_class=True, include_background=True)
 
 results_masks=[]
 images_not_predicts=[]
@@ -106,28 +121,25 @@ def test_one_epoch():
         target_masks = torch.stack(batch["mask_labels"])
         target_masks_reshaped_all_labels = []
         #print(batch["class_labels"])
+        #print(idx2class)
         #print(np.unique(batch["class_labels"]))
-        for label in np.unique(batch["class_labels"]):
-            if label == 0:
-                pass
-            else:
-                #print(f"label: {label}")
-                target_masks_reshaped = torch.zeros(target_masks.shape[-2:])
+        for label in idx2class.keys():#np.unique(batch["class_labels"]):                              
+            #print(f"label: {label}")
+            target_masks_reshaped = torch.zeros(target_masks.shape[-2:])
 
-                #print("filter")
-                label_filter = [batch["class_labels"][0] == label][0]
-                filtered_masks = target_masks.squeeze()[label_filter]
-                #print(filtered_masks)
-                target_masks_reshaped = filtered_masks.sum(dim=0)
-                #print(target_masks_reshaped)
+            #print("filter")
+            label_filter = [batch["class_labels"][0] == label][0]
+            #print(f"label_filter: {label_filter}")
+            filtered_masks = target_masks.squeeze(dim=0)[label_filter]
+            #print(filtered_masks)
+            target_masks_reshaped = filtered_masks.sum(dim=0)
+            #print(target_masks_reshaped)
                     
-                #print(target_masks_reshaped.shape)
-                #print(np.unique(target_masks_reshaped))
-                target_masks_reshaped_all_labels.append(target_masks_reshaped)
+            #rint(target_masks_reshaped.shape)
+            #print(np.unique(target_masks_reshaped))
+            target_masks_reshaped_all_labels.append(target_masks_reshaped)
         targets = torch.stack(target_masks_reshaped_all_labels).unsqueeze(0)
-        # print(f"Target_shape: {targets.shape}")
-
-
+        #print(f"Target_shape: {targets.shape}")
         
         with torch.no_grad():                        
             outputs = model(pixel_values)
@@ -139,31 +151,74 @@ def test_one_epoch():
             )
             #print(f"raw_pred_maps: {pred_maps}")
 
-            # Invert background and class
-            predictions = 1 - torch.stack([pred["segmentation"] for pred in pred_maps])
-            #print(predictions)
-            #print(np.unique(predictions))
-            
-            #print(f"Predictions_shape: {predictions.shape}")
-            
-            """mask = predictions.squeeze(0).squeeze(0)
-            mask_img = Image.fromarray(mask.numpy() *100)
-            mask_img.show()"""
-            
-            #batch["original_images"][0].show()
+        
+        segments_info = [pred["segments_info"] for pred in pred_maps]
+        #print(f"segments_info: {segments_info}")
+        
+        predicted_labels = torch.tensor([p['label_id'] for p in segments_info[0]])
+        #print(f"predicted_labels: {predicted_labels}")
 
-            #print(metric(preds=predictions.type(torch.long), target=targets.type(torch.long)))
+        predictions = torch.stack([pred["segmentation"] for pred in pred_maps])
+        #print(f"predictions shape: {predictions.shape}")
 
-            metric.update(preds=predictions.type(torch.long), target=targets.type(torch.long))
-            #display_sample_results(batch, outputs, processor, sample_index=0, mask_threshold=0.35, checkpoint_path=h_params["checkpoint_path"])
+        predictions_masks_reshaped_all_labels = []
+
+        for label in idx2class.keys():#np.unique(batch["class_labels"]):
+            
+            #print(f"label: {label}")
+            predictions_masks_reshaped = torch.zeros(targets.shape[-2:])
+
+            #print("filter")
+            label_filter = predicted_labels == label
+            #print(f"label_filter: {label_filter}")
+                
+            #print(f"predictions shape: {predictions.shape}")
+            #print(f"predictions shape: {predictions.squeeze(dim=0).shape}")
+            if len(label_filter) == 0:
+                filtered_masks = torch.zeros(targets.shape[-2:]).unsqueeze(0)
+            else:
+                filtered_masks = predictions.squeeze(dim=0)[label_filter]
+            #print(filtered_masks)
+            predictions_masks_reshaped = filtered_masks.sum(dim=0)
+            predictions_masks_reshaped[predictions_masks_reshaped > 1] = 1
+
+            #print(target_masks_reshaped)
+                        
+            #print(np.unique(predictions_masks_reshaped))
+            predictions_masks_reshaped_all_labels.append(predictions_masks_reshaped)
+        predictions = torch.stack(predictions_masks_reshaped_all_labels).unsqueeze(0)
+        #print(f"Pred_shape: {predictions.shape}")
+        
+        
+        for i in range(0, targets.shape[1]):
+            mask_t = targets.squeeze(0)[i]
+            mask_p = predictions.squeeze(0)[i]
+            mask_img_t = Image.fromarray(mask_t.numpy() *100)
+            mask_img_p = Image.fromarray(mask_p.numpy() *250)
+            #mask_img.show()
+            plt.subplot(1, 2, 1)  # 2 rows, 1 columns, first position
+            plt.imshow(mask_img_t)
+            plt.axis('off')  # Hide the axis labels
+            plt.title(f"target - {i}")    
+            plt.subplot(1, 2, 2)  # 2 rows, 1 columns, first position
+            plt.imshow(mask_img_p)  
+            plt.axis('off')  # Hide the axis labels
+            plt.title(f"prediction - {i}")    
+            plt.savefig(f"testing/{batch_idx}_{i}")
+        
+        
+        #batch["original_images"][0].show()
+        #print(metric(preds=predictions.type(torch.long), target=targets.type(torch.long)))
+        
+
+        metric.update(preds=predictions.type(torch.long), target=targets.type(torch.long))
+        #display_sample_results(batch, outputs, processor, sample_index=0, mask_threshold=0.35, checkpoint_path=h_params["checkpoint_path"])
         
 
     
 test_one_epoch()
 results = metric.compute()
 print(results)
-
-idx2class[0] = "backgroud"
 
 print("METRICS:")
 for i, metric in enumerate(results):

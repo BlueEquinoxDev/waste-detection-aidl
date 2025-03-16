@@ -189,12 +189,66 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=taco1 [--test_
 #### Dataset classes
 
 #### Train
-Run ``python -m scripts.train_mask2former_segmentation``
+To train mask2former model in any of the datasets, do:
+```
+python -m scripts.train_mask2former_segmentation --dataset_type=taco1 [--batch_size=1] [--checkpoint_path=your_checkpoint_path]
+```
+Checkpoints will be saved in the results folder.
 
 #### Evaluate
-Run ``python -m scripts.test_mask2former_segmentation``
+To evaluate the model in the test set of the dataset, do:
+```
+python -m scripts.test_mask2former_segmentation --checkpoint_path=your_checkpoint_path
+```
+parser.add_argument('--checkpoint_path', required=False, help='Checkpoint path', type=str, default="")
 
 #### Results
+In general Mask2former learns to distinct well the background from the waste but fails mostly in classifying the waste.
+Notice that, because of the unbalance of the dataset some classes may never apear in the test dataset and therefore the mIoU could be 0.
+
+##### Taco1
+Categories | mIoU
+--- | ---
+Background | 0.9860629439353943
+Waste | 0.5686376094818115
+
+##### Taco5
+Categories | mIoU
+--- | ---
+...
+
+##### Taco28
+Categories | mIoU
+--- | ---
+Background | 0.9905351996421814
+Aluminium foil | 0.0
+Battery | 0.0
+Blister pack | 0.0
+Bottle | 0.11504539847373962
+Bottle cap | 0.04049689695239067
+Broken glass | 0.0
+Can | 0.03863873332738876
+Carton | 0.0264853797852993
+Cigarette | 0.0204333309084177
+Cup | 0.041645195335149765
+Food waste: | 0.0
+Glass jar | 0.0
+Lid | 0.012108653783798218
+Other plastic | 0.018098747357726097
+Paper | 0.010264495387673378
+Paper bag | 0.0
+Plastic bag & wrapper | 0.13824139535427094
+Plastic container | 0.0058823530562222
+Plastic glooves | 0.0
+Plastic utensils | 0.0038472835440188646
+Pop tab | 0.0
+Rope & strings | 0.0
+Scrap metal | 0.0
+Shoe | 0.0
+Squeezable tube | 0.0
+Straw | 0.008996364660561085
+Styrofoam piece | 0.01385095901787281
+Unlabeled litter | 0.0
 
 
 ## MLOps
@@ -230,7 +284,7 @@ CHECKPOINT=checkpoint_epoch_7_mask_rcnn_taco1.pt
 The `MODEL_NAME` can be `MASK2FORMER` or `MASK_R-CNN`. The API has not been abilitated yet for classification models.
 
 The checkpoints of the models to test for the app should be placed in the folder `app/checkpoint`.
-![alt text](API_folders.png)
+![alt text](readme_images/API_folders.png)
 
 ### Running the API
 To run the api in local and in debug mode, do:
@@ -238,12 +292,30 @@ To run the api in local and in debug mode, do:
 The flask app will be launched in your localhost.
 
 ## Demo
-By using the developed API the user can detect waste using the API or by using the web app. In the following points is explained how to interact with.
+By using the developed API the user can detect waste using the API or by using the web app (GUI). In the following points is explained how to interact with.
 
 ### Test images with API
-Here how to deploy and test the GUI
+Make sure the API is running in your localhost. Then, use the example code provided in the file ``test_api.py`` to create you own request to the API.
+Just run:
+```python -m app.test_api```
+The API will process the pictures sent and will return the detections and the images with the segmentation.
+Check ``app/results``folder after running test_api.py to see the results.
 
-###
+### WebApp GUI
+The WebApp allows to process images in a more user frendly approach.
+To use the user interface open your prefered browser and connect to your localhost port 8000: http://localhost:8000.
+
+If the API is running you should get to the home page:
+![alt text](readme_images/webapp_home.png)
+**Select a picture** and click on **Upload**.
+
+You should see your picture in the web.
+![alt text](readme_images/upload_image.png)
+Click on **Predict** to generate the segmentations.
+
+The output will be different according to the model used in the API. Here an example:
+![alt text](readme_images/web_prediction.png)
+To try another picture use the **Try a different image** button.
 
 ## Next Steps --> To do Marti
 - Implement the GUI in 

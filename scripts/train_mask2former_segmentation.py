@@ -16,20 +16,28 @@ import evaluate
 from PIL import Image, ImageOps
 # from skimage.transform import resize
 import torchvision.transforms as T
+import argparse
+
+# Parse arguments
+parser = argparse.ArgumentParser(description='Train mask2former')
+parser.add_argument('--batch_size', required=False, help='Batch size', type=int, default=1)
+parser.add_argument('--dataset_type', required=True, help='Name of the trained dataset', type=str)
+parser.add_argument('--checkpoint_path', required=False, help='Checkpoint path', type=str, default="")
+args = parser.parse_args()
 
 h_params ={
-    "batch_size": 1,
+    "batch_size": args.batch_size,
     "num_workers": 0,
     "num_epochs": 20,
     "learning_rate": 1e-4,
     "weight_decay": 1e-2,
     "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
-    "dataset_name": "taco1",
+    "dataset_name": args.dataset_type,
     "backbone_freeze": True,
     "augmentation": True,
     "backup_best_model": True,
-    "load_checkpoint": True,
-    "checkpoint_path": "app/checkpoint/checkpoint_epoch_18_mask2former_taco1.pt"#"results/seg-mask2former-swin-tiny-ade-semantic-taco5-encoder_freeze-with_augmentation-20250305-190831/best_mask2former_model.pth/checkpoint_epoch_19_2025_3_5_22_56.pt"
+    "load_checkpoint": args.checkpoint_path != "",
+    "checkpoint_path": args.checkpoint_path,
 }
 
 # experiment_name contains model name, backbone_freeze, augmentation
@@ -129,8 +137,8 @@ def collate_fn(batch):
     image_ids = [example["image_id"] for example in batch]
     inst2class = [example["inst2class"] for example in batch]
 
-    print(f"class_labels_collate_fn")
-    [print(example["class_labels"]) for example in batch]
+    #print(f"class_labels_collate_fn")
+    #[print(example["class_labels"]) for example in batch]
     
 
     #for batch_index in range(len(batch)):
@@ -180,6 +188,8 @@ validation_loader = DataLoader(validation_taco_dataset,
 #     id2label=idx2class
 # )
 
+print(f"len_idx2class: {len(idx2class)}")
+
 # Load model with configuration
 model = Mask2FormerForUniversalSegmentation.from_pretrained(
     h_params["model_name"],
@@ -188,6 +198,8 @@ model = Mask2FormerForUniversalSegmentation.from_pretrained(
     ignore_mismatched_sizes=True
 )
 
+model.config.backbone_config.id2label = idx2class
+model.config.backbone_config.label2id = {v: k for k, v in idx2class.items()}
 
 # Ensure output hidden states are enabled
 model.config.output_hidden_states = True
@@ -254,7 +266,6 @@ if h_params["load_checkpoint"]:
 # Add learning rate scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
-metric_train = evaluate.load("mean_iou")
 
 def train_one_epoch():
     """
