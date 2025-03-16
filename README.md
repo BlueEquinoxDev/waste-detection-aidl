@@ -316,12 +316,31 @@ In general Mask2former learns to segment well the background from the waste but 
 Notice that, because of the unbalance of the dataset some classes may never apear in the test dataset and therefore the mIoU could be 0.
 
 ##### Taco1
+- **Description**:
+Training of the Mask2former using the taco1 dataset in the task of instance segmentation.
+
+- **Outputs:**
+Train of the Mask2former in taco1 for 12 epochs:
+![taco1_mask2former](readme_images/train_mask2former_taco1.png)
+Best model is found at epoch 10 and metrics are compute.
+
+- **Metrics**:
+
 Categories | mIoU
 --- | ---
 Background | 0.9860629439353943
 Waste | 0.5686376094818115
 
 ##### Taco5
+- **Description**:
+Training of the Mask2former using the taco5 dataset in the task of instance segmentation.
+
+- **Outputs:**
+Train of the Mask2former in Taco5 for 20 epochs:
+![taco5_mask2former](readme_images/train_mask2former_taco5.png)
+
+- **Metrics**:
+
 Categories | mIoU
 --- | ---
 Background | 0.9847345948219299
@@ -332,6 +351,16 @@ Can | 0.12670716643333435
 Plastic film | 0.0
 
 ##### Taco28
+- **Description**:
+Training of the Mask2former using the taco28 dataset in the task of instance segmentation.
+
+- **Outputs:**
+Train of the Mask2former in Taco28 for 20 epochs:
+![taco28_mask2former](readme_images/train_mask2former_taco28.png)
+Best model is found at epoch 14 and metrics are compute.
+
+- **Metrics**:
+
 Categories | mIoU
 --- | ---
 Background | 0.9905351996421814
