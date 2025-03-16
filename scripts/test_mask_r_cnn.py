@@ -61,19 +61,6 @@ test_loader=DataLoader(test_taco_dataset,
                             collate_fn=lambda batch: tuple(zip(*batch)))
 
 
-checkpoint_path = "results/mask_rcnn/checkpoint_epoch_22_2025_3_13_8_21.pt"
-checkpoint = torch.load(checkpoint_path)
-
-
-from torchvision.models.detection.backbone_utils import resnet_fpn_backbone 
-
-model = WasteMaskRCNN(num_classes=len(test_taco_dataset.idx2class))   
-
-model.load_state_dict(checkpoint['model_state_dict'])
-
-model.to(device)
-
-
 def mask_to_coco_format(threshold,mask):
         a=mask.cpu().squeeze().numpy()
         a=(a>=threshold).astype(np.uint8)
@@ -271,9 +258,22 @@ def validation():
 
 
 parser = argparse.ArgumentParser(description='Test Mask r-cnn ober TACO 28 dataset')
-parser.add_argument('--show_image', required=False, help=f'Show prediction of a image take on taco28 test dataset (1,{len(test_taco_dataset)})',type=int)
+parser.add_argument('--checkpoint_path', required=True, help=f'Checkpoint path to compute the metrics',type=str)
+parser.add_argument('--show_image', required=False, help=f'Show prediction of a image take on taco test dataset (1,{len(test_taco_dataset)})',type=int)
 
-args = parser.parse_args()                    
+args = parser.parse_args()          
+
+checkpoint_path =args.checkpoint_path # "results/mask_rcnn/checkpoint_epoch_22_2025_3_15_18_38.pt"
+checkpoint = torch.load(checkpoint_path)
+
+
+from torchvision.models.detection.backbone_utils import resnet_fpn_backbone 
+
+model = WasteMaskRCNN(num_classes=len(test_taco_dataset.idx2class))   
+
+model.load_state_dict(checkpoint['model_state_dict'])
+
+model.to(device)          
 
 if args.show_image:
     assert args.show_image>0 and args.show_image<(len(test_taco_dataset)+1)
