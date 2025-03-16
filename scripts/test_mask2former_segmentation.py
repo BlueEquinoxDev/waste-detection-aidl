@@ -106,8 +106,7 @@ model.to(device)
 
 metric = MeanIoU(num_classes=len(idx2class), per_class=True, include_background=True)
 
-results_masks=[]
-images_not_predicts=[]
+
 def test_one_epoch():      
     pbar = tqdm(test_loader, desc="Computing metrics test dataset", leave=False)
     model.eval()
