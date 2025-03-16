@@ -107,3 +107,41 @@ def compute_map(preds, targets, num_classes):
     summary_dict = { k:[] for k in range(num_classes)}
     for pred, gt in enumerate(preds, targets):
         pass
+#metrics to evaluate bad predictions:
+def FalsePositivesRate(pred, target,smooth=1e-6):
+    """ 
+    Use to predicted objects that do not match any ground truth objects.
+    Compute the ratio of false positives to the total number of predicted.
+    High FP rates indicate the model predicts too many irrelevant objects.
+    
+    Args:
+    pred (torch.Tensor): Predicted labels.
+    target (torch.Tensor): Ground truth . 
+    smooth (float): Small value to avoid division by zero.   
+
+    Returns:
+    float: FP Rate=Number of False Positives/Total Predictions   
+    """        
+    total_predictions=len(pred)
+    total_false_positive=len([p for p in pred if not p in target])
+    return total_false_positive/(total_predictions+smooth)
+    
+
+#metrics to evaluate bad predictions:
+def FalseNegativesRate(pred, target,smooth=1e-6):
+    """ 
+    Ground truth objects that are missed by the model.
+    Compute the ratio of missed ground truth objects.
+    High FN rates indicate the model misses important objects.
+    
+    Args:
+    pred (torch.Tensor): Predicted labels.
+    target (torch.Tensor): Ground truth . 
+    smooth (float): Small value to avoid division by zero.   
+
+    Returns:
+    float: FP Rate=Number of False Negatives/Total Ground Truth Objects 
+    """
+    total_ground_truth=len(target)
+    total_false_negatives=len([g for g in target if not g in pred])    
+    return total_false_negatives/(total_ground_truth+smooth)
