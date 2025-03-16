@@ -194,14 +194,40 @@ python -m scripts.test_resnet_classification.py
 Include plots and metrics here:
 
 - **Training Loss & Accuracy:**
-  - ![Training Plot](./metrics/resnet/TRAIN_metrics.png)
+  - ![image](https://github.com/user-attachments/assets/343e2ff4-2995-4a68-b97c-908be6126b8e)
+
 - **Confusion Matrix (Train & Test):**
-  - ![Train CM](./metrics/resnet/TRAIN_confusion_matrix.png)
-  - ![Test CM](./metrics/resnet/TEST_confusion_matrix.png)
+  - **Train**:
+  - ![image](https://github.com/user-attachments/assets/0b24da25-9438-453d-af6e-f8c1e68b8e06)
+
+  - **Test**:
+    ![image](https://github.com/user-attachments/assets/9d5a8e1e-bffe-41a5-9454-438db90aa6f7)
+
+- **Evaluation Histogram**:
+  - ![image](https://github.com/user-attachments/assets/2e889327-4b91-4f3f-a6ef-ce6375c5285e)
+    
 - **Classification Report:**
-  - `./metrics/resnet/classification_report.txt`
+                   precision    recall  f1-score   support
+
+        aluminium       1.00      0.96      0.98        25
+        batteries       0.92      1.00      0.96        24
+        cardboard       0.97      1.00      0.98        28
+disposable plates       0.96      1.00      0.98        26
+            glass       1.00      0.97      0.98        29
+     hard plastic       0.90      0.93      0.91        28
+            paper       0.95      0.95      0.95        22
+      paper towel       1.00      1.00      1.00        40
+      polystyrene       1.00      0.94      0.97        36
+    soft plastics       0.92      0.89      0.91        27
+    takeaway cups       1.00      1.00      1.00        26
+
+         accuracy                           0.97       311
+        macro avg       0.97      0.97      0.97       311
+     weighted avg       0.97      0.97      0.97       311
+
+     
 - **Overall Accuracy:**
-  - `./metrics/resnet/accuracy.txt`
+  - Overall Accuracy: **0.9678**
 
 ### Image Classification with ViT --> To do Ferran
 #### Split dataset
