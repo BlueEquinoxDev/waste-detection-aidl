@@ -322,7 +322,7 @@ Training of the Mask2former using the taco1 dataset in the task of instance segm
 - **Outputs:**
 Train of the Mask2former in taco1 for 12 epochs:
 ![taco1_mask2former](readme_images/train_mask2former_taco1.png)
-Best model is found at epoch 10 and metrics are compute.
+Best model is found at epoch 10 and metrics are computed.
 
 - **Metrics**:
 
@@ -338,16 +338,17 @@ Training of the Mask2former using the taco5 dataset in the task of instance segm
 - **Outputs:**
 Train of the Mask2former in Taco5 for 20 epochs:
 ![taco5_mask2former](readme_images/train_mask2former_taco5.png)
+Best model is found at epoch 12 and metrics are computed.
 
 - **Metrics**:
 
 Categories | mIoU
 --- | ---
-Background | 0.9847345948219299
-Bottle | 0.16093596816062927
-Carton | 0.07732399553060532
-Cup | 0.02929661236703396
-Can | 0.12670716643333435
+Background | 0.9838939309120178
+Bottle | 0.16712798178195953
+Carton | 0.0799984484910965
+Cup | 0.06670922040939331
+Can | 0.14907579123973846
 Plastic film | 0.0
 
 ##### Taco28
@@ -357,7 +358,7 @@ Training of the Mask2former using the taco28 dataset in the task of instance seg
 - **Outputs:**
 Train of the Mask2former in Taco28 for 20 epochs:
 ![taco28_mask2former](readme_images/train_mask2former_taco28.png)
-Best model is found at epoch 14 and metrics are compute.
+Best model is found at epoch 14 and metrics are computed.
 
 - **Metrics**:
 
