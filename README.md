@@ -299,6 +299,7 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=taco1 [--test_
 
 #### Train
 The mask2former model has been finetunned using the weights from ``facebook/mask2former-swin-tiny-ade-semantic``.
+![mask2former_diagram](readme_images/mask2former_model.png)
 
 To train mask2former model in any of the datasets, do:
 ```

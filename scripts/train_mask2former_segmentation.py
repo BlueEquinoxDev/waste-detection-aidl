@@ -29,10 +29,10 @@ args = parser.parse_args()
 h_params ={
     "batch_size": args.batch_size,
     "num_workers": 0,
-    "num_epochs": 20,
+    "num_epochs": 60,
     "learning_rate": 1e-4,
     "weight_decay": 1e-2,
-    "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
+    "model_name":  "facebook/mask2former-swin-tiny-ade-semantic", #"facebook/mask2former-swin-small-coco-instance",
     "dataset_name": args.dataset_type,
     "backbone_freeze": True,
     "augmentation": True,
