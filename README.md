@@ -89,15 +89,23 @@ The categories that will be used for classification and segmentation depend on t
 * **Taco5** - Contains a subsample of the images of the original Taco Dataset. (5 labels only). It is an "easier" task.
 * **Taco1** - Contains the complete Taco Dataset using only 1 category as label ("waste").
 
+As can be seen taco is a unbalanced dataset for waste image segmentation:
+![taco28_dataset](readme_images/taco28.png)
+
 #### Viola77
 
 The [Viola77](https://huggingface.co/datasets/viola77data/recycling-dataset) dataset is used as well for classification. Under Apache 2.0 License.
+
+Viola is a close to perfectly balanced dataset:
+![Viola_dataset](readme_images/viola77.png)
 
 #### Combination of Datasets
 
 A combination of Taco and Viola77 Datasets have been created to increase the number of images for image classification tasks to test models under different situations.
 
 * **taco39viola11** - Contains a Taco Dataset subsection of annotations that match the Viola categories plus the Viola Dataset, so it is the Dataset with the biggest number of images for classification.
+
+![taco_and_viola](readme_images/taco39viola11.png)
 
 ### Exploratory data analysis
 
@@ -304,7 +312,7 @@ python -m scripts.test_mask2former_segmentation --checkpoint_path=your_checkpoin
 parser.add_argument('--checkpoint_path', required=False, help='Checkpoint path', type=str, default="")
 
 #### Results
-In general Mask2former learns to distinct well the background from the waste but fails mostly in classifying the waste.
+In general Mask2former learns to segment well the background from the waste but fails mostly in classifying the waste.
 Notice that, because of the unbalance of the dataset some classes may never apear in the test dataset and therefore the mIoU could be 0.
 
 ##### Taco1
@@ -316,7 +324,12 @@ Waste | 0.5686376094818115
 ##### Taco5
 Categories | mIoU
 --- | ---
-...
+Background | 0.9847345948219299
+Bottle | 0.16093596816062927
+Carton | 0.07732399553060532
+Cup | 0.02929661236703396
+Can | 0.12670716643333435
+Plastic film | 0.0
 
 ##### Taco28
 Categories | mIoU
