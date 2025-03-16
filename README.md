@@ -136,23 +136,23 @@ Ensure you have the following dependencies installed:
 pip install torch torchvision transformers optuna numpy pandas matplotlib seaborn scikit-learn tqdm datasets
 ```
 
-##### Scripts Overview
+#### Scripts Overview
 
-###### 1. `viola_dataset_resnet.py`
+##### 1. `viola_dataset_resnet.py`
 - **Description:** Custom PyTorch dataset class for the Viola77 dataset.
 - **Inputs:**
   - Hugging Face dataset
 - **Outputs:**
   - Preprocessed dataset for training and testing
 
-###### 2. `optuna_resnet_hparams.py`
+##### 2. `optuna_resnet_hparams.py`
 - **Description:** Uses Optuna to find the best hyperparameters for training the ResNet-50 model.
 - **Inputs:**
   - Search space includes learning rate, dropout rate and optimizer type.
 - **Outputs:**
   - Saves the best hyperparameters in `hparams.json`.
 
-###### 3. `train_resnet_classification.py`
+##### 3. `train_resnet_classification.py`
 - **Description:** Trains a ResNet-50 model on the Viola77 dataset.
 - **Inputs:**
   - Dataset from Hugging Face (`viola77data/recycling-dataset`)
@@ -161,10 +161,10 @@ pip install torch torchvision transformers optuna numpy pandas matplotlib seabor
   - Saves the trained model as `best_resnet50.pth`
   - Generates training metrics and confusion matrices
 
-###### 3.1. Modification:
+##### 3.1. Modification:
 Added `enhanced_hparams` flag. If `True`, executes `optuna_resnet_hparams.py` first to determine the best hyperparameters before training.
 
-###### 4. `test_resnet_classification.py`
+##### 4. `test_resnet_classification.py`
 - **Description:** Evaluates the trained ResNet-50 model on the test dataset.
 - **Inputs:**
   - Loads `best_resnet50.pth`
@@ -172,7 +172,7 @@ Added `enhanced_hparams` flag. If `True`, executes `optuna_resnet_hparams.py` fi
 - **Outputs:**
   - Accuracy, classification report, confusion matrix
 
-##### How to Run
+#### How to Run
 
 1. **Train the Model**
 - Without optimized hyperparameters:
@@ -189,7 +189,7 @@ python -m scripts.train_resnet_classification.py --enhanced_hparams True
 python -m scripts.test_resnet_classification.py
 ```
 
-##### Results
+#### Results
 
 Include plots and metrics here:
 
@@ -202,11 +202,6 @@ Include plots and metrics here:
   - `./metrics/resnet/classification_report.txt`
 - **Overall Accuracy:**
   - `./metrics/resnet/accuracy.txt`
-
-
-#### Train
-#### Evaluate
-#### Results
 
 ### Image Classification with ViT --> To do Ferran
 #### Split dataset
