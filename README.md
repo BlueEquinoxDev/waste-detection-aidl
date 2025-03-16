@@ -194,17 +194,17 @@ python -m scripts.test_resnet_classification.py
 Include plots and metrics here:
 
 - **Training Loss & Accuracy:**
-  - ![image](https://github.com/user-attachments/assets/343e2ff4-2995-4a68-b97c-908be6126b8e)
+  ![image](https://github.com/user-attachments/assets/343e2ff4-2995-4a68-b97c-908be6126b8e)
 
 - **Confusion Matrix (Train & Test):**
   - **Train**:
-  - ![image](https://github.com/user-attachments/assets/0b24da25-9438-453d-af6e-f8c1e68b8e06)
+    ![image](https://github.com/user-attachments/assets/0b24da25-9438-453d-af6e-f8c1e68b8e06)
 
   - **Test**:
     ![image](https://github.com/user-attachments/assets/9d5a8e1e-bffe-41a5-9454-438db90aa6f7)
 
 - **Evaluation Histogram**:
-  - ![image](https://github.com/user-attachments/assets/2e889327-4b91-4f3f-a6ef-ce6375c5285e)
+  ![image](https://github.com/user-attachments/assets/2e889327-4b91-4f3f-a6ef-ce6375c5285e)
     
 - **Classification Report:**
 ```
@@ -228,8 +228,8 @@ disposable plates       0.96      1.00      0.98        26
      weighted avg       0.97      0.97      0.97       311
 ```
      
-- **Overall Accuracy:**
-  - Overall Accuracy: **0.9678**
+- **Overall Accuracy: 0.9678**
+
 
 ### Image Classification with ViT --> To do Ferran
 #### Split dataset
