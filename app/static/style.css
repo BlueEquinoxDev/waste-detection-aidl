@@ -228,6 +228,145 @@ main {
   box-shadow: 0 4px 8px rgba(22, 163, 74, 0.1);
 }
 
+/* Steps Indicator */
+.steps-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.step-circle {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background-color: #f0f0f0;
+  border: 2px solid #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.step.active .step-circle {
+  background-color: #e6f4e6;
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+.step.completed .step-circle {
+  background-color: #16a34a;
+  border-color: #16a34a;
+  color: white;
+}
+
+.step-line {
+  flex-grow: 1;
+  height: 2px;
+  background-color: #e0e0e0;
+  width: 4rem;
+  margin: 0 0.5rem;
+  position: relative;
+  top: -0.75rem;
+}
+
+.step-label {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.step.active .step-label {
+  color: #16a34a;
+}
+
+/* Selected Options Display */
+.selected-options-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: #f9f9f9;
+  border-radius: 0.5rem;
+  border: 1px solid #eee;
+}
+
+.selected-option {
+  background-color: #e6f4e6;
+  color: #166534;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+.option-label {
+  color: #16a34a;
+  font-weight: 500;
+}
+
+/* Image Gallery */
+.gallery-image-container {
+  position: relative;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.gallery-image-container:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.gallery-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  transition: all 0.3s ease;
+}
+
+.gallery-image.selected {
+  border: 2px solid #16a34a;
+}
+
+.gallery-image-container:hover .gallery-image {
+  opacity: 0.9;
+}
+
+.image-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.375rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+/* Models Container */
+.models-container {
+  margin-top: 1rem;
+}
+
+/* Step Content */
+.step-content {
+  transition: all 0.3s ease;
+}
+
 /* File Upload */
 .drop-zone {
   border: 2px dashed #d1fae5;

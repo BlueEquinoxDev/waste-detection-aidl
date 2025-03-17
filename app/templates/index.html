@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AIDL Waste Detection API</title>
+    <title>Waste Detection</title>
     <meta name="description" content="Project for AIDL Postgraduate course at UPC" />
     <meta name="author" content="Martí Fabregat, Rafel Febrer, Ferran Miró and Miquel Ortiz" />
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
@@ -14,11 +14,8 @@
       <div class="container max-w-5xl mx-auto px-6">
         <div class="header-content">
           <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
-            AIDL Waste Detection API
+            Waste Detection
           </h1>
-          <p class="text-lg text-gray-600 mt-2">
-            I am your waste guru, show me a picture and I will tell you where the waste is.
-          </p>
           <div class="h-1 w-24 eco-gradient mt-4 rounded-full"></div>
         </div>
       </div>
@@ -39,17 +36,119 @@
             </p>
           </div>
 
+          <!-- Steps indicator -->
+          <div class="steps-indicator flex items-center justify-center mb-8">
+            <div class="step step-1 active flex flex-col items-center">
+              <div class="step-circle flex items-center justify-center">1</div>
+              <span class="step-label">Task Type</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step step-2 flex flex-col items-center">
+              <div class="step-circle flex items-center justify-center">2</div>
+              <span class="step-label">Image</span>
+            </div>
+            <div class="step-line"></div>
+            <div class="step step-3 flex flex-col items-center">
+              <div class="step-circle flex items-center justify-center">3</div>
+              <span class="step-label">Model</span>
+            </div>
+          </div>
+
+          <!-- Selected options display -->
+          <div id="selected-options" class="mb-6 hidden">
+            <div class="selected-options-container flex flex-wrap gap-2">
+              <!-- Options will be added here via JS -->
+            </div>
+          </div>
+
           <div class="card-eco p-6 mb-8">
-            {% if not image %}
-            <form action="/upload_image" method="post" enctype="multipart/form-data" class="text-center">
-              <div class="drop-zone mb-4">
-                <img src="{{ url_for('static', filename='assets/img/upload-icon.svg') }}" alt="Upload" class="w-16 h-16 mb-4 opacity-70" />
-                <p class="text-gray-600 mb-2">Drag and drop a file or click to browse</p>
-                <p class="text-gray-500 text-sm">Supported formats: JPG, PNG</p>
+            <!-- Step 1: Task Type Selection -->
+            <div id="step-1-content" class="step-content">
+              <h3 class="text-center text-lg font-medium mb-6">Select Task Type</h3>
+              <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button type="button" class="btn-eco task-option" data-task="classification">
+                  <span>Classification</span>
+                </button>
+                <button type="button" class="btn-eco task-option" data-task="segmentation">
+                  <span>Segmentation</span>
+                </button>
               </div>
-              <input type="file" id="file" name="file" class="hidden" accept="image/jpeg,image/png">
-              <button type="submit" name="upload" value="Upload" class="btn-eco">Upload Image</button>
-            </form>
+            </div>
+
+            <!-- Step 2: Image Selection/Upload -->
+            <div id="step-2-content" class="step-content hidden">
+              <h3 class="text-center text-lg font-medium mb-6">Choose or Upload an Image</h3>
+              
+              <!-- Image Gallery -->
+              <div id="image-gallery" class="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+                <!-- Images will be loaded here dynamically -->
+              </div>
+              
+              <!-- Upload option -->
+              <div class="upload-section mt-8">
+                <div class="text-center mb-4">
+                  <div class="border-t border-gray-200 my-6"></div>
+                  <p class="text-gray-600">Or upload your own image</p>
+                </div>
+                <form id="upload-form" enctype="multipart/form-data" class="text-center">
+                  <div class="drop-zone mb-4">
+                    <img src="{{ url_for('static', filename='assets/img/upload-icon.svg') }}" alt="Upload" class="w-16 h-16 mb-4 opacity-70" />
+                    <p class="text-gray-600 mb-2">Drag and drop a file or click to browse</p>
+                    <p class="text-gray-500 text-sm">Supported formats: JPG, PNG</p>
+                  </div>
+                  <input type="file" id="file" name="file" class="hidden" accept="image/jpeg,image/png">
+                  <button type="button" id="upload-button" class="btn-eco">Upload Image</button>
+                </form>
+              </div>
+            </div>
+
+            <!-- Step 3: Model Selection -->
+            <div id="step-3-content" class="step-content hidden">
+              <h3 class="text-center text-lg font-medium mb-6">Select Model</h3>
+              
+              <!-- Classification Models -->
+              <div id="classification-models" class="models-container hidden">
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button type="button" class="btn-eco model-option" data-model="resnet50">ResNet50</button>
+                  <button type="button" class="btn-eco model-option" data-model="vit">ViT</button>
+                </div>
+              </div>
+              
+              <!-- Segmentation Models -->
+              <div id="segmentation-models" class="models-container hidden">
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button type="button" class="btn-eco model-option" data-model="maskrcnn">Mask R-CNN</button>
+                  <button type="button" class="btn-eco model-option" data-model="mask2former">Mask2Former</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Result Display Section -->
+            <div id="result-section" class="hidden mt-6">
+                <div class="image-preview mb-4">
+                <img id="preview-image" alt="Selected Image" class="max-w-full h-auto rounded-lg mx-auto shadow-md"/>
+                </div>
+                <div class="flex justify-center gap-4">
+                <button id="run-model-btn" type="button" class="btn-eco">Run Model</button>
+                <button id="start-over-btn" type="button" class="btn-outline">Start Over</button>
+                </div>
+            </div>
+            
+            <!-- Hidden Forms for Submission -->
+            <form id="predict-form" action="/predict_web_image" method="post"></form>
+            <form id="restart-form" action="/restart" method="post"></form>
+  
+            <!-- Classification results (when applicable) -->
+            {% if prediction %}
+            <div class="classification-result mt-4 p-4 bg-eco-50 rounded-lg">
+              <h4 class="text-lg font-medium text-eco-800">Prediction Result</h4>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-gray-800 font-medium">{{ prediction.class_name }}</span>
+                <span class="bg-eco-100 text-eco-800 px-2 py-1 rounded-md text-sm">
+                  {{ "%.2f"|format(prediction.confidence * 100) }}% confidence
+                </span>
+              </div>
+            </div>
             {% endif %}
             
             {% with messages = get_flashed_messages() %}
@@ -59,50 +158,8 @@
                 {% endfor %}
               {% endif %}
             {% endwith %}
-            
-            {% if image %}
-            <div class="image-preview mb-4">
-              <img src="data:image/jpeg;base64,{{ image }}" id="img-upload" alt="Uploaded Image" class="max-w-full h-auto rounded-lg mx-auto shadow-md"/>
-            </div>
-            <div class="flex justify-center gap-4">
-              <form action="/predict_web_image" method="post">
-                <button type="submit" name="predict" value="Predict" class="btn-eco">Predict</button>
-              </form>
-              <form action="/restart" method="post">
-                <button type="submit" name="Restart" value="Try a different image" class="btn-outline">Try a different image</button>
-              </form>
-            </div>
-            {% endif %}
           </div>
         </div>
-        
-        {% if not image %}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
-          <div class="card-eco">
-            <div class="h-10 w-10 rounded-full bg-eco-100 flex items-center justify-center mb-4">
-              <span class="text-eco-600 font-medium">1</span>
-            </div>
-            <h3 class="text-lg font-medium mb-2">Segmentation</h3>
-            <p class="text-gray-600">Precisely identifies and outlines waste objects in images using advanced deep learning techniques.</p>
-          </div>
-          
-          <div class="card-eco">
-            <div class="h-10 w-10 rounded-full bg-eco-100 flex items-center justify-center mb-4">
-              <span class="text-eco-600 font-medium">2</span>
-            </div>
-            <h3 class="text-lg font-medium mb-2">Classification</h3>
-            <p class="text-gray-600">Categorizes detected waste into different types, helping with proper waste management and recycling.</p>
-          </div>
-          
-          <div class="card-eco">
-            <div class="h-10 w-10 rounded-full bg-eco-100 flex items-center justify-center mb-4">
-              <span class="text-eco-600 font-medium">3</span>
-            </div>
-            <h3 class="text-lg font-medium mb-2">Analysis</h3>
-            <p class="text-gray-600">Provides detailed insights about the waste in your image, including type, size, and location.</p>
-          </div>
-        </div>
-        {% endif %}
       </div>
     </main>
     
@@ -133,11 +190,315 @@
     </footer>
     
     <script>
-      // Simple script to make the file upload area interactive
-      document.addEventListener('DOMContentLoaded', function() {
-        const dropZone = document.querySelector('.drop-zone');
-        const fileInput = document.getElementById('file');
+      // Add this logging function at the start of your script
+      function logUserAction(action, details = {}) {
+        const timestamp = new Date().toISOString();
+        console.log(`[${timestamp}] USER ACTION: ${action}`, details);
         
+        // Optional: Send logs to server
+        fetch('/log_action', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            timestamp: timestamp,
+            action: action,
+            details: details
+          }),
+        }).catch(err => console.error('Failed to log action:', err));
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        // Elements
+        const step1Content = document.getElementById('step-1-content');
+        const step2Content = document.getElementById('step-2-content');
+        const step3Content = document.getElementById('step-3-content');
+        const stepIndicators = document.querySelectorAll('.step');
+        const selectedOptionsContainer = document.getElementById('selected-options');
+        const imageGallery = document.getElementById('image-gallery');
+        const classificationModels = document.getElementById('classification-models');
+        const segmentationModels = document.getElementById('segmentation-models');
+        const resultSection = document.getElementById('result-section');
+        const previewImage = document.getElementById('preview-image');
+        const runModelBtn = document.getElementById('run-model-btn');
+        const startOverBtn = document.getElementById('start-over-btn');
+        const uploadForm = document.getElementById('upload-form');
+        const fileInput = document.getElementById('file');
+        const uploadButton = document.getElementById('upload-button');
+        const dropZone = document.querySelector('.drop-zone');
+        
+        // State
+        let currentStep = 1;
+        let selectedTask = null;
+        let selectedImage = null;
+        let selectedModel = null;
+        
+        // Initialize step indicators
+        function updateStepIndicators() {
+          stepIndicators.forEach((indicator, index) => {
+            const stepNum = index + 1;
+            if (stepNum < currentStep) {
+              indicator.classList.add('completed');
+              indicator.classList.remove('active');
+            } else if (stepNum === currentStep) {
+              indicator.classList.add('active');
+              indicator.classList.remove('completed');
+            } else {
+              indicator.classList.remove('active', 'completed');
+            }
+          });
+        }
+        
+        // Display selected options
+        function updateSelectedOptions() {
+          selectedOptionsContainer.innerHTML = '';
+          
+          if (selectedTask) {
+            const taskElement = document.createElement('div');
+            taskElement.className = 'selected-option';
+            taskElement.innerHTML = `<span class="option-label">Task:</span> <strong>${selectedTask.charAt(0).toUpperCase() + selectedTask.slice(1)}</strong>`;
+            selectedOptionsContainer.appendChild(taskElement);
+          }
+          
+          if (selectedImage) {
+            const imageElement = document.createElement('div');
+            imageElement.className = 'selected-option';
+            imageElement.innerHTML = `<span class="option-label">Image:</span> <strong>${selectedImage.name || 'Custom upload'}</strong>`;
+            selectedOptionsContainer.appendChild(imageElement);
+          }
+          
+          if (selectedModel) {
+            const modelElement = document.createElement('div');
+            modelElement.className = 'selected-option';
+            modelElement.innerHTML = `<span class="option-label">Model:</span> <strong>${selectedModel}</strong>`;
+            selectedOptionsContainer.appendChild(modelElement);
+          }
+          
+          if (selectedTask || selectedImage || selectedModel) {
+            selectedOptionsContainer.classList.remove('hidden');
+          } else {
+            selectedOptionsContainer.classList.add('hidden');
+          }
+        }
+        
+        // Show step content
+        function showStep(stepNumber) {
+          // Hide all step content
+          step1Content.classList.add('hidden');
+          step2Content.classList.add('hidden');
+          step3Content.classList.add('hidden');
+          
+          // Show selected step
+          if (stepNumber === 1) {
+            step1Content.classList.remove('hidden');
+          } else if (stepNumber === 2) {
+            step2Content.classList.remove('hidden');
+            loadImagesForTask();
+          } else if (stepNumber === 3) {
+            step3Content.classList.remove('hidden');
+            if (selectedTask === 'classification') {
+              classificationModels.classList.remove('hidden');
+              segmentationModels.classList.add('hidden');
+            } else {
+              segmentationModels.classList.remove('hidden');
+              classificationModels.classList.add('hidden');
+            }
+          }
+          
+          currentStep = stepNumber;
+          updateStepIndicators();
+        }
+        
+        // Load images for the selected task
+        function loadImagesForTask() {
+          imageGallery.innerHTML = '';
+          
+          // In a real app, you would fetch images from the server based on the selected task
+          // For this example, we'll simulate with placeholder images
+          const folder = selectedTask === 'classification' ? 'classification' : 'segmentation';
+          const numImages = 6; // Simulate 6 images for each category
+          
+          for (let i = 1; i <= numImages; i++) {
+            const imgElement = document.createElement('div');
+            imgElement.className = 'gallery-image-container';
+            
+            // Use a placeholder image (you would replace this with actual images from your server)
+            imgElement.innerHTML = `
+              <img src="/static/assets/img/placeholder-${i}.jpg" alt="${folder} image ${i}" class="gallery-image" data-image-name="image-${i}.jpg">
+              <div class="image-caption">Sample ${i}</div>
+            `;
+            
+            imgElement.querySelector('.gallery-image').addEventListener('click', function() {
+              selectGalleryImage(this, `image-${i}.jpg`);
+            });
+            
+            imageGallery.appendChild(imgElement);
+          }
+        }
+        
+        // Select an image from the gallery
+        function selectGalleryImage(imageElement, imageName) {
+          // Remove selection from all images
+          document.querySelectorAll('.gallery-image').forEach(img => {
+            img.classList.remove('selected');
+          });
+          
+          // Add selection to clicked image
+          imageElement.classList.add('selected');
+          
+          // Update selected image
+          selectedImage = {
+            src: imageElement.src,
+            name: imageName
+          };
+          
+          // Go to step 3
+          showStep(3);
+          updateSelectedOptions();
+        }
+        
+        // Task option click handler
+        document.querySelectorAll('.task-option').forEach(button => {
+          button.addEventListener('click', function() {
+            const taskType = this.getAttribute('data-task');
+            selectedTask = taskType;
+            logUserAction('Task Selected', { task: taskType });
+            showStep(2);
+            updateSelectedOptions();
+          });
+        });
+        
+        // Model option click handler
+        document.querySelectorAll('.model-option').forEach(button => {
+          button.addEventListener('click', function() {
+            const modelDataName = this.getAttribute('data-model');
+            selectedModel = modelDataName;
+            
+            // Log before API call
+            logUserAction('Model Selected', { model: modelDataName });
+            
+            // Map the data-model attribute to the API model name
+            const modelMapping = {
+              'maskrcnn': 'MASK_R-CNN',
+              'mask2former': 'MASK2FORMER',
+              'vit': 'VIT',
+              'resnet50': 'RESNET'
+            };
+            
+            const apiModelName = modelMapping[modelDataName];
+            
+            // Show loading indicator
+            this.innerHTML = '<span>Loading...</span>';
+            this.disabled = true;
+            
+            // Call the API to load the model
+            fetch(`/load_model/${apiModelName}`)
+              .then(response => response.json())
+              .then(data => {
+                // Reset button text
+                this.innerHTML = `<span>${modelDataName}</span>`;
+                this.disabled = false;
+                
+                if (data.success) {
+                  console.log(`Model ${apiModelName} loaded successfully`);
+                  // Flash success message
+                  const flashContainer = document.createElement('div');
+                  flashContainer.className = 'flash-message p-3 bg-eco-100 text-eco-800 rounded-md mb-4';
+                  flashContainer.textContent = `${apiModelName} model loaded successfully with ${data.classes.length} classes`;
+                  document.querySelector('.card-eco').appendChild(flashContainer);
+                  
+                  // Continue with UI updates
+                  updateSelectedOptions();
+                  resultSection.classList.remove('hidden');
+                  previewImage.src = selectedImage.src;
+                  step3Content.classList.add('hidden');
+                  
+                  // Auto-remove flash message after 5 seconds
+                  setTimeout(() => {
+                    flashContainer.remove();
+                  }, 5000);
+                } else {
+                  console.error(`Error loading model: ${data.error}`);
+                  // Flash error message
+                  const flashContainer = document.createElement('div');
+                  flashContainer.className = 'flash-message p-3 bg-red-100 text-red-800 rounded-md mb-4';
+                  flashContainer.textContent = `Error loading model: ${data.error}`;
+                  document.querySelector('.card-eco').appendChild(flashContainer);
+                  
+                  // Reset selection
+                  selectedModel = null;
+                  updateSelectedOptions();
+                }
+              })
+              .catch(error => {
+                // Reset button text
+                this.innerHTML = `<span>${modelDataName}</span>`;
+                this.disabled = false;
+                
+                console.error('Error:', error);
+                // Flash error message
+                const flashContainer = document.createElement('div');
+                flashContainer.className = 'flash-message p-3 bg-red-100 text-red-800 rounded-md mb-4';
+                flashContainer.textContent = 'An error occurred while loading the model';
+                document.querySelector('.card-eco').appendChild(flashContainer);
+                
+                // Reset selection
+                selectedModel = null;
+                updateSelectedOptions();
+              });
+          });
+        });
+        
+        // Run model button click handler
+        runModelBtn.addEventListener('click', function() {
+          logUserAction('Run Model Clicked', { 
+            model: selectedModel, 
+            task: selectedTask,
+            imageSelected: selectedImage ? selectedImage.name : 'preview image' 
+          });
+          
+          // Show loading state
+          this.disabled = true;
+          this.innerHTML = '<span>Processing...</span>';
+          
+          // Create form inputs for model type and selected image
+          const modelTypeInput = document.createElement('input');
+          modelTypeInput.type = 'hidden';
+          modelTypeInput.name = 'model_type';
+          modelTypeInput.value = selectedTask; // 'classification' or 'segmentation'
+          
+          const imageInput = document.createElement('input');
+          imageInput.type = 'hidden';
+          imageInput.name = 'image_src';
+          imageInput.value = selectedImage ? selectedImage.src : previewImage.src;
+          
+          // Add the inputs to the form
+          const predictForm = document.getElementById('predict-form');
+          predictForm.innerHTML = ''; // Clear any previous inputs
+          predictForm.appendChild(modelTypeInput);
+          predictForm.appendChild(imageInput);
+          
+          // Submit the form
+          predictForm.submit();
+        });
+        
+        // Start over button click handler
+        startOverBtn.addEventListener('click', function() {
+          logUserAction('Start Over Clicked');
+          
+          // Reset all selections
+          selectedTask = null;
+          selectedImage = null;
+          selectedModel = null;
+          
+          // Reset UI
+          resultSection.classList.add('hidden');
+          updateSelectedOptions();
+          showStep(1);
+        });
+        
+        // File upload handling
         if (dropZone && fileInput) {
           dropZone.addEventListener('click', () => fileInput.click());
           
@@ -156,24 +517,47 @@
             
             if (e.dataTransfer.files.length) {
               fileInput.files = e.dataTransfer.files;
-              const fileName = e.dataTransfer.files[0].name;
-              updateFileName(fileName);
+              handleFileUpload(e.dataTransfer.files[0]);
             }
           });
           
           fileInput.addEventListener('change', () => {
             if (fileInput.files.length) {
-              updateFileName(fileInput.files[0].name);
+              handleFileUpload(fileInput.files[0]);
             }
           });
           
-          function updateFileName(name) {
-            const fileNameElement = dropZone.querySelector('p:first-of-type');
-            if (fileNameElement) {
-              fileNameElement.textContent = name;
+          uploadButton.addEventListener('click', () => {
+            if (fileInput.files.length) {
+              handleFileUpload(fileInput.files[0]);
+            } else {
+              fileInput.click();
             }
+          });
+        }
+        
+        function handleFileUpload(file) {
+          if (file.type.includes('image')) {
+            // Create a URL for the image preview
+            const imageUrl = URL.createObjectURL(file);
+            
+            // Update selected image
+            selectedImage = {
+              src: imageUrl,
+              name: file.name,
+              file: file
+            };
+            
+            // Move to step 3
+            showStep(3);
+            updateSelectedOptions();
+          } else {
+            alert('Please upload an image file (JPG or PNG).');
           }
         }
+        
+        // Initialize with step 1
+        showStep(1);
       });
     </script>
   </body>
