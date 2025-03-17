@@ -9,17 +9,27 @@ def create_compute_metrics(label_names, logdir):
         """Compute metrics for classification task"""
         predictions, labels = eval_pred
         predictions = np.argmax(predictions, axis=1)
-        
-        #print(f"Predictions: {predictions} - Labels: {labels}")
+
+        # Check unique labels in the dataset
+        unique_labels = np.unique(labels)
+        print(f"Unique labels: {unique_labels}")
+        print(f"Label names: {label_names}")
+        # Instead of raising an error, adapt to the available classes
+        if len(unique_labels) != len(label_names):
+            print(f"Warning: Only {len(unique_labels)} classes found in batch instead of {len(label_names)}")
+            used_label_names = [label_names[i] for i in unique_labels]
+        else:
+            used_label_names = label_names
 
         # Overall accuracy
         accuracy = accuracy_score(labels, predictions)
         
-        # Detailed classification report
+        # Detailed classification report - use labels parameter to specify actual classes
         report = classification_report(
             labels, 
             predictions, 
-            target_names=label_names,
+            target_names=used_label_names,
+            labels=unique_labels,
             output_dict=True
         )
 
