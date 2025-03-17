@@ -277,16 +277,112 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=taco1 [--test_
 * Use ``--verbose`` (bool) if you want to have printed text on the console during execution.
 
 #### Dataset classes
-The Taco Dataset for mask R-CNN class in ``custom_datasets/taco_dataset_mask_r_cnn_update.py`` has the functionality to load the Taco Dataset in for Instance Segmentation.
+The Taco Dataset for mask R-CNN class in ``custom_datasets/taco_dataset_mask_r_cnn.py`` has the functionality to load the Taco Dataset in for Instance Segmentation.
 
 #### Train
-Run ``python -m scripts.train_mask_r_cnn``
+For train Mask R-CNN  we use Resnet-50 as backbone and freeze all layer except Feature Pyramid Network (FPN). The other layers that train too are Region Proposal Network (RPN) and all the layers that are in Roi Heads that include the predictors for bounding boxes and maks.
+![mask_r_cnn_architecture](readme_images/mask_r_cnn_architecture.png)
+To train mask-rcnn in any of the dataset, do:
+```
+python -m scripts.train_mask_r_cnn
+```
+
+Checkpoints will be saved in the results/mask_r_cnn folder.
 
 #### Evaluate
-Run ``python -m scripts.test_mask_r_cnn``
+To evaluate the model in the test set of the dataset, do:
+```
+python -m scripts.test_mask_r_cnn --checkpoint_path your_checkpoint_path
+```
 
 #### Results
+The metric we use is mAP of torch.metrics. The results are not good. The hipotesi is that the code that ajust the model make it that don't predict well and as mAP are sensible to bag predictions so the result are low.
+##### Taco1
+- **Description**:
+Train Mask R-CNN in taco1 dataset.
+- **Outputs**:
 
+- **Metrics**
+##### Taco5
+- **Description**:
+Train Mask R-CNN in taco5 dataset.
+- **Outputs**:
+![mask_r_cnn_train_taco_5](readme_images/mask_r_cnn_train_taco_5.png)
+- **Metrics**
+
+Metric | Value
+--- | ---
+bbox_map |  0.16
+bbox_map_50 |  0.42
+bbox_map_75 |  0.07
+bbox_map_small |  0.20
+bbox_map_medium |  0.19
+bbox_map_large |  0.19
+bbox_mar_1 |  0.28
+bbox_mar_10 |  0.31
+bbox_mar_100 |  0.31
+bbox_mar_small |  0.20
+bbox_mar_medium |  0.49
+bbox_mar_large |  0.30
+segm_map |  0.31
+segm_map_50 |  0.38
+segm_map_75 |  0.34
+segm_map_small |  0.08
+segm_map_medium |  0.37
+segm_map_large |  0.43
+segm_mar_1 |  0.39
+segm_mar_10 |  0.48
+segm_mar_100 |  0.48
+segm_mar_small |  0.15
+segm_mar_medium |  0.72
+segm_mar_large |  0.43
+Avg. IoU (respect labels) | 0.27
+Avg. IoU (no respect labels) | 0.31
+Avg. Complete IoU (respect labels) | 0.06
+Avg. Complete IoU (no respect labels) | 0.12
+Avg. False positives rate | 0.58
+Avg. False negatives rate | 0.10
+
+predicted classes:  [1, 2, 3, 4, 5]
+##### Taco28
+- **Description**:
+Train Mask R-CNN in taco28 dataset.
+- **Outputs**:
+![mask_r_cnn_train_taco_28](readme_images/mask_r_cnn_train_taco28.png)
+- **Metrics**
+
+Metric | Value
+--- | ---
+bbox_map |  0.04
+bbox_map_50 |  0.09
+bbox_map_75 |  0.04
+bbox_map_small |  0.03
+bbox_map_medium |  0.09
+bbox_map_large |  0.09
+bbox_mar_1 |  0.10
+bbox_mar_10 |  0.13
+bbox_mar_100 |  0.14
+bbox_mar_small |  0.07
+bbox_mar_medium |  0.20
+bbox_mar_large |  0.21
+segm_map |  0.07
+segm_map_50 |  0.11
+segm_map_75 |  0.07
+segm_map_small |  0.03
+segm_map_medium |  0.14
+segm_map_large |  0.15
+segm_mar_1 |  0.14
+segm_mar_10 |  0.18
+segm_mar_100 |  0.18
+segm_mar_small |  0.09
+segm_mar_medium |  0.26
+segm_mar_large |  0.29
+Avg. IoU (respect labels) | 0.24
+Avg. IoU (no respect labels) | 0.05
+Avg. False positives rate | 0.83
+Avg. False negatives rate | 0.32
+
+predicted classes:  [1, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 17, 18, 20, 21, 22, 23, 26, 27, 28]
 ### Instance segmentation with Mask2Former
 #### Split dataset
 To split the annotations for training and evaluation on **Mask2Former** use ``split_dataset.py`` following the same procedure as in **Mask R-CNN**.
