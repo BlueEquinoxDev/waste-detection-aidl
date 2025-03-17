@@ -30,31 +30,16 @@ from custom_datasets.viola77_dataset import Viola77Dataset
 
 from model.waste_vit import WasteViT
 
-# -------------------- Configuration --------------------
 DATASET_NAME = "viola77data/recycling-dataset"
 BASE_DIR = "data/viola_dataset"
 IMAGES_DIR = os.path.join(BASE_DIR, "images")
 ANNOTATIONS_FILE = os.path.join(BASE_DIR, "annotations.csv")
 UPDATED_ANNOTATIONS_FILE = os.path.join(BASE_DIR, "annotations_updated.csv")
 EXPERIMENT_NAME = "cls-vit-viola"
-NUM_EPOCHS = 15
+NUM_EPOCHS = 75
 BATCH_SIZE = 32
 SEED = 42
-
-# Class mapping for annotation updates
-# CLASS_MAPPING = {
-#     0: "aluminium",
-#     1: "batteries",
-#     2: "cardboard",
-#     3: "disposable_plates",
-#     4: "glass",
-#     5: "hard_plastic",
-#     6: "paper",
-#     7: "paper_towel",
-#     8: "polystyrene",
-#     9: "soft_plastics",
-#     10: "takeaway_cups",
-# }
+CHECKPOINT = None # "results/cls-vit-viola-20250317-155954/cls-vit-viola-20250317.pth" # None
 
 def create_transforms():
     data_transforms_train = transforms.Compose([
@@ -86,16 +71,6 @@ def setup_experiment():
     print(f"Logs directory: {logs_dir}")
     print(f"Results directory: {results_dir}")
     return logs_dir, results_dir, writer
-
-def create_model(num_classes):
-    model = ViTForImageClassification.from_pretrained(
-        "google/vit-base-patch16-224-in21k", num_labels=num_classes
-    )
-    model.classifier = nn.Sequential(
-        nn.Dropout(0.48699113095794067),
-        nn.Linear(model.config.hidden_size, num_classes)
-    )
-    return model
 
 def train_model(model, train_loader, val_loader, experiment_name, results_dir, writer, device):
     optimizer = torch.optim.SGD(model.parameters(), lr=0.0023280870643464266)
@@ -183,18 +158,18 @@ def evaluate_model(all_labels, all_raw_outputs, class_names, results_dir):
     f1 = f1_score(all_labels, pred_labels, average="weighted")
     auc = roc_auc_score(all_labels, probabilities, multi_class="ovr")
 
-    print("\nConfusion Matrix:\n", conf_matrix)
-    print("\nF1 Score:", f1)
-    print("\nAUC Score:", auc)
+    print("\nValidation Confusion Matrix:\n", conf_matrix)
+    print("\nValidation F1 Score:", f1)
+    print("\nValidation AUC Score:", auc)
 
     plt.figure(figsize=(8, 6))
     sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues",
                 xticklabels=class_names, yticklabels=class_names)
     plt.xlabel("Predicted")
     plt.ylabel("Actual")
-    plt.title("Confusion Matrix")
+    plt.title("Validation Confusion Matrix")
     
-    conf_matrix_path = os.path.join(results_dir, "confusion_matrix.png")
+    conf_matrix_path = os.path.join(results_dir, "validation_confusion_matrix.png")
     plt.savefig(conf_matrix_path)
     print(f"Confusion matrix saved to: {conf_matrix_path}")
 
@@ -227,10 +202,6 @@ def main():
     annotations = pd.read_csv(UPDATED_ANNOTATIONS_FILE)
     unique_labels = sorted(annotations["label"].unique())
     label_mapping = {label: i for i, label in enumerate(unique_labels)}
-    # print("Class Mapping:", label_mapping)
-    
-    # for df in [train_df, val_df, test_df]:
-    #     df["label"] = df["label"].map(label_mapping)
     num_classes = len(label_mapping)
     
     # Create dataloaders
@@ -241,8 +212,7 @@ def main():
     # Create and prepare model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    # checkpoint_path = os.path.join(results_dir, "best_vit_viola.pth")
-    checkpoint_path = None
+    checkpoint_path = CHECKPOINT
 
     num_classes = len(train_dataset.idx_to_cluster_class)
     label_names = list(train_dataset.idx_to_cluster_class.values())
@@ -257,9 +227,6 @@ def main():
     best_model_name, all_labels, all_raw_outputs = train_model(model, train_loader, val_loader, EXPERIMENT_NAME, results_dir, writer, device)
     
     # Evaluate the model
-    # Use the class names in the order of label mapping for the confusion matrix
-    # class_names = [CLASS_MAPPING[label] for label in unique_labels]
-    # define class_names using train_dataset.cluster_class_to_idx
     class_names = [train_dataset.idx_to_cluster_class[idx] for idx in range(len(train_dataset.idx_to_cluster_class))]
 
     evaluate_model(all_labels, all_raw_outputs, class_names, results_dir)

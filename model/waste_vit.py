@@ -7,7 +7,7 @@ class WasteViT(ViTForImageClassification):
     def __init__(self, num_classes=None, id2label=None, label2id=None, checkpoint=None):
         # Create configuration
         config = ViTConfig.from_pretrained(
-            'google/vit-base-patch16-224', 
+            'google/vit-base-patch16-224-in21k', 
             num_labels=num_classes,
             id2label=id2label,
             label2id=label2id
