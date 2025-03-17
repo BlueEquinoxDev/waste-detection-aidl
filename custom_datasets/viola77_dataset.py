@@ -1,4 +1,8 @@
 from torch.utils.data import Dataset
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+
 
 class Viola77Dataset(Dataset):
     def __init__(self, dataset, transform=None):
@@ -28,5 +32,5 @@ class Viola77Dataset(Dataset):
         # Apply transforms if they exist
         if self.transform:
             image = self.transform(image)
-            
+
         return {'pixel_values': image, 'labels': label}

@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from transformers import ViTImageProcessor, ViTForImageClassification, ViTConfig
 from transformers.modeling_outputs import SequenceClassifierOutput
 
@@ -31,10 +32,17 @@ class WasteViT(ViTForImageClassification):
                 ignore_mismatched_sizes=True
             )
 
-            config.attention_probs_dropout_prob = 0.48699113095794067
-            config.hidden_dropout_prob = 0.48699113095794067
+            # config.attention_probs_dropout_prob = 0.48699113095794067
+            # config.hidden_dropout_prob = 0.48699113095794067
             
             super().__init__(config=config)
+
+            # Define a new classifier head with dropout
+            dropout_prob = 0.267  # Adjust as needed
+            self.classifier = nn.Sequential(
+                nn.Dropout(dropout_prob),  # Dropout before the final layer
+                nn.Linear(self.config.hidden_size, num_classes)  # Linear classifier
+            )
             self.feature_extractor = ViTImageProcessor.from_pretrained('google/vit-base-patch16-224')
 
     def forward(self, pixel_values, labels=None):

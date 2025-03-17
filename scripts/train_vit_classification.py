@@ -31,27 +31,25 @@ dataset_name = parser.parse_args().dataset
 if dataset_name not in valid_datasets:
     raise ValueError(f"Dataset must be one of {valid_datasets}")
 
-experiment_name = f"cls-vit-{dataset_name.lower()}-{parser.parse_args().freeze_layers if parser.parse_args().freeze_layers != 0 else 'no'}_frozen_layers-SGD_Optimizer_with_Dropout-Augmentation"
+experiment_name = f"cls-vit-{dataset_name.lower()}-{parser.parse_args().freeze_layers if parser.parse_args().freeze_layers != 0 else 'no'}_frozen_layers-Adam_Optimizer_with_Dropout-Data_Transforms_from_Marti"
 
 # Define data transforms
 data_transforms_train = transforms.Compose([
-    transforms.ToImage(),  # To tensor is deprecated
-    transforms.ToDtype(torch.uint8, scale=True),
-    transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), antialias=True),
     transforms.RandomChoice([  # Randomly apply ONE transformation
+        transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),  # Random crop & resize
         transforms.RandomHorizontalFlip(p=0.5),  # Always flip horizontally (when chosen)
         transforms.RandomRotation(degrees=15),  # Rotate randomly
         transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),  # Color changes
         transforms.GaussianBlur(kernel_size=3),  # Blurring effect
     ]),
-    transforms.ToDtype(torch.float32, scale=True),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Resize((224, 224)),  # Resize to match model input
+    transforms.ToTensor(),  # Convert to tensor
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize
     ])
 
 data_transforms_test = transforms.Compose([
-    transforms.ToImage(),  # To tensor is deprecated,
-    transforms.ToDtype(torch.float32, scale=True),
-    transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), antialias=True),
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
@@ -225,7 +223,7 @@ training_args = TrainingArguments(
     save_total_limit=3,  # Limit total saved checkpoints
     # Adding learning rate scheduler
     learning_rate=2e-5,
-    weight_decay=0.01,
+    # weight_decay=0.01,
     warmup_ratio=0.1,
     lr_scheduler_type="cosine",
     fp16=True,  # Mixed precision training
@@ -233,11 +231,10 @@ training_args = TrainingArguments(
 )
 
 # Define SGD optimizer
-optimizer = torch.optim.SGD(
+optimizer = torch.optim.Adam(
     model.parameters(),
     lr=training_args.learning_rate,  # Use same LR as in TrainingArguments
-    momentum=0.9,                    # Adds momentum for better convergence
-    weight_decay=training_args.weight_decay
+    # weight_decay=training_args.weight_decay
 )
 
 # Define the Trainer
