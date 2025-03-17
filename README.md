@@ -307,6 +307,7 @@ Train Mask R-CNN in taco1 dataset.
 - **Description**:
 Train Mask R-CNN in taco5 dataset.
 - **Outputs**:
+
 ![mask_r_cnn_train_taco_5](readme_images/mask_r_cnn_train_taco_5.png)
 - **Metrics**
 
@@ -348,6 +349,7 @@ predicted classes:  [1, 2, 3, 4, 5]
 - **Description**:
 Train Mask R-CNN in taco28 dataset.
 - **Outputs**:
+
 ![mask_r_cnn_train_taco_28](readme_images/mask_r_cnn_train_taco28.png)
 - **Metrics**
 
