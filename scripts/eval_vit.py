@@ -9,8 +9,15 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
+import argparse
 
 SEED = 42
+
+parser = argparse.ArgumentParser(description='Select the model and (optional) an image for evaluation')
+# get parameter model_path and image_path from the command line
+parser.add_argument('--model_path', required=True, help='Dataset name', type=str)
+parser.add_argument('--image_path', required=False, help='Dataset name', type=str, default=None)
 
 def generate_evaluation_summary(accuracy, accuracy_per_class, f1, f1_per_class, cm, label_names):
     """
@@ -62,8 +69,12 @@ def generate_evaluation_summary(accuracy, accuracy_per_class, f1, f1_per_class, 
     plt.tight_layout()
     return fig
 
-def eval_vit(model_path = "best_vit_75.pth", image_path = None):
+def eval_vit(model_path = None, image_path = None):
     
+    results_path = "/".join(model_path.split("/")[:2])
+    os.makedirs(results_path, exist_ok=True)
+    print(f"Results will be saved in: {results_path}")
+
     # Define the transformations
     data_transforms_test = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -157,7 +168,8 @@ def eval_vit(model_path = "best_vit_75.pth", image_path = None):
         print("Confusion Matrix:\n", cm)
 
         fig = generate_evaluation_summary(accuracy, accuracy_per_class, f1, f1_per_class, cm, label_names)
-        fig.savefig("evaluation_summary.png")
+        results_file_name = os.path.join(results_path, "evaluation_summary.png")
+        fig.savefig(results_file_name)
 
 
-eval_vit()
+eval_vit(parser.parse_args().model_path, parser.parse_args().image_path)
