@@ -299,10 +299,44 @@ python -m scripts.test_mask_r_cnn --checkpoint_path your_checkpoint_path
 The metric we use is mAP of torch.metrics. The results are not good. The hipotesi is that the code that ajust the model make it that don't predict well and as mAP are sensible to bag predictions so the result are low.
 ##### Taco1
 - **Description**:
-Train Mask R-CNN in taco1 dataset.
+Train Mask R-CNN in taco1 dataset. Overfiting begin at epoch 12 so stop the train and evaluate at 12 checkpoint.
 - **Outputs**:
 
+![mask_r_cnn_train_taco_5](readme_images/mask_rnn_taco_1.png)
 - **Metrics**
+
+Metric | Value
+--- | ---
+bbox_map |  0.21
+bbox_map_50 |  0.40
+bbox_map_75 |  0.20
+bbox_map_small |  0.14
+bbox_map_medium |  0.34
+bbox_map_large |  0.23
+bbox_mar_1 |  0.17
+bbox_mar_10 |  0.34
+bbox_mar_100 |  0.39
+bbox_mar_small |  0.30
+bbox_mar_medium |  0.51
+bbox_mar_large |  0.40
+segm_map |  0.25
+segm_map_50 |  0.40
+segm_map_75 |  0.26
+segm_map_small |  0.11
+segm_map_medium |  0.39
+segm_map_large |  0.34
+segm_mar_1 |  0.21
+segm_mar_10 |  0.39
+segm_mar_100 |  0.43
+segm_mar_small |  0.29
+segm_mar_medium |  0.57
+segm_mar_large |  0.50
+Avg. IoU (respect labels) | 0.09
+Avg. IoU (no respect labels) | 0.09
+Avg. False positives rate | 0.00
+Avg. False negatives rate | 0.01
+
+predicted classes |  1
 ##### Taco5
 - **Description**:
 Train Mask R-CNN in taco5 dataset.
