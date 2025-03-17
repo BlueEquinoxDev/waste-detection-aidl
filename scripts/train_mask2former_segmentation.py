@@ -12,23 +12,33 @@ from datetime import datetime
 from utilities.save_model import save_model
 from utilities.maskformer_display_sample_results import display_sample_results
 import os
-import evaluate
+#import evaluate
 from PIL import Image, ImageOps
 # from skimage.transform import resize
+import torchvision.transforms as T
+import argparse
+from torchmetrics.segmentation import MeanIoU
+
+# Parse arguments
+parser = argparse.ArgumentParser(description='Train mask2former')
+parser.add_argument('--batch_size', required=False, help='Batch size', type=int, default=1)
+parser.add_argument('--dataset_type', required=True, help='Name of the trained dataset', type=str)
+parser.add_argument('--checkpoint_path', required=False, help='Checkpoint path', type=str, default="")
+args = parser.parse_args()
 
 h_params ={
-    "batch_size": 1,
+    "batch_size": args.batch_size,
     "num_workers": 0,
-    "num_epochs": 20,
-    "learning_rate": 5e-5,
+    "num_epochs": 60,
+    "learning_rate": 1e-4,
     "weight_decay": 1e-2,
-    "model_name": "facebook/mask2former-swin-tiny-ade-semantic",
-    "dataset_name": "taco5",
+    "model_name":  "facebook/mask2former-swin-tiny-ade-semantic", #"facebook/mask2former-swin-small-coco-instance",
+    "dataset_name": args.dataset_type,
     "backbone_freeze": True,
     "augmentation": True,
     "backup_best_model": True,
-    "load_checkpoint": True,
-    "checkpoint_path": "results/seg-mask2former-swin-tiny-ade-semantic-taco5-encoder_freeze-with_augmentation-20250305-190831/best_mask2former_model.pth/checkpoint_epoch_19_2025_3_5_22_56.pt"
+    "load_checkpoint": args.checkpoint_path != "",
+    "checkpoint_path": args.checkpoint_path,
 }
 
 # experiment_name contains model name, backbone_freeze, augmentation
@@ -126,6 +136,7 @@ def collate_fn(batch):
     original_images = [example["original_image"] for example in batch]
     original_masks = [example["original_mask"] for example in batch]
     image_ids = [example["image_id"] for example in batch]
+    inst2class = [example["inst2class"] for example in batch]
 
     #print(f"class_labels_collate_fn")
     #[print(example["class_labels"]) for example in batch]
@@ -145,7 +156,8 @@ def collate_fn(batch):
         "mask_labels": mask_labels,
         "original_images": original_images,
         "original_masks": original_masks,
-        "image_id": image_ids
+        "image_id": image_ids,
+        "inst2class":inst2class
     }
 
 train_loader = DataLoader(train_taco_dataset, 
@@ -177,6 +189,8 @@ validation_loader = DataLoader(validation_taco_dataset,
 #     id2label=idx2class
 # )
 
+print(f"len_idx2class: {len(idx2class)}")
+
 # Load model with configuration
 model = Mask2FormerForUniversalSegmentation.from_pretrained(
     h_params["model_name"],
@@ -185,6 +199,8 @@ model = Mask2FormerForUniversalSegmentation.from_pretrained(
     ignore_mismatched_sizes=True
 )
 
+model.config.backbone_config.id2label = idx2class
+model.config.backbone_config.label2id = {v: k for k, v in idx2class.items()}
 
 # Ensure output hidden states are enabled
 model.config.output_hidden_states = True
@@ -206,6 +222,13 @@ if h_params["load_checkpoint"]:
 if(h_params["backbone_freeze"]):
     for param in model.model.pixel_level_module.encoder.parameters():
         param.requires_grad = False
+else:
+    for param in model.model.pixel_level_module.encoder.parameters():
+        param.requires_grad = False
+    # Unfreeze the last 3 layers of the encoder
+    for param in model.model.pixel_level_module.encoder.encoder.layers[-1].parameters():
+        param.requires_grad = True
+
 
 
 # Freeze backbone's encoder parameters
@@ -244,7 +267,6 @@ if h_params["load_checkpoint"]:
 # Add learning rate scheduler
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
 
-metric = evaluate.load("mean_iou")
 
 def train_one_epoch():
     """
@@ -284,27 +306,11 @@ def train_one_epoch():
         if hasattr(torch.cuda, 'empty_cache'):
             torch.cuda.empty_cache()
         
-        # Use ground truth masks to determine target sizes.
-        # Assuming batch['original_masks'] is a list of arrays with shape (height, width)
-        target_sizes = [(mask.shape[1], mask.shape[0]) for mask in batch['original_masks']]
-        
-        pred_maps = processor.post_process_instance_segmentation(
-            outputs, target_sizes=target_sizes, threshold=0.5
-        )
-
-        # Resize predicted masks to match ground truth masks
-        resized_pred_maps = []
-        for pred_map, target_size in zip(pred_maps, target_sizes):
-            pred_mask = pred_map["segmentation"].cpu().numpy()  # Convert to NumPy array
-            pred_mask_pil = Image.fromarray(pred_mask.astype(np.uint8))
-            pred_mask_resized = pred_mask_pil.resize(target_size, Image.NEAREST)
-            resized_pred_maps.append(np.array(pred_mask_resized))
-
-        metric.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
-
     losses_avg = losses_avg / total_samples
-    iou = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)['mean_iou']
-    return losses_avg, iou
+    return losses_avg
+
+#metric_val = evaluate.load("mean_iou")
+metric_val = MeanIoU(num_classes=len(idx2class), per_class=True, include_background=True)
 
 def validation_one_epoch():
     """
@@ -324,16 +330,12 @@ def validation_one_epoch():
         # images=list(image.to(device) for image in images)   
         # targets = [{k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in t.items()} for t in targets]             
         with torch.no_grad():
-            try:
-                outputs = model(
-                    pixel_values=batch["pixel_values"].to(device),
-                    mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
-                    class_labels=[labels.to(device) for labels in batch["class_labels"]],
-                    pixel_mask=batch["pixel_mask"].to(device)
-                )
-            except RuntimeError as e:
-                print(f"Error in batch {idx}: {e}")
-                continue
+            outputs = model(
+                pixel_values=batch["pixel_values"].to(device),
+                mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
+                class_labels=[labels.to(device) for labels in batch["class_labels"]],
+                pixel_mask=batch["pixel_mask"].to(device)
+            )
             loss = outputs.loss
             # loss_dict = model(images, targets)
             # losses = sum(loss for loss in loss_dict.values())
@@ -351,28 +353,99 @@ def validation_one_epoch():
         
         target_sizes = [(mask.shape[1], mask.shape[0]) for mask in batch['original_masks']]
         pred_maps = processor.post_process_instance_segmentation(
-            outputs, target_sizes=target_sizes, threshold=0.5
+            outputs, target_sizes=target_sizes, threshold=0.5, return_binary_maps=True
         )
+        compute_metrics(batch, pred_maps)
+        #pred_maps = processor.post_process_instance_segmentation(
+        #    outputs, target_sizes=target_sizes, threshold=0.5
+        #)
         #print("Predictions:")
         #print(outputs.masks_queries_logits)
         #print([np.unique(pred_map["segmentation"]) for pred_map in pred_maps])
         #print(batch['original_masks'])
         #print(pred_maps)
         # Resize predicted masks to match ground truth masks
-        resized_pred_maps = []
-        for pred_map, target_size in zip(pred_maps, target_sizes):
-            pred_mask = pred_map["segmentation"].cpu().numpy()
-            pred_mask_pil = Image.fromarray(pred_mask.astype(np.uint8))
-            pred_mask_resized = pred_mask_pil.resize(target_size, Image.NEAREST)
-            resized_pred_maps.append(np.array(pred_mask_resized))
-
-        metric.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
+        #resized_pred_maps = []
+        #for pred_map, target_size in zip(pred_maps, target_sizes):
+        #    pred_mask = pred_map["segmentation"].cpu().numpy()
+        #    pred_mask_pil = Image.fromarray(pred_mask.astype(np.uint8))
+        #    #pred_mask_resized = pred_mask_pil.resize(target_size, Image.NEAREST)
+        #    pred_mask_resized = pred_mask_pil
+        #    resized_pred_maps.append(np.array(pred_mask_resized))
+        #metric_val.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
 
     losses_avg = losses_avg / total_samples
-    iou = metric.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)['mean_iou']
+    metrics_result = metric_val.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
     # iou = 0
-    return losses_avg, iou
-    
+    return losses_avg, metrics_result
+
+def compute_metrics(batch, pred_maps):
+    # Since batch size is 1, we can directly access the first (and only) item
+    pixel_values = batch["pixel_values"].to(device)  # Shape: [1, C, H, W]
+    #print(f"pixel_values.shape: {pixel_values.shape}")
+    image_id = batch["image_id"]  # Get the single image ID
+    #print(f"Processing image ID: {image_id}")
+        
+    target_masks = torch.stack(batch["mask_labels"])
+    target_masks_reshaped_all_labels = []
+    #print(batch["class_labels"])
+    #print(idx2class)
+    #print(np.unique(batch["class_labels"]))
+    for label in idx2class.keys():#np.unique(batch["class_labels"]):                              
+        #print(f"label: {label}")
+        target_masks_reshaped = torch.zeros(target_masks.shape[-2:])
+
+        #print("filter")
+        label_filter = [batch["class_labels"][0] == label][0]
+        #print(f"label_filter: {label_filter}")
+        filtered_masks = target_masks.squeeze(dim=0)[label_filter]
+        #print(filtered_masks)
+        target_masks_reshaped = filtered_masks.sum(dim=0)
+        #print(target_masks_reshaped)
+                    
+        #rint(target_masks_reshaped.shape)
+        #print(np.unique(target_masks_reshaped))
+        target_masks_reshaped_all_labels.append(target_masks_reshaped)
+    targets = torch.stack(target_masks_reshaped_all_labels).unsqueeze(0)
+    #print(f"Target_shape: {targets.shape}")
+        
+    segments_info = [pred["segments_info"] for pred in pred_maps]
+    #print(f"segments_info: {segments_info}")
+        
+    predicted_labels = torch.tensor([p['label_id'] for p in segments_info[0]])
+    #print(f"predicted_labels: {predicted_labels}")
+
+    predictions = torch.stack([pred["segmentation"] for pred in pred_maps])
+    #print(f"predictions shape: {predictions.shape}")
+
+    predictions_masks_reshaped_all_labels = []
+
+    for label in idx2class.keys():#np.unique(batch["class_labels"]):
+            
+        #print(f"label: {label}")
+        predictions_masks_reshaped = torch.zeros(targets.shape[-2:])
+
+        #print("filter")
+        label_filter = predicted_labels == label
+        #print(f"label_filter: {label_filter}")
+                
+        #print(f"predictions shape: {predictions.shape}")
+        #print(f"predictions shape: {predictions.squeeze(dim=0).shape}")
+        if len(label_filter) == 0:
+            filtered_masks = torch.zeros(targets.shape[-2:]).unsqueeze(0)
+        else:
+            filtered_masks = predictions.squeeze(dim=0)[label_filter]
+        #print(filtered_masks)
+        predictions_masks_reshaped = filtered_masks.sum(dim=0)
+        predictions_masks_reshaped[predictions_masks_reshaped > 1] = 1
+
+        #print(target_masks_reshaped)
+                        
+        #print(np.unique(predictions_masks_reshaped))
+        predictions_masks_reshaped_all_labels.append(predictions_masks_reshaped)
+    predictions = torch.stack(predictions_masks_reshaped_all_labels).unsqueeze(0)
+    #print(f"Pred_shape: {predictions.shape}")
+    metric_val.update(preds=predictions.type(torch.long), target=targets.type(torch.long))
 
 
 ### START TRAINING
@@ -382,18 +455,25 @@ validation_loss=[]
 # Add variables to track best validation loss
 best_val_loss = float('inf')
 for epoch in range(1,h_params["num_epochs"]+1):
-    losses_avg_train, iou_train = train_one_epoch()
-    losses_avg_validation, iou_val = validation_one_epoch()
-    print(f"TRAINING epoch[{epoch}/{h_params['num_epochs']}]: avg. loss: {losses_avg_train:.3f} iou:{iou_train:.3f}")
-    print(f"VALIDATION epoch[{epoch}/{h_params['num_epochs']}]: avg. loss:{ losses_avg_validation:.3f} iou:{iou_val:.3f}")  
+    losses_avg_train = train_one_epoch()
+    losses_avg_validation, metrics_val = validation_one_epoch()
+    print(f"TRAINING epoch[{epoch}/{h_params['num_epochs']}]: avg. loss: {losses_avg_train:.3f}")
+    print(f"VALIDATION epoch[{epoch}/{h_params['num_epochs']}]: avg. loss:{ losses_avg_validation:.3f}")  
     train_loss.append(losses_avg_train)
     validation_loss.append(losses_avg_validation)
+
     save_model(model, epoch, optimizer, idx2class, os.path.join(results_dir, f"mask2former_{epoch}.pth"))    
+    
     writer.add_scalar('Segmentation/train_loss', losses_avg_train, epoch)
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
     writer.add_scalar('Segmentation/learning_rate', optimizer.param_groups[0]['lr'], epoch)
-    writer.add_scalar('Segmentation/train_iou', iou_train, epoch)
-    writer.add_scalar('Segmentation/val_iou', iou_val, epoch)
+
+    for key, value in metrics_val.items():
+        if isinstance(value, np.ndarray):
+            writer.add_scalars(f'Segmentation/val_{key}', {str(i):v for i, v in enumerate(value)}, epoch)
+        else:
+            writer.add_scalar(f'Segmentation/val_{key}', value, epoch)
+    
     # Save best model:
     if h_params["backup_best_model"]:
         if losses_avg_validation < best_val_loss:

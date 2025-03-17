@@ -83,7 +83,7 @@ class TacoDatasetMask2Former(Dataset):
         inst2class = {0: 0}  # Background mapping: 0 -> 0
         for i, label in enumerate(labels):
             inst2class[i + 1] = label
-
+        
         # print(f"sample_img.shape: {sample_img.shape}")
         # print(f"sample_img: {sample_img}")
         #print(f"instance_seg.shape: {instance_seg.shape}")
@@ -187,6 +187,9 @@ class TacoDatasetMask2Former(Dataset):
             inputs["original_image"] = orginal_img
             inputs["original_mask"] = original_mask
             inputs["image_id"] = img_id
+            inputs["inst2class"] = inst2class
+
+            #print(inputs)
             
             ############## DEBUGING #############
             #visualize_sample(inputs, idx2class=self.idx2class)

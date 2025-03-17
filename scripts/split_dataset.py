@@ -30,7 +30,7 @@ def make_taco_annotations_28_categories():
     #categories
     categories_names=sorted(set([c['supercategory'] for c in coco_data['categories']]))
     taco28_annotation['categories']=[{'supercategory': o,'id':i+1,'name':o}  for i, o in enumerate(categories_names)]
-    taco28_annotation['categories'].insert(0,{'supercategory': 'Background','id':0,'name':'Background'})
+    # taco28_annotation['categories'].insert(0,{'supercategory': 'Background','id':0,'name':'Background'})
     
     #annotations
     map=[{'id':o['id'],'category':o['supercategory']} for o in coco_data['categories']]
@@ -67,18 +67,26 @@ def make_taco_annotations_5_categories():
     with open(taco5_categories_path, 'r') as f:
         taco5_categories = json.load(f)
     
+    id2taco5cat = {}
+    for cat, items in taco5_categories.items():
+        for item in items:
+            id2taco5cat[item] = cat 
+    print(id2taco5cat)
+
     #categories
     cluster_class_to_idx = {cls_name: idx for idx, cls_name in enumerate(taco5_categories.keys())}
     idx_to_cluster_class = {idx: cls_name for idx, cls_name in enumerate(cluster_class_to_idx.keys())}
-    idx_to_keep = set(cluster_class_to_idx.values())
-    taco5_annotation['categories']=[{'supercategory': idx_to_cluster_class[c['id']], 'id':i+1,'name':idx_to_cluster_class[c['id']]} for i, c in enumerate(coco_data['categories']) if c['id'] in idx_to_keep]
-    taco5_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
-    map2taco5={c['id']:i+1 for i, c in enumerate(coco_data['categories']) if c['id'] in idx_to_keep}
+    items_to_keep = [items for items in taco5_categories.values()]
+    print(items_to_keep)
+    idx_to_keep = set(sum(items_to_keep, []))
+    print(idx_to_keep)
+    taco5_annotation['categories']=[{'supercategory': cat, 'id':i+1,'name':cat} for i, cat in idx_to_cluster_class.items()]
+    #taco5_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
     
     #annotations
     taco5_annotation['annotations'] = [a for a in coco_data['annotations'] if a['category_id'] in idx_to_keep]
     for a in taco5_annotation['annotations']:
-        a['category_id']=map2taco5[a['category_id']]
+        a['category_id']=cluster_class_to_idx[id2taco5cat[a['category_id']]] + 1
     
     #images
     image_ids = set([a['image_id'] for a in taco5_annotation['annotations']])
@@ -97,10 +105,8 @@ def make_taco_annotations_1_categories():
         'scene_annotations':[]
     }
     
-    
-    
-    taco1_annotation['categories']=[{'supercategory': "waste", 'id':1, 'name': "waste"}]
-    taco1_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
+    taco1_annotation['categories']=[{'supercategory': "Waste", 'id':1, 'name': "Waste"}]
+    # taco1_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
         
     #annotations
     taco1_annotation['annotations'] = [a for a in coco_data['annotations']]
@@ -141,21 +147,24 @@ if args.dataset_type.lower() == "taco28":
     with open(custom_annotations_path, 'w') as f:
         annotationns28=make_taco_annotations_28_categories()
         json.dump(annotationns28, f)
-#    exit(0)
+
 elif args.dataset_type.lower() == "taco1":
     if args.verbose: print('Create a file of annotations with 1 supercategory annotations1.json...')
     custom_annotations_path = os.path.join(args.dataset_dir, 'annotations1.json')
     with open(custom_annotations_path, 'w') as f:
         annotationns1=make_taco_annotations_1_categories()
         json.dump(annotationns1, f)
+
 elif args.dataset_type.lower() == "taco5":
     if args.verbose: print('Create a file of annotations with 5 categories annotations5.json...')
     custom_annotations_path = os.path.join(args.dataset_dir, 'annotations5.json')
     with open(custom_annotations_path, 'w') as f:
         annotationns5=make_taco_annotations_5_categories()
         json.dump(annotationns5, f)
+
 elif args.dataset_type.lower() == "classification":
     custom_annotations_path = ann_input_path
+    
 else:
     raise ValueError('No annotation file selected, select one of the following: --taco28, --taco5 or --classification')
 

@@ -17,11 +17,12 @@ from app.model.wastemask2former import WasteMask2Former
 from dotenv import load_dotenv
 load_dotenv()
 
+MODEL_NAME = os.getenv("MODEL_NAME") #MASK2FORMER or MASK_R-CNN
+CHECKPOINT = os.getenv("CHECKPOINT") # Checkpoint name
+
 UPLOAD_FOLDER = '/tmp'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 FILE_NAME = "sample.jpg"
-MASK_RCNN_CHECKPOINT = "checkpoint_epoch_16_2025_2_28_10_40.pt"#"checkpoint_epoch_8_2025_2_18_21_53.pt"
-MASK2FORMER_CHECKPOINT = "checkpoint_epoch_14_2025_3_7_13_33.pt"
 IDX2CLASS = None
 MODEL = None
 PREDICT_IMAGE = None
@@ -34,7 +35,7 @@ app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY")
 
 def _load_MASK_RCNN():
     global MODEL, IDX2CLASS
-    checkpoint_path = pathlib.Path(__file__).parent.absolute() / os.path.join("checkpoint", MASK_RCNN_CHECKPOINT)
+    checkpoint_path = pathlib.Path(__file__).parent.absolute() / os.path.join("checkpoint", CHECKPOINT)
 
     checkpoint = torch.load(checkpoint_path, weights_only=True, map_location=torch.device('cpu'))
 
@@ -44,7 +45,7 @@ def _load_MASK_RCNN():
 
 def _load_MASK2FORMER():
     global MODEL, IDX2CLASS
-    checkpoint_path = pathlib.Path(__file__).parent.absolute() / os.path.join("checkpoint", MASK2FORMER_CHECKPOINT)
+    checkpoint_path = pathlib.Path(__file__).parent.absolute() / os.path.join("checkpoint", CHECKPOINT)
 
     checkpoint = torch.load(checkpoint_path, weights_only=True, map_location=torch.device('cpu'))
 
@@ -54,8 +55,13 @@ def _load_MASK2FORMER():
 
 
 with app.app_context():
-    #_load_MASK_RCNN()
-    _load_MASK2FORMER()
+    if MODEL_NAME == "MASK_R-CNN":
+        _load_MASK_RCNN()
+    elif MODEL_NAME == "MASK2FORMER":
+        _load_MASK2FORMER()
+    else:
+        print("Model Not found")
+        exit(0)
     
 
 def predict_images(images):
