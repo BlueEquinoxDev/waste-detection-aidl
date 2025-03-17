@@ -29,8 +29,12 @@ class Viola77Dataset(Dataset):
         image = self.dataset[idx]['image']
         label = self.dataset[idx]['label']
         
+        # If the image is a string (i.e. a file path), load it using PIL
+        if isinstance(image, str):
+            image = Image.open(image).convert("RGB")
+
         # Apply transforms if they exist
         if self.transform:
             image = self.transform(image)
 
-        return {'pixel_values': image, 'labels': label}
+        return image, label
