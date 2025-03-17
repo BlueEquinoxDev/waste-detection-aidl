@@ -1,60 +1,180 @@
+<!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AIDL Waste Detection API</title>
+    <meta name="description" content="Project for AIDL Postgraduate course at UPC" />
+    <meta name="author" content="Martí Fabregat, Rafel Febrer, Ferran Miró and Miquel Ortiz" />
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"/>
-    <head>
-        <meta name="description" content="Project for AIDL Postgraduate course at UPC" />
-        <meta name="author" content="Martí Fabregat, Rafel Febrer, Ferran Miró and Miquel Ortiz" />
-        <title>AIDL Waste Detection API</title>
-        <link
-            rel="icon"
-            type="image/x-icon"
-            href="{{ url_for('static', filename='assets/favicon.ico') }}"
-        />
-    </head>
-    <header>
-        <div class="container">
-            <h1>AIDL Waste Detection API</h1>
-            <p>I am your waste guru, show me a picture and I will tell you where the waste is.</p>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='assets/favicon.ico') }}" />
+  </head>
+  <body class="min-h-screen flex flex-col bg-[#fcfcfc]">
+    <header class="bg-white border-b border-gray-100 py-6 mb-8 eco-shadow">
+      <div class="container max-w-5xl mx-auto px-6">
+        <div class="header-content">
+          <h1 class="text-3xl font-bold text-gray-900 tracking-tight">
+            AIDL Waste Detection API
+          </h1>
+          <p class="text-lg text-gray-600 mt-2">
+            I am your waste guru, show me a picture and I will tell you where the waste is.
+          </p>
+          <div class="h-1 w-24 eco-gradient mt-4 rounded-full"></div>
         </div>
+      </div>
     </header>
-    <body>
-        <div class="container">
+    
+    <main class="flex-grow">
+      <div class="container max-w-5xl mx-auto px-6">
+        <div class="max-w-3xl mx-auto">
+          <div class="text-center mb-10">
+            <span class="inline-block px-3 py-1 rounded-full bg-eco-100 text-eco-800 text-sm font-medium mb-4">
+              Deep Learning Project
+            </span>
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">
+              Waste Detection and Classification
+            </h2>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+              Our AI model identifies and segments waste in images. Upload a photo to see it in action.
+            </p>
+          </div>
+
+          <div class="card-eco p-6 mb-8">
             {% if not image %}
-            <form action="/upload_image" method="post" enctype="multipart/form-data">
-                <p><input type="file" id="file" name="file"><input type="submit" name="upload" value="Upload"></p>
+            <form action="/upload_image" method="post" enctype="multipart/form-data" class="text-center">
+              <div class="drop-zone mb-4">
+                <img src="{{ url_for('static', filename='assets/img/upload-icon.svg') }}" alt="Upload" class="w-16 h-16 mb-4 opacity-70" />
+                <p class="text-gray-600 mb-2">Drag and drop a file or click to browse</p>
+                <p class="text-gray-500 text-sm">Supported formats: JPG, PNG</p>
+              </div>
+              <input type="file" id="file" name="file" class="hidden" accept="image/jpeg,image/png">
+              <button type="submit" name="upload" value="Upload" class="btn-eco">Upload Image</button>
             </form>
             {% endif %}
+            
             {% with messages = get_flashed_messages() %}
-                {% if messages %}
+              {% if messages %}
                 {% for message in messages %}
-                    <p class="flash">{{ message }}</p>
+                  <div class="flash-message p-3 bg-eco-100 text-eco-800 rounded-md mb-4">{{ message }}</div>
                 {% endfor %}
-                {% endif %}
+              {% endif %}
             {% endwith %}
+            
             {% if image %}
-            <div class="square">
-                <img src="data:image/jpeg;base64,{{ image }}" id="img-upload" alt="img_data" class="img-upload"/>
+            <div class="image-preview mb-4">
+              <img src="data:image/jpeg;base64,{{ image }}" id="img-upload" alt="Uploaded Image" class="max-w-full h-auto rounded-lg mx-auto shadow-md"/>
             </div>
-            <form action="/predict_web_image" method="post">
-                <p><input type="submit" name="predict" value="Predict" class="predict_button"></p>
-            </form>
-            <form action="/restart" method="post">
-                <p><input type="submit" name="Restart" value="Try a different image" class="restart_button"></p>
-            </form>
+            <div class="flex justify-center gap-4">
+              <form action="/predict_web_image" method="post">
+                <button type="submit" name="predict" value="Predict" class="btn-eco">Predict</button>
+              </form>
+              <form action="/restart" method="post">
+                <button type="submit" name="Restart" value="Try a different image" class="btn-outline">Try a different image</button>
+              </form>
+            </div>
             {% endif %}
+          </div>
         </div>
-    </body>
-    <footer>
-        <div class="container">       
-            <div class="gitline">
-                <p><a href="https://github.com/BlueEquinoxDev/waste-detection-aidl">Check our github repository </a></p>
-                <img src="{{ url_for('static', filename='assets/img/github.svg') }}" alt="Github logo" class="git_logo"/>
+        
+        {% if not image %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+          <div class="card-eco">
+            <div class="h-10 w-10 rounded-full bg-eco-100 flex items-center justify-center mb-4">
+              <span class="text-eco-600 font-medium">1</span>
             </div>
-            <div class="gitline">
-                <p>Developed by: Martí Fabregat, Rafel Febrer, Ferran Miró and Miquel Ortiz</p>
+            <h3 class="text-lg font-medium mb-2">Segmentation</h3>
+            <p class="text-gray-600">Precisely identifies and outlines waste objects in images using advanced deep learning techniques.</p>
+          </div>
+          
+          <div class="card-eco">
+            <div class="h-10 w-10 rounded-full bg-eco-100 flex items-center justify-center mb-4">
+              <span class="text-eco-600 font-medium">2</span>
             </div>
-            <div class="gitline">
-                <p>AIDL Postgraduate Course by UPC School 2025</p>
+            <h3 class="text-lg font-medium mb-2">Classification</h3>
+            <p class="text-gray-600">Categorizes detected waste into different types, helping with proper waste management and recycling.</p>
+          </div>
+          
+          <div class="card-eco">
+            <div class="h-10 w-10 rounded-full bg-eco-100 flex items-center justify-center mb-4">
+              <span class="text-eco-600 font-medium">3</span>
             </div>
+            <h3 class="text-lg font-medium mb-2">Analysis</h3>
+            <p class="text-gray-600">Provides detailed insights about the waste in your image, including type, size, and location.</p>
+          </div>
         </div>
+        {% endif %}
+      </div>
+    </main>
+    
+    <footer class="mt-20 py-10 border-t border-gray-100">
+      <div class="container max-w-5xl mx-auto px-6">
+        <div class="space-y-4">
+          <div class="flex items-center justify-center md:justify-start gap-3">
+            <a 
+              href="https://github.com/BlueEquinoxDev/waste-detection-aidl" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="flex items-center gap-2 text-gray-700 hover:text-eco-600 transition-colors duration-300"
+            >
+              <img src="{{ url_for('static', filename='assets/img/github.svg') }}" alt="Github logo" class="w-5 h-5" />
+              <span>Check our github repository</span>
+            </a>
+          </div>
+          
+          <p class="text-gray-600 text-center md:text-left">
+            Developed by: Martí Fabregat, Rafel Febrer, Ferran Miró and Miquel Ortiz
+          </p>
+          
+          <p class="text-gray-600 text-center md:text-left">
+            AIDL Postgraduate Course by UPC School 2025
+          </p>
+        </div>
+      </div>
     </footer>
+    
+    <script>
+      // Simple script to make the file upload area interactive
+      document.addEventListener('DOMContentLoaded', function() {
+        const dropZone = document.querySelector('.drop-zone');
+        const fileInput = document.getElementById('file');
+        
+        if (dropZone && fileInput) {
+          dropZone.addEventListener('click', () => fileInput.click());
+          
+          dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-eco-400');
+          });
+          
+          dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-eco-400');
+          });
+          
+          dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-eco-400');
+            
+            if (e.dataTransfer.files.length) {
+              fileInput.files = e.dataTransfer.files;
+              const fileName = e.dataTransfer.files[0].name;
+              updateFileName(fileName);
+            }
+          });
+          
+          fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) {
+              updateFileName(fileInput.files[0].name);
+            }
+          });
+          
+          function updateFileName(name) {
+            const fileNameElement = dropZone.querySelector('p:first-of-type');
+            if (fileNameElement) {
+              fileNameElement.textContent = name;
+            }
+          }
+        }
+      });
+    </script>
+  </body>
 </html>
