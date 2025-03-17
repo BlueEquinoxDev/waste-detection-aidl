@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Set Variables
+#https://console.cloud.google.com/storage/browser/_details/aidl2025-waste-models/models/202502012134_ViT_Viola_TACO
 BUCKET_PATH="gs://aidl2025-waste-models/models/202502012134_ViT_Viola_TACO"  # Full GCS path to where checkpoints are stored (e.g., gs://your-gcs-bucket-name/models)
 LOCAL_SAVE_PATH="./results/202502012134_ViT_Viola_TACO"  # Where to extract the checkpoint
 

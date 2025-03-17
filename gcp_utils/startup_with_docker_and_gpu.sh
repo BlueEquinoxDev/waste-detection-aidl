@@ -1,5 +1,5 @@
 ##### HOW TO USE #####
-# git clone -b mask2former-ferran https://github.com/BlueEquinoxDev/waste-detection-aidl.git
+# git clone -b vit-delivery-ferran https://github.com/BlueEquinoxDev/waste-detection-aidl.git
 # cd waste-detection-aidl
 # chmod +x gcp_utils/startup_with_docker_and_gpu.sh
 # ./gcp_utils/startup_with_docker_and_gpu.sh
