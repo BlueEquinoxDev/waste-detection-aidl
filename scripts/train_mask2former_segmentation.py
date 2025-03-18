@@ -29,10 +29,10 @@ args = parser.parse_args()
 h_params ={
     "batch_size": args.batch_size,
     "num_workers": 0,
-    "num_epochs": 60,
+    "num_epochs": 20,
     "learning_rate": 1e-4,
     "weight_decay": 1e-2,
-    "model_name":  "facebook/mask2former-swin-small-coco-instance", #"facebook/mask2former-swin-tiny-ade-semantic", #
+    "model_name":  "facebook/mask2former-swin-tiny-ade-semantic",
     "dataset_name": args.dataset_type,
     "backbone_freeze": True,
     "augmentation": True,
@@ -493,35 +493,3 @@ print(train_loss)
 
 print("Final validation loss:\n")
 print(validation_loss)
-
-### START EVALUATION
-# print("STARING EVALUATION")
-# test_taco_dataset=TacoDatasetMask2Former(annotations_file="data/test_annotations.json",
-#                                     img_dir="data/images",
-#                                     processor=processor,
-#                                     transforms=data_transforms_validation)
-# idx2class = test_taco_dataset.idx2class
-# num_classes = len(idx2class)
-
-# test_loader=DataLoader(test_taco_dataset,
-#                        shuffle=False,
-#                        batch_size=h_params["batch_size"], 
-#                        num_workers=h_params["num_workers"],
-#                        collate_fn=collate_fn)
-
-# model.eval()
-# metrics_dict = {}
-# with torch.no_grad():
-#     for idx, batch in enumerate(tqdm(test_loader)):
-#         try:
-#             outputs = model(
-#                 pixel_values=batch["pixel_values"].to(device),
-#                 mask_labels=[labels.to(device) for labels in batch["mask_labels"]],
-#                 class_labels=[labels.to(device) for labels in batch["class_labels"]]
-#             )
-#         except RuntimeError as e:
-#             print(f"Error in batch {idx}: {e}")
-#             continue
-
-# print("Final test accuracy:\n")
-# print(f"Metrics: {metrics}")
