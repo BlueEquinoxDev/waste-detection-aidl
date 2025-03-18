@@ -40,7 +40,7 @@ np.random.seed(sed)
 # (False reduce performance but use the same algorithm always)
 torch.backends.cudnn.benchmark = True
 
-device = torch.device("cuda") if torch.cuda.is_available() else torch.device("mps") if torch.backends.mps.is_available() else torch.device("cpu")
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
 logdir = os.path.join("logs", f"segmentation-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
