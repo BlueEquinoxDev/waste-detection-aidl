@@ -205,7 +205,7 @@ Include plots and metrics here:
 
 - **Training Loss & Accuracy:**
   
-  ![image](https://github.com/user-attachments/assets/343e2ff4-2995-4a68-b97c-908be6126b8e)
+  ![image](https://github.com/user-attachments/assets/0bbe2b7c-4c46-4be1-85ad-93a82dcdc1b1)
 
 - **Confusion Matrix (Train & Test):**
   - **Train**:
@@ -214,35 +214,35 @@ Include plots and metrics here:
 
   - **Test**:
     
-    ![image](https://github.com/user-attachments/assets/9d5a8e1e-bffe-41a5-9454-438db90aa6f7)
+    ![image](https://github.com/user-attachments/assets/244fb114-6ff9-4502-880e-d81d6efbf2e7)
 
 - **Evaluation Histogram**:
   
-  ![image](https://github.com/user-attachments/assets/2e889327-4b91-4f3f-a6ef-ce6375c5285e)
+  ![image](https://github.com/user-attachments/assets/69b14c3a-c7a2-4080-a6b6-0980450a9c82)
     
 - **Classification Report:**
 ```
                    precision    recall  f1-score   support
 
-        aluminium       1.00      0.96      0.98        25
-        batteries       0.92      1.00      0.96        24
-        cardboard       0.97      1.00      0.98        28
-  
-disposable plates       0.96      1.00      0.98        26
-            glass       1.00      0.97      0.98        29
-     hard plastic       0.90      0.93      0.91        28
-            paper       0.95      0.95      0.95        22
-      paper towel       1.00      1.00      1.00        40
-      polystyrene       1.00      0.94      0.97        36
-    soft plastics       0.92      0.89      0.91        27
-    takeaway cups       1.00      1.00      1.00        26
+        aluminium       0.57      0.88      0.70        26
+        batteries       0.91      0.88      0.89        24
+        cardboard       0.74      0.93      0.82        15
+disposable plates       0.88      0.92      0.90        24
+            glass       0.85      0.63      0.72        35
+     hard plastic       0.48      0.52      0.50        25
+            paper       0.79      0.68      0.73        34
+      paper towel       0.84      1.00      0.91        31
+      polystyrene       0.80      0.71      0.75        34
+    soft plastics       0.68      0.52      0.59        33
+    takeaway cups       0.90      0.90      0.90        30
 
-         accuracy                           0.97       311
-        macro avg       0.97      0.97      0.97       311
-     weighted avg       0.97      0.97      0.97       311
+         accuracy                           0.76       311
+        macro avg       0.77      0.78      0.76       311
+     weighted avg       0.77      0.76      0.76       311
+
 ```
      
-- **Overall Accuracy: 0.9678**
+- **Overall Accuracy: 0.7621**
 
 
 ### Image Classification with ViT
