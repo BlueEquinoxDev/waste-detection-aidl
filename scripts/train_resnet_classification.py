@@ -49,9 +49,10 @@ val_test_transform = transforms.Compose([
 dataset = load_dataset("viola77data/recycling-dataset", split="train")
 print(dataset)
 
+SEED = 42
 # Split dataset into training, validation, and test sets
-train_test = dataset.train_test_split(test_size=0.2)
-val_test = train_test["test"].train_test_split(test_size=0.5)
+train_test = dataset.train_test_split(test_size=0.2, seed=SEED)
+val_test = train_test["test"].train_test_split(test_size=0.5, seed=SEED)
 
 train_dataset = train_test["train"]
 val_dataset = val_test["train"]
@@ -92,10 +93,11 @@ print(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=2.0667521318354856e-05)
 criterion = torch.nn.CrossEntropyLoss()
 
-# Create compute_metrics function with label names
-metrics_function = create_compute_metrics(label_names)
-
 logdir = os.path.join("logs", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+
+# Create compute_metrics function with label names
+metrics_function = create_compute_metrics(label_names, logdir)
+
 
 # Initialize Tensorboard Writer with the previous folder 'logdir'
 writer=SummaryWriter(log_dir=logdir)
