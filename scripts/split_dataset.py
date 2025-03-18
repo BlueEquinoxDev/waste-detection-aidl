@@ -30,7 +30,7 @@ def make_taco_annotations_28_categories():
     #categories
     categories_names=sorted(set([c['supercategory'] for c in coco_data['categories']]))
     taco28_annotation['categories']=[{'supercategory': o,'id':i+1,'name':o}  for i, o in enumerate(categories_names)]
-    # taco28_annotation['categories'].insert(0,{'supercategory': 'Background','id':0,'name':'Background'})
+    taco28_annotation['categories'].insert(0,{'supercategory': 'Background','id':0,'name':'Background'})
     
     #annotations
     map=[{'id':o['id'],'category':o['supercategory']} for o in coco_data['categories']]
@@ -81,7 +81,7 @@ def make_taco_annotations_5_categories():
     idx_to_keep = set(sum(items_to_keep, []))
     print(idx_to_keep)
     taco5_annotation['categories']=[{'supercategory': cat, 'id':i+1,'name':cat} for i, cat in idx_to_cluster_class.items()]
-    #taco5_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
+    taco5_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
     
     #annotations
     taco5_annotation['annotations'] = [a for a in coco_data['annotations'] if a['category_id'] in idx_to_keep]
@@ -106,7 +106,7 @@ def make_taco_annotations_1_categories():
     }
     
     taco1_annotation['categories']=[{'supercategory': "Waste", 'id':1, 'name': "Waste"}]
-    # taco1_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
+    taco1_annotation['categories'].append({'supercategory': 'Background', 'id':0, 'name':'Background'})
         
     #annotations
     taco1_annotation['annotations'] = [a for a in coco_data['annotations']]

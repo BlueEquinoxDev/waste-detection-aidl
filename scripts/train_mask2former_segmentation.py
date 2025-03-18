@@ -446,7 +446,7 @@ def compute_metrics(batch, model_predictions):
             predictions_masks_reshaped_all_labels.append(predictions_masks_reshaped)
         predictions = torch.stack(predictions_masks_reshaped_all_labels).unsqueeze(0)
         #print(f"Pred_shape: {predictions.shape}")
-        metric_val.update(preds=predictions.type(torch.long), target=targets.type(torch.long))
+        metric_val.update(preds=predictions.type(torch.long).cpu(), target=targets.type(torch.long).cpu())
 
 
 ### START TRAINING

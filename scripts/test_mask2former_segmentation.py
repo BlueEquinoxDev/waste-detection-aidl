@@ -189,7 +189,7 @@ def test_one_epoch():
         #print(f"Pred_shape: {predictions.shape}")
         
         
-        """for i in range(0, targets.shape[1]):
+        for i in range(0, targets.shape[1]):
             mask_t = targets.squeeze(0)[i]
             mask_p = predictions.squeeze(0)[i]
             mask_img_t = Image.fromarray(mask_t.numpy() *100)
@@ -203,14 +203,14 @@ def test_one_epoch():
             plt.imshow(mask_img_p)  
             plt.axis('off')  # Hide the axis labels
             plt.title(f"prediction - {i}")    
-            plt.savefig(f"testing/{batch_idx}_{i}")"""
+            plt.savefig(f"testing/{batch_idx}_{i}")
         
         
         #batch["original_images"][0].show()
         #print(metric(preds=predictions.type(torch.long), target=targets.type(torch.long)))
         
 
-        metric.update(preds=predictions.type(torch.long), target=targets.type(torch.long))
+        metric.update(preds=predictions.type(torch.long).cpu(), target=targets.type(torch.long).cpu())
         #display_sample_results(batch, outputs, processor, sample_index=0, mask_threshold=0.35, checkpoint_path=h_params["checkpoint_path"])
         
 
