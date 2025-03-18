@@ -108,10 +108,13 @@ A combination of Taco and Viola77 Datasets have been created to increase the num
 
 ### Exploratory data analysis
 
+#### TACO Dataset
+
 Explore the notebook ``demo.ipynb``, modified version of the original notebook from the [TACO Repository](https://github.com/pedropro/TACO) that inspects the dataset.
 The dataset is in COCO format. It contains the source pictures, anotations and labels. For more details related with the datasource please refer to [TACO Repository](https://github.com/pedropro/TACO).
 
-To do: Notebook for Viola --> Martí
+#### Viola77 Dataset
+Explore the notebook ``eda_viola.ipynb``. This Notebook contains and exploratory data analysis for the viola dataset and its classes, labels and distribution. For mor details related with the dataset please take a look into: https://huggingface.co/datasets/viola77data/recycling-dataset.
 
 ## Training
 
