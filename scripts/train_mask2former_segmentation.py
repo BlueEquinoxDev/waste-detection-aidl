@@ -32,7 +32,7 @@ h_params ={
     "num_epochs": 60,
     "learning_rate": 1e-4,
     "weight_decay": 1e-2,
-    "model_name":  "facebook/mask2former-swin-tiny-ade-semantic", #"facebook/mask2former-swin-small-coco-instance",
+    "model_name":  "facebook/mask2former-swin-small-coco-instance", #"facebook/mask2former-swin-tiny-ade-semantic", #
     "dataset_name": args.dataset_type,
     "backbone_freeze": True,
     "augmentation": True,
@@ -310,6 +310,8 @@ def train_one_epoch():
     return losses_avg
 
 #metric_val = evaluate.load("mean_iou")
+idx2class[0] = "Background"
+idx2class=dict(sorted(idx2class.items()))
 metric_val = MeanIoU(num_classes=len(idx2class), per_class=True, include_background=True)
 
 def validation_one_epoch():
@@ -375,77 +377,76 @@ def validation_one_epoch():
         #metric_val.add_batch(references=batch['original_masks'], predictions=resized_pred_maps)
 
     losses_avg = losses_avg / total_samples
-    metrics_result = metric_val.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
+    #metrics_result = metric_val.compute(num_labels=len(idx2class), ignore_index=255, reduce_labels=True)
+    metrics_result = metric_val.compute()
     # iou = 0
     return losses_avg, metrics_result
 
-def compute_metrics(batch, pred_maps):
-    # Since batch size is 1, we can directly access the first (and only) item
-    pixel_values = batch["pixel_values"].to(device)  # Shape: [1, C, H, W]
-    #print(f"pixel_values.shape: {pixel_values.shape}")
-    image_id = batch["image_id"]  # Get the single image ID
-    #print(f"Processing image ID: {image_id}")
+def compute_metrics(batch, model_predictions):
+    #print(model_predictions)
+    for i, (target_masks, pred_maps) in enumerate(zip(batch["mask_labels"], model_predictions)):
         
-    target_masks = torch.stack(batch["mask_labels"])
-    target_masks_reshaped_all_labels = []
-    #print(batch["class_labels"])
-    #print(idx2class)
-    #print(np.unique(batch["class_labels"]))
-    for label in idx2class.keys():#np.unique(batch["class_labels"]):                              
-        #print(f"label: {label}")
-        target_masks_reshaped = torch.zeros(target_masks.shape[-2:])
+        target_masks_reshaped_all_labels = []
+        #print(batch["class_labels"])
+        #print(idx2class)
+        #print(np.unique(batch["class_labels"]))
+        for label in idx2class.keys():#np.unique(batch["class_labels"]):                              
+            #print(f"label: {label}")
+            target_masks_reshaped = torch.zeros(target_masks.shape[-2:])
 
-        #print("filter")
-        label_filter = [batch["class_labels"][0] == label][0]
-        #print(f"label_filter: {label_filter}")
-        filtered_masks = target_masks.squeeze(dim=0)[label_filter]
-        #print(filtered_masks)
-        target_masks_reshaped = filtered_masks.sum(dim=0)
-        #print(target_masks_reshaped)
-                    
-        #rint(target_masks_reshaped.shape)
-        #print(np.unique(target_masks_reshaped))
-        target_masks_reshaped_all_labels.append(target_masks_reshaped)
-    targets = torch.stack(target_masks_reshaped_all_labels).unsqueeze(0)
-    #print(f"Target_shape: {targets.shape}")
-        
-    segments_info = [pred["segments_info"] for pred in pred_maps]
-    #print(f"segments_info: {segments_info}")
-        
-    predicted_labels = torch.tensor([p['label_id'] for p in segments_info[0]])
-    #print(f"predicted_labels: {predicted_labels}")
-
-    predictions = torch.stack([pred["segmentation"] for pred in pred_maps])
-    #print(f"predictions shape: {predictions.shape}")
-
-    predictions_masks_reshaped_all_labels = []
-
-    for label in idx2class.keys():#np.unique(batch["class_labels"]):
-            
-        #print(f"label: {label}")
-        predictions_masks_reshaped = torch.zeros(targets.shape[-2:])
-
-        #print("filter")
-        label_filter = predicted_labels == label
-        #print(f"label_filter: {label_filter}")
-                
-        #print(f"predictions shape: {predictions.shape}")
-        #print(f"predictions shape: {predictions.squeeze(dim=0).shape}")
-        if len(label_filter) == 0:
-            filtered_masks = torch.zeros(targets.shape[-2:]).unsqueeze(0)
-        else:
-            filtered_masks = predictions.squeeze(dim=0)[label_filter]
-        #print(filtered_masks)
-        predictions_masks_reshaped = filtered_masks.sum(dim=0)
-        predictions_masks_reshaped[predictions_masks_reshaped > 1] = 1
-
-        #print(target_masks_reshaped)
+            #print("filter")
+            label_filter = [batch["class_labels"][i] == label][0]
+            #print(f"label_filter: {label_filter}")
+            #print(f"target_masks.shape: {target_masks.shape}")
+            filtered_masks = target_masks.squeeze(dim=0)[label_filter]
+            #print(filtered_masks)
+            target_masks_reshaped = filtered_masks.sum(dim=0)
+            #print(target_masks_reshaped)
                         
-        #print(np.unique(predictions_masks_reshaped))
-        predictions_masks_reshaped_all_labels.append(predictions_masks_reshaped)
-    predictions = torch.stack(predictions_masks_reshaped_all_labels).unsqueeze(0)
-    #print(f"Pred_shape: {predictions.shape}")
-    metric_val.update(preds=predictions.type(torch.long), target=targets.type(torch.long))
+            #rint(target_masks_reshaped.shape)
+            #print(np.unique(target_masks_reshaped))
+            target_masks_reshaped_all_labels.append(target_masks_reshaped)
+        targets = torch.stack(target_masks_reshaped_all_labels).unsqueeze(0)
+        #print(f"Target_shape: {targets.shape}")
+        
+        print(pred_maps)
+        segments_info = pred_maps["segments_info"]
+        print(f"segments_info: {segments_info}")
+            
+        predicted_labels = torch.tensor([p['label_id'] for p in segments_info])
+        print(f"predicted_labels: {predicted_labels}")
+
+        predictions = pred_maps["segmentation"]
+        print(f"predictions shape: {predictions.shape}")
+
+        predictions_masks_reshaped_all_labels = []
+
+        for label in idx2class.keys():#np.unique(batch["class_labels"]):
+                
+            print(f"label: {label}")
+            predictions_masks_reshaped = torch.zeros(targets.shape[-2:])
+
+            print("filter")
+            label_filter = predicted_labels == label
+            print(f"label_filter: {label_filter}")
+                    
+            print(f"predictions shape: {predictions.shape}")
+            print(f"predictions shape: {predictions.shape}")
+            if len(label_filter) == 0:
+                filtered_masks = torch.zeros(targets.shape[-2:]).unsqueeze(0)
+            else:
+                filtered_masks = predictions[label_filter]
+            #print(filtered_masks)
+            predictions_masks_reshaped = filtered_masks.sum(dim=0)
+            predictions_masks_reshaped[predictions_masks_reshaped > 1] = 1
+
+            #print(target_masks_reshaped)
+                            
+            #print(np.unique(predictions_masks_reshaped))
+            predictions_masks_reshaped_all_labels.append(predictions_masks_reshaped)
+        predictions = torch.stack(predictions_masks_reshaped_all_labels).unsqueeze(0)
+        #print(f"Pred_shape: {predictions.shape}")
+        metric_val.update(preds=predictions.type(torch.long), target=targets.type(torch.long))
 
 
 ### START TRAINING
@@ -468,11 +469,11 @@ for epoch in range(1,h_params["num_epochs"]+1):
     writer.add_scalar('Segmentation/val_loss', losses_avg_validation, epoch)
     writer.add_scalar('Segmentation/learning_rate', optimizer.param_groups[0]['lr'], epoch)
 
-    for key, value in metrics_val.items():
+    for i, value in enumerate(metrics_val):
         if isinstance(value, np.ndarray):
-            writer.add_scalars(f'Segmentation/val_{key}', {str(i):v for i, v in enumerate(value)}, epoch)
+            writer.add_scalars(f'Segmentation/mIoU_{i}', {str(i):v for i, v in enumerate(value)}, epoch)
         else:
-            writer.add_scalar(f'Segmentation/val_{key}', value, epoch)
+            writer.add_scalar(f'Segmentation/mIoU_{i}', value, epoch)
     
     # Save best model:
     if h_params["backup_best_model"]:
