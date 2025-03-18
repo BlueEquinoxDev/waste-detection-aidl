@@ -96,6 +96,7 @@ As can be seen taco is a unbalanced dataset for waste image segmentation:
 The [Viola77](https://huggingface.co/datasets/viola77data/recycling-dataset) dataset is used as well for classification. Under Apache 2.0 License.
 
 Viola is a close to perfectly balanced dataset:
+
 ![Viola_dataset](readme_images/viola77.png)
 
 #### Combination of Datasets
