@@ -4,8 +4,6 @@ This repository contains the code developed by Martí Fabregat, Rafel Febrer, Fe
 
 Several models for instance segmentation and image classification have been trained and evaluated to segment and classify waste.
 
-To do Project goal --> Marti
-
 ## Table of Contents
 - [Getting started](#getting-started)
   - [Requirements](#requirements)
