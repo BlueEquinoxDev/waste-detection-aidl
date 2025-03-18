@@ -60,7 +60,7 @@ def generate_evaluation_summary(accuracy, accuracy_per_class, f1, f1_per_class, 
     table.scale(1, 2)  # Adjust the row height
     
     # Plot the confusion matrix as a heatmap on ax_cm with class names
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", 
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Greens", 
                 xticklabels=label_names, yticklabels=label_names, ax=ax_cm)
     ax_cm.set_xlabel("Predicted")
     ax_cm.set_ylabel("Actual")

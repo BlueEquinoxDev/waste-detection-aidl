@@ -46,7 +46,7 @@ else:
     print(f"Sample label type: {type(sample['labels'])}")
 
 def load_model():
-    model_path = "./model/best_resnet50.pth"
+    model_path = "./results/cls-resnet-viola-final/best_resnet50.pth"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initialize ResNet-50
@@ -111,8 +111,8 @@ def evaluate_model():
 
     # Save Confusion Matrix
     cm = confusion_matrix(true_labels, pred_labels)
-    plt.figure(figsize=(12, 8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=test_dataset.classes, yticklabels=test_dataset.classes)
+    plt.figure(figsize=(15, 10))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Greens', xticklabels=test_dataset.classes, yticklabels=test_dataset.classes)
     plt.xlabel("Predicted")
     plt.ylabel("True")
     plt.title("Confusion Matrix")
