@@ -18,7 +18,6 @@ To do Project goal --> Marti
     - [Split dataset](#split-dataset)
     - [Dataset classes](#dataset-classes)
       - [ResNet-50 for Viola77](#resnet-50-for-viola77)
-      - [ResNet-50 for Taco](#resnet-50-for-taco)
     - [Train](#train)
     - [Evaluate](#evaluate)
     - [Results](#results)
@@ -116,7 +115,7 @@ To do: Notebook for Viola --> Martí
 
 ## Training
 
-### Image Classification with ResNet-50 --> to do Marti
+### Image Classification with ResNet-50
 #### Split dataset
 To split the annotations for training and evaluation on **ResNet-50** use ``split_dataset.py`` according to this explanation. It has several optional flags.
 ```
@@ -160,17 +159,14 @@ pip install torch torchvision transformers optuna numpy pandas matplotlib seabor
 - **Outputs:**
   - Saves the best hyperparameters in `hparams.json`.
 
-##### 3. `train_resnet_classification.py`
+##### 3. `train_resnet_classification_opt.py`
 - **Description:** Trains a ResNet-50 model on the Viola77 dataset.
 - **Inputs:**
   - Dataset from Hugging Face (`viola77data/recycling-dataset`)
-  - If `enhanced_hparams=True`, loads hyperparameters from `hparams.json`
+  - If `enhanced_hparams=True`, executes `optuna_resnet_hparams.py` first to determine the best hyperparameters before training.
 - **Outputs:**
   - Saves the trained model as `best_resnet50.pth`
   - Generates training metrics and confusion matrices
-
-##### 3.1. Modification:
-Added `enhanced_hparams` flag. If `True`, executes `optuna_resnet_hparams.py` first to determine the best hyperparameters before training.
 
 ##### 4. `test_resnet_classification.py`
 - **Description:** Evaluates the trained ResNet-50 model on the test dataset.
@@ -185,12 +181,18 @@ Added `enhanced_hparams` flag. If `True`, executes `optuna_resnet_hparams.py` fi
 1. **Train the Model**
 - Without optimized hyperparameters:
 ```bash
-python -m scripts.train_resnet_classification
+python -m scripts.train_resnet_classification_opt
 ```
-- With optimized hyperparameters:
-```bash
-python -m scripts.train_resnet_classification.py --enhanced_hparams True
-```
+
+##### Optional:
+* Use ``--enhanced_hparams`` if you want to enhance the hparameters with the optuna library. This option will exectute the script: optuna_resnet_hparams.py
+  ```bash
+  if args.enhanced_hparams:
+    os.system("python -m utilities.optuna_resnet_hparams")
+  ```
+* Use ``--lr`` if you want to use a different learning rate than default 0.00002.
+* Use ``--dropout`` if you want to use a dropout percentage different than default 0.2674 (26,74%).
+* Use ``--epochs`` if you want to use different epochs value than the default 15. 
 
 2. **Test the Model**
 ```bash
@@ -202,16 +204,20 @@ python -m scripts.test_resnet_classification.py
 Include plots and metrics here:
 
 - **Training Loss & Accuracy:**
+  
   ![image](https://github.com/user-attachments/assets/343e2ff4-2995-4a68-b97c-908be6126b8e)
 
 - **Confusion Matrix (Train & Test):**
   - **Train**:
+
     ![image](https://github.com/user-attachments/assets/0b24da25-9438-453d-af6e-f8c1e68b8e06)
 
   - **Test**:
+    
     ![image](https://github.com/user-attachments/assets/9d5a8e1e-bffe-41a5-9454-438db90aa6f7)
 
 - **Evaluation Histogram**:
+  
   ![image](https://github.com/user-attachments/assets/2e889327-4b91-4f3f-a6ef-ce6375c5285e)
     
 - **Classification Report:**
