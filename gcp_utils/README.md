@@ -98,9 +98,7 @@ You have to modify the following variables in the script:
 **Run the script**:
 ```
 chmod +x download_model_checkpoint.sh
-./download_model_checkpoint.sh
+./download_model_checkpoint.sh [model]
 ```
-You have to modify the following variables in the script:
-
-- `BUCKET_PATH`: Full GCS path to where checkpoints are stored
-- `LOCAL_SAVE_PATH`: Where to extract the checkpoint
+Where [model] can be: resnet50, vit, mask2former, or maskrcnn.
+The model will be downloaded to `./results/[model]`

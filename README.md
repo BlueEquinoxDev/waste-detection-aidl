@@ -239,7 +239,7 @@ disposable plates       0.96      1.00      0.98        26
 - **Overall Accuracy: 0.9678**
 
 
-### Image Classification with ViT --> To do Ferran
+### Image Classification with ViT
 #### Split dataset
 To split the annotations for training and evaluation on **ViT** use ``split_dataset.py`` following the same procedure as in **ResNet-50**.
 ```
@@ -253,12 +253,17 @@ The Viola77 dataset for Image classification in ``custom_datasets/viola77_datase
 ##### ViT for Taco + Viola77
 The Viola77 dataset for Image classification in ``custom_datasets/viola77_dataset.py`` has the functionality to load the Viola77 Dataset in for Image Classification.
 #### Train
-Run ``python run_classification_vit.py``
-Run ``python run_classification_vit_viola_taco.py``
+`python -m scripts.train_resnet_classification`
+
 #### Evaluate
+`python -m scripts.test_vit_classification --model_path [model_path] --image_path [image_path]`
+
+- model_path is the path to the model checkpoint (mandatory)
+- image_path is an optional parameter to the path where the image is located. If not set, then an evaluation with the whole dataset is done.
+
 #### Results
 
-### Instance segmentation with Mask R-CNN --> To do Miquel
+### Instance segmentation with Mask R-CNN
 #### Split dataset
 To split the annotations for training and evaluation in **Mask R-CNN** use ``split_dataset.py``.
 
@@ -532,21 +537,21 @@ Unlabeled litter | 0.0
 
 ## MLOps
 
-### Running the application with Docker --> To do Ferran
+### Running the application with Docker
 Build the image with:
 ```docker build -t waste-detection-app .```
 
 Run specific Python file:
 ```docker run --rm waste-detection-app <FILE_NAME.py>```
 
-### Google Cloud --> To do Ferran
+### Google Cloud
 This repository automates the setup of the GCP infrastructure. It contains the following Bash scripts:
 - `./setup_gcp_infrastructure.sh ` for setting up a VM, pull a Git repository and run the `startup_script.sh`.
 - `./delete_gcp_infrastructure.sh ` for deletting the infrastructure.
 - `./upload_model_checkpoint.sh` to upload checkpoint files to a shared Google Cloud Storage.
 - `./download_model_checkpoint.sh` to download checkpoint files from a shared Google Cloud Storage to the local instance.
 
-Further details in [Link]
+Further details on Google Cloud setup and utilities can be found in the [GCP Utils Documentation](gcp_utils/README.md).
 
 ### API
 To evaluate images outside the dataset an API with WebApp has been developed.
@@ -595,7 +600,4 @@ Click on **Predict** to generate the segmentations.
 The output will be different according to the model used in the API. Here an example:
 ![web_pred](readme_images/web_prediction.png)
 To try another picture use the **Try a different image** button.
-
-## Next Steps --> To do Marti
-- Implement the GUI in 
 
