@@ -1,4 +1,3 @@
-#https://pytorch.org/vision/0.19/models/generated/torchvision.models.detection.maskrcnn_resnet50_fpn.html#torchvision.models.detection.maskrcnn_resnet50_fpn
 import torchvision
 from torchvision import tv_tensors
 from torchvision.transforms import v2 as transforms
@@ -41,8 +40,17 @@ class WasteMaskRCNN(nn.Module):
     def __get_model_instance_segmentation__(self,num_classes):
         # load an instance segmentation model pre-trained on COCO
         model = torchvision.models.detection.maskrcnn_resnet50_fpn_v2(weights=torchvision.models.detection.MaskRCNN_ResNet50_FPN_V2_Weights.DEFAULT,
-                                                                      box_detections_per_img=512,
-                                                                      trainable_backbone_layers=3)
+                                                                      box_detections_per_img=256,
+                                                                      trainable_backbone_layers=0)
+        
+        anchor_sizes = ((16,), (32,), (64,), (128,), (256,))
+        aspect_ratios = ((0.5, 1.0, 2.0),) * len(anchor_sizes)
+
+        # Declare the anchor generator of the Region Proposal Network (RPN)
+        model.rpn.anchor_generator =torchvision.models.detection.anchor_utils.AnchorGenerator(
+            anchor_sizes, aspect_ratios
+        )
+        
         # get number of input features for the classifier
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         # replace the pre-trained head with a new one
@@ -56,7 +64,27 @@ class WasteMaskRCNN(nn.Module):
             hidden_layer,
             num_classes+1
         )
-        #for p in model.backbone.parameters():p.requires_grad=False
+        
+        
+
+        
+        for p in model.backbone.parameters():p.requires_grad=False
+        
+        for p in model.backbone.fpn.parameters():p.requires_grad=True
+        
+        for p in model.rpn.parameters():p.requires_grad=True
+        
+        for p in model.roi_heads.parameters():p.requires_grad=False
+        
+        for p in model.roi_heads.box_roi_pool.parameters():p.requires_grad=True
+        for p in model.roi_heads.box_head.parameters():p.requires_grad=True
+        for p in model.roi_heads.box_predictor.parameters():p.requires_grad=True
+        
+        for p in model.roi_heads.mask_roi_pool.parameters():p.requires_grad=True
+        for p in model.roi_heads.mask_head.parameters():p.requires_grad=True
+        for p in model.roi_heads.mask_predictor.parameters():p.requires_grad=True
+        
+        print(model)
         return model
     
     def preprocessing(self, images, transformations=None):
