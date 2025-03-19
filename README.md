@@ -4,41 +4,20 @@ This repository contains the code developed by Martí Fabregat, Rafel Febrer, Fe
 
 Our project aims to use AI to address environmental challenges, specifically waste management, by leveraging accessible tools such as cameras and deep learning. We fine tuned and compared models for both image classification and instance segmentation, evaluated different architectures and deployed the best performing models in the cloud with API access.
 
+![cls_seg](readme_images/cls_seg.png)
+
 ## Table of Contents
 - [Getting started](#getting-started)
   - [Requirements](#requirements)
   - [Datasets](#datasets)
-    - [TACO Dataset](#taco-dataset)
-    - [Viola77](#viola77)
   - [Exploratory data analysis](#exploratory-data-analysis)
-- [Training](#training)
-  - [Image Classification with ResNet-50](#image-classification-with-resnet-50)
-    - [Split dataset](#split-dataset)
-    - [Dataset classes](#dataset-classes)
-      - [ResNet-50 for Viola77](#resnet-50-for-viola77)
-    - [Train](#train)
-    - [Evaluate](#evaluate)
-    - [Results](#results)
-  - [Image Classification with ViT](#image-classification-with-vit)
-    - [Split dataset](#split-dataset-1)
-    - [Dataset classes](#dataset-classes-1)
-      - [ViT for Viola77](#vit-for-viola77)
-      - [ViT for Taco + Viola77](#vit-for-taco--viola77)
-    - [Train](#train-1)
-    - [Evaluate](#evaluate-1)
-    - [Results](#results-1)
-  - [Instance segmentation with Mask R-CNN](#instance-segmentation-with-mask-r-cnn)
-    - [Split dataset](#split-dataset-2)
-    - [Dataset classes](#dataset-classes-2)
-    - [Train](#train-2)
-    - [Evaluate](#evaluate-2)
-    - [Results](#results-2)
-  - [Instance segmentation with Mask2Former](#instance-segmentation-with-mask2former)
-    - [Split dataset](#split-dataset-3)
-    - [Dataset classes](#dataset-classes-3)
-    - [Train](#train-3)
-    - [Evaluate](#evaluate-3)
-    - [Results](#results-3)
+- [Image Classification](#image-classification)
+  - [ResNet-50](#resnet-50)
+  - [ViT](#vit)
+  - [Comparing ResNet50 and ViT Models](#comparing-resnet50-and-vit-models)
+- [Instance segmentation](#instance-segmentation)
+  - [Mask R-CNN](#mask-r-cnn)
+  - [Mask2Former](#mask2former)
 - [MLOps](#mlops)
   - [Running the application with Docker](#running-the-application-with-docker)
   - [Google Cloud](#google-cloud)
@@ -115,9 +94,9 @@ The dataset is in COCO format. It contains the source pictures, anotations and l
 #### Viola77 Dataset
 Explore the notebook ``eda_viola.ipynb``. This Notebook contains and exploratory data analysis for the viola dataset and its classes, labels and distribution. For mor details related with the dataset please take a look into: https://huggingface.co/datasets/viola77data/recycling-dataset.
 
-## Training
+## Image Classification
 
-### Image Classification with ResNet-50
+### ResNet-50
 
 We have trained a Residual Network 50 (ResNet50) model based on ``torchvision.models.resnet50``, which was 
 pretrained on ImageNet-1k:
@@ -253,7 +232,7 @@ disposable plates       0.88      0.92      0.90        24
 - **Overall Accuracy: 0.7621**
 
 
-### Image Classification with ViT
+### ViT
 
 We have trained a Vision Transformer (ViT) model based on ``google/vit-base-patch16-224-in21k``, which was 
 pretrained on ImageNet-21k:
@@ -315,7 +294,8 @@ The comparison between ViT and ResNet for image classification was based on accu
 The higher performance was achieved at a significant cost. ViT has over three times more parameters and required nine times the computational resources and training time. With a relatively small dataset, this highlights a tradeoff: while ResNet is less accurate, it is significantly more efficient in terms of storage, computation, and environmental impact:
 ![resnet_vit_comparison](readme_images/resnet_vit_comparison.png)
 
-### Instance segmentation with Mask R-CNN
+## Instance segmentation
+### Mask R-CNN
 #### Split dataset
 To split the annotations for training and evaluation in **Mask R-CNN** use ``split_dataset.py``.
 
@@ -476,7 +456,9 @@ Avg. False positives rate | 0.83
 Avg. False negatives rate | 0.32
 
 predicted classes:  [1, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 17, 18, 20, 21, 22, 23, 26, 27, 28]
-### Instance segmentation with Mask2Former
+
+
+### Mask2Former
 #### Split dataset
 To split the annotations for training and evaluation on **Mask2Former** use ``split_dataset.py`` following the same procedure as in **Mask R-CNN**.
 

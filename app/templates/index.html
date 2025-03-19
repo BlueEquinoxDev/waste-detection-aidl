@@ -40,7 +40,7 @@
             {% if not image %}
             <form action="/upload_image" method="post" enctype="multipart/form-data" class="text-center">
               <div class="drop-zone mb-4">
-                <img src="{{ url_for('static', filename='assets/img/upload-icon.svg') }}" alt="Upload" class="w-16 h-16 mb-4 opacity-70" />
+                <img src="{{ url_for('static', filename='assets/img/upload_icon.svg') }}" alt="Upload" class="w-16 h-16 mb-4 opacity-70" />
                 <p class="text-gray-600 mb-2">Drag and drop a file or click to browse</p>
                 <p class="text-gray-500 text-sm">Supported formats: JPG, PNG</p>
               </div>

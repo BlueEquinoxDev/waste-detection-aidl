@@ -100,5 +100,5 @@ You have to modify the following variables in the script:
 chmod +x download_model_checkpoint.sh
 ./download_model_checkpoint.sh [model]
 ```
-Where [model] can be: resnet50, vit, mask2former, or maskrcnn.
+Where [model] can be: resnet50, vit, .mask2former_taco1, mask2former_taco5, mask2former_taco28 or maskrcnn_taco1, maskrcnn_taco5, maskrcnn_taco28
 The model will be downloaded to `./results/[model]`

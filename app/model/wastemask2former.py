@@ -115,7 +115,7 @@ class WasteMask2Former(nn.Module):
             result = self.__image_overlay__(images[i], seg_map)
 
 
-            result.show()
+            # result.show()
             
             processed_images.append(result)
         
@@ -182,7 +182,7 @@ class WasteMask2Former(nn.Module):
         image = image
         image = Image.fromarray(image.permute(1, 2, 0).numpy().astype(np.uint8))
         mask = Image.fromarray(segmented_image)
-        image = Image.blend(image, mask, 0.5)
+        image = Image.blend(image, mask, 0.85)
         
         return image
     
