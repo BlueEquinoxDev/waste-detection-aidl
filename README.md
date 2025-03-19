@@ -470,7 +470,7 @@ Training of the Mask2former using the taco1 dataset in the task of instance segm
 - **Outputs:**
 Train of the Mask2former in taco1 for 12 epochs:
 ![taco1_mask2former](readme_images/train_mask2former_taco1.png)
-Best model is found at epoch 20. Despite loss bottomed at epoch 18 valuation metrics (mIoU) kept going down and therefore epoch 20 looks still a bit more promissing. Maybe further learning could be conducted to improve results.
+Best model is found at epoch 20. Despite loss bottomed at epoch 18 valuation metrics (mIoU) kept going up and therefore epoch 20 looks still a bit more promissing. Maybe further learning could be conducted to improve results.
 
 - **Metrics**:
 
@@ -486,17 +486,18 @@ Training of the Mask2former using the taco5 dataset in the task of instance segm
 - **Outputs:**
 Train of the Mask2former in Taco5 for 20 epochs:
 ![taco5_mask2former](readme_images/train_mask2former_taco5.png)
-Best model is found at epoch 20 and metrics are computed.
+In this case, the best model is not that simple to determine. Despite loss bottomed at epoch 13 valuation metrics (mIoU) kept going up for most of the categoies (except class 3 - Cup) and therefore epoch 20 looks more promissing. Maybe further learning could be conducted to improve results.
+
 
 - **Metrics**:
 
 Categories | mIoU
 --- | ---
-Background | 0.9841329455375671
-Bottle | 0.2138008177280426
-Carton | 0.06941558420658112
-Cup | 0.06950430572032928
-Can | 0.13832922279834747
+Background | 0.9847108721733093
+Bottle | 0.05829409137368202
+Carton | 0.07693199068307877
+Cup | 0.12679843604564667
+Can | 0.1528954803943634
 Plastic film | 0.0
 
 ##### Taco28
@@ -506,7 +507,7 @@ Training of the Mask2former using the taco28 dataset in the task of instance seg
 - **Outputs:**
 Train of the Mask2former in Taco28 for 20 epochs:
 ![taco28_mask2former](readme_images/train_mask2former_taco28.png)
-Best model is found at epoch 20. Despite loss bottomed at epoch 17 valuation metrics (mIoU) kept going down and therefore epoch 20 looks still a bit more promissing. Maybe further learning could be conducted to improve results.
+Best model is found at epoch 20. Despite loss bottomed at epoch 17 valuation metrics (mIoU) kept going up and therefore epoch 20 looks still a bit more promissing. Maybe further learning could be conducted to improve results.
 
 - **Metrics**:
 

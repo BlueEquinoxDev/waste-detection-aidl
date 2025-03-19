@@ -178,7 +178,7 @@ def train_one_epoch():
         loss_rpn_box_reg_avg+=loss_dict['loss_rpn_box_reg'].item()
         loss_objectness_avg+=loss_dict['loss_objectness'].item()
         
-        if(batch+1)%10==0: break
+        #if(batch+1)%10==0: break
         
     return {
         "loss":losses_avg/len_dataset, 
@@ -259,7 +259,7 @@ def validation_one_epoch():
             scores_avg+=np.average([s.cpu() for s in  predicts[0]['scores']])
             
         #print(f"predicts: {predicts}")        
-        if(batch_idx+1)%10==0: break    
+        #if(batch_idx+1)%10==0: break    
         
     avg_losses={
         "loss":loss/len_dataset, 
