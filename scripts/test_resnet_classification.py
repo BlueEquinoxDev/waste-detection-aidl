@@ -92,7 +92,7 @@ def evaluate_model():
             probs.extend(probabilities.cpu().numpy())
 
 
-    results_dir = "./metrics/resnet"
+    results_dir = "./metrics/resnet/test"
     os.makedirs(results_dir, exist_ok=True)  # Create directory if it doesn't exist
 
     # Save Overall Accuracy
