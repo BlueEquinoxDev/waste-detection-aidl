@@ -198,7 +198,7 @@ python -m scripts.train_resnet_classification_opt
 
 2. **Test the Model**
 ```bash
-python -m scripts.test_resnet_classification.py
+python -m scripts.test_resnet_classification
 ```
 
 #### Results
