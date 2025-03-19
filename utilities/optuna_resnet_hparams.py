@@ -1,13 +1,27 @@
+import os
+import torch
+import numpy as np
 import optuna
-import optuna.visualization as vis
-import torch.optim as optim
 import json
+import matplotlib.pyplot as plt
+import seaborn as sns
+import torch.optim as optim
+import pandas as pd
+from sklearn.metrics import confusion_matrix, classification_report, roc_auc_score, f1_score
+import torch.nn.functional as F
+import torch.nn as nn
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.tensorboard import SummaryWriter
+from torchvision import models, transforms
+from PIL import Image
+from tqdm import tqdm
+from scripts.train_resnet_classification_opt import label_names, train_loader, val_loader
 
-def save_hparams(hparams, filename="hparams.json"):
+def save_hparams(hparams, filename="./utilities/hparams.json"):
     with open(filename, "w") as f:
         json.dump(hparams, f)
 
-def load_hparams(filename="hparams.json"):
+def load_hparams(filename="./utilities/hparams.json"):
     with open(filename, "r") as f:
         return json.load(f)
 
@@ -15,15 +29,13 @@ def objective(trial):
     hparams = {
         "lr": trial.suggest_loguniform("lr", 1e-5, 1e-2),
         "dropout": trial.suggest_uniform("dropout", 0.2, 0.5),
-        "optimizer": trial.suggest_categorical("optimizer", ["Adam", "SGD", "RMSprop"]),
-        "batch_size": trial.suggest_categorical("batch_size", [16, 32, 64]),
-        "epochs": trial.suggest_int("epochs", 5, 15)
+        "optimizer": trial.suggest_categorical("optimizer", ["Adam", "SGD", "RMSprop"])
     }
     
-    save_hparams(hparams)  # Save hyperparameters
+    save_hparams(hparams) 
 
     model = models.resnet50(pretrained=True)
-    num_classes = len(class_mapping)
+    num_classes = len(label_names)
     model.fc = nn.Sequential(
         nn.Dropout(hparams["dropout"]),
         nn.Linear(model.fc.in_features, num_classes)
@@ -47,21 +59,19 @@ def objective(trial):
 
     for epoch in range(num_epochs):
         model.train()
+        running_loss = 0.0
         running_train_loss = 0.0
         correct_preds, total_preds = 0, 0
 
-        for images, labels in train_loader:
-            images, labels = images.to(device), labels.to(device)
-
+        for batch in tqdm(train_loader):
+            images, labels = batch['pixel_values'].to(device), batch['labels'].to(device).long()
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
             loss.backward()
             optimizer.step()
-
-            running_train_loss += loss.item()
-            _, predicted = torch.max(outputs, 1)
-            correct_preds += (predicted == labels).sum().item()
+            running_loss += loss.item()
+            correct_preds += (outputs.argmax(1) == labels).sum().item()
             total_preds += labels.size(0)
 
         train_loss = running_train_loss / len(train_loader)
@@ -69,18 +79,14 @@ def objective(trial):
         train_losses.append(train_loss)
 
         model.eval()
-        running_val_loss = 0.0
-        correct_preds, total_preds = 0, 0
+        val_loss, correct_preds, total_preds, running_val_loss = 0.0, 0.0, 0.0, 0.0
 
         with torch.no_grad():
-            for images, labels in val_loader:
-                images, labels = images.to(device), labels.to(device).long()
+            for batch in val_loader:
+                images, labels = batch['pixel_values'].to(device), batch['labels'].to(device).long()
                 outputs = model(images)
-                loss = criterion(outputs, labels)
-
-                running_val_loss += loss.item()
-                _, predicted = torch.max(outputs, 1)
-                correct_preds += (predicted == labels).sum().item()
+                val_loss += criterion(outputs, labels).item()
+                correct_preds += (outputs.argmax(1) == labels).sum().item()
                 total_preds += labels.size(0)
 
         val_loss = running_val_loss / len(val_loader)

@@ -25,18 +25,21 @@ from sklearn.metrics import confusion_matrix, classification_report, roc_auc_sco
 
 EXPERIMENT_NAME = "cls-resnet-viola"
 
+# Set the seed 
+SEED = 42
+
 # Define data transforms
 train_transform = transforms.Compose([
-    transforms.RandomChoice([  # Randomly apply ONE transformation
-        transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),  # Random crop & resize
-        transforms.RandomHorizontalFlip(p=0.5),  # Always flip horizontally (when chosen)
-        transforms.RandomRotation(degrees=15),  # Rotate randomly
-        transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),  # Color changes
-        transforms.GaussianBlur(kernel_size=3),  # Blurring effect
+    transforms.RandomChoice([
+        transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomRotation(degrees=15),
+        transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),
+        transforms.GaussianBlur(kernel_size=3),
     ]),
-    transforms.Resize((224, 224)),  # Resize to match model input
-    transforms.ToTensor(),  # Convert to tensor
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
 val_test_transform = transforms.Compose([
@@ -47,20 +50,12 @@ val_test_transform = transforms.Compose([
 
 # Load the dataset
 dataset = load_dataset("viola77data/recycling-dataset", split="train")
-print(dataset)
+train_test = dataset.train_test_split(test_size=0.2, seed= SEED)
+val_test = train_test["test"].train_test_split(test_size=0.5, seed = SEED)
 
-# Split dataset into training, validation, and test sets
-train_test = dataset.train_test_split(test_size=0.2)
-val_test = train_test["test"].train_test_split(test_size=0.5)
-
-train_dataset = train_test["train"]
-val_dataset = val_test["train"]
-test_dataset = val_test["test"]
-
-# Create datasets with transforms
-train_dataset = Viola77DatasetResNet(train_dataset, transform=train_transform)
-val_dataset = Viola77DatasetResNet(val_dataset, transform=val_test_transform)
-test_dataset = Viola77DatasetResNet(test_dataset, transform=val_test_transform)
+train_dataset = Viola77DatasetResNet(train_test["train"], transform=train_transform)
+val_dataset = Viola77DatasetResNet(val_test["train"], transform=val_test_transform)
+test_dataset = Viola77DatasetResNet(val_test["test"], transform=val_test_transform)
 
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
@@ -93,7 +88,8 @@ optimizer = torch.optim.Adam(model.parameters(), lr=2.0667521318354856e-05)
 criterion = torch.nn.CrossEntropyLoss()
 
 # Create compute_metrics function with label names
-metrics_function = create_compute_metrics(label_names)
+logdir = os.path.join("logs", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+metrics_function = create_compute_metrics(label_names,logdir=logdir)
 
 logdir = os.path.join("logs", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
 
