@@ -236,7 +236,10 @@ else:
 #     param.requires_grad = False
 
 # Print the number of parameters for each model component
-#print(f"Number of parameters in the model: {sum(p.numel() for p in model.parameters())}")
+print(f"Number of parameters in the model: {sum(p.numel() for p in model.parameters())}")
+num_params = sum([p.numel() for p in model.parameters() if p.requires_grad])
+print(f"params to optimize: {num_params}")
+exit(0)
 #print(f"Number of parameters in the pixel_level_module: {sum(p.numel() for p in model.model.pixel_level_module.parameters())}")
 #print(f"Number of parameters in the pixel_level_module.encoder: {sum(p.numel() for p in model.model.pixel_level_module.encoder.parameters())}")
 #print(f"Number of parameters in the pixel_level_module.encoder.model: {sum(p.numel() for p in model.model.pixel_level_module.encoder.model.parameters())}") # + hidden_states_norms

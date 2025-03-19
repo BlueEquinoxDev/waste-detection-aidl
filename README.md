@@ -76,14 +76,6 @@ Viola is a close to perfectly balanced dataset:
 
 ![Viola_dataset](readme_images/viola77.png)
 
-#### Combination of Datasets
-
-A combination of Taco and Viola77 Datasets have been created to increase the number of images for image classification tasks to test models under different situations.
-
-* **taco39viola11** - Contains a Taco Dataset subsection of annotations that match the Viola categories plus the Viola Dataset, so it is the Dataset with the biggest number of images for classification.
-
-![taco_and_viola](readme_images/taco39viola11.png)
-
 ### Exploratory data analysis
 
 #### TACO Dataset
@@ -295,6 +287,15 @@ The higher performance was achieved at a significant cost. ViT has over three ti
 ![resnet_vit_comparison](readme_images/resnet_vit_comparison.png)
 
 ## Instance segmentation
+
+### Training
+Both models have a very similar number of parameters and have similar backbone freeze parameters. Thus, they have similar sizes.
+
+However, Mask2Former is faster at training and has a lower computational and environmental footprint.
+
+![seg_training](readme_images/seg_training.png)
+
+
 ### Mask R-CNN
 #### Split dataset
 To split the annotations for training and evaluation in **Mask R-CNN** use ``split_dataset.py``.
