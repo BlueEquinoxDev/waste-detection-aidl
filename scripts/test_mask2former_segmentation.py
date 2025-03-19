@@ -189,7 +189,7 @@ def test_one_epoch():
         #print(f"Pred_shape: {predictions.shape}")
         
         
-        for i in range(0, targets.shape[1]):
+        """for i in range(0, targets.shape[1]):
             mask_t = targets.squeeze(0)[i]
             mask_p = predictions.squeeze(0)[i]
             mask_img_t = Image.fromarray(mask_t.numpy() *100)
@@ -203,7 +203,7 @@ def test_one_epoch():
             plt.imshow(mask_img_p)  
             plt.axis('off')  # Hide the axis labels
             plt.title(f"prediction - {i}")    
-            plt.savefig(f"testing/{batch_idx}_{i}")
+            plt.savefig(f"testing/{batch_idx}_{i}")"""
         
         
         #batch["original_images"][0].show()
