@@ -1,8 +1,8 @@
 # Waste Segmentation and detection AIDL project
 
-This repository contains the code developed by Martí Fabregat, Rafel Febrer, Ferran Miró-Gea and Miguel Ortiz in the scope of AIDL postgraduate course in UPC (Universitat Politècnica de Catalunya). With supervision of Amanda Duarte.
+This repository contains the code developed by Martí Fabregat, Rafel Febrer, Ferran Miró-Gea and Miguel Ortiz as part of the AI with Deep Learning postgraduate course w24/25 at the UPC (Universitat Politècnica de Catalunya). Supervised by Amanda Duarte.
 
-Several models for instance segmentation and image classification have been trained and evaluated to segment and classify waste.
+Our project aims to use AI to address environmental challenges, specifically waste management, by leveraging accessible tools such as cameras and deep learning. We fine tuned and compared models for both image classification and instance segmentation, evaluated different architectures and deployed the best performing models in the cloud with API access.
 
 ## Table of Contents
 - [Getting started](#getting-started)
@@ -109,7 +109,7 @@ A combination of Taco and Viola77 Datasets have been created to increase the num
 
 #### TACO Dataset
 
-Explore the notebook ``demo.ipynb``, modified version of the original notebook from the [TACO Repository](https://github.com/pedropro/TACO) that inspects the dataset.
+Explore the notebook ``eda_taco.ipynb``, modified version of the original notebook from the [TACO Repository](https://github.com/pedropro/TACO) that inspects the dataset.
 The dataset is in COCO format. It contains the source pictures, anotations and labels. For more details related with the datasource please refer to [TACO Repository](https://github.com/pedropro/TACO).
 
 #### Viola77 Dataset
@@ -118,6 +118,12 @@ Explore the notebook ``eda_viola.ipynb``. This Notebook contains and exploratory
 ## Training
 
 ### Image Classification with ResNet-50
+
+We have trained a Residual Network 50 (ResNet50) model based on ``torchvision.models.resnet50``, which was 
+pretrained on ImageNet-1k:
+![resnet50_diagram](readme_images/resnet50_diagram.png)
+
+
 #### Split dataset
 To split the annotations for training and evaluation on **ResNet-50** use ``split_dataset.py`` according to this explanation. It has several optional flags.
 ```
@@ -248,6 +254,11 @@ disposable plates       0.88      0.92      0.90        24
 
 
 ### Image Classification with ViT
+
+We have trained a Vision Transformer (ViT) model based on ``google/vit-base-patch16-224-in21k``, which was 
+pretrained on ImageNet-21k:
+![vit_diagram](readme_images/vit_diagram.png)
+
 #### Split dataset
 To split the annotations for training and evaluation on **ViT** use ``split_dataset.py`` following the same procedure as in **ResNet-50**.
 ```
@@ -256,7 +267,7 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=classification
 
 #### Dataset classes
 ##### ViT for Viola77
-The Viola77 dataset for Image classification in ``custom_datasets/viola77_dataset.py`` has the functionality to load the Viola77 Dataset in for Image Classification.
+The Viola77Dataset class in ``custom_datasets/viola77_dataset.py`` provides functionality to load the Viola77 dataset for image classification.
 
 ##### ViT for Taco + Viola77
 The Viola77 dataset for Image classification in ``custom_datasets/viola77_dataset.py`` has the functionality to load the Viola77 Dataset in for Image Classification.
