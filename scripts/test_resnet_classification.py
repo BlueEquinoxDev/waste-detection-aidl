@@ -46,7 +46,7 @@ else:
     print(f"Sample label type: {type(sample['labels'])}")
 
 def load_model():
-    model_path = "./results/cls-resnet-viola-final/best_resnet50.pth"
+    model_path = "./model/best_resnet50.pth"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initialize ResNet-50

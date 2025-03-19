@@ -1,0 +1,17 @@
+                   precision    recall  f1-score   support
+
+        aluminium       0.65      0.85      0.73        26
+        batteries       0.96      0.92      0.94        24
+        cardboard       0.88      0.93      0.90        15
+disposable plates       0.91      0.83      0.87        24
+            glass       0.91      0.60      0.72        35
+     hard plastic       0.54      0.56      0.55        25
+            paper       0.85      0.85      0.85        34
+      paper towel       0.91      0.97      0.94        31
+      polystyrene       0.79      0.76      0.78        34
+    soft plastics       0.63      0.67      0.65        33
+    takeaway cups       0.84      0.90      0.87        30
+
+         accuracy                           0.79       311
+        macro avg       0.81      0.80      0.80       311
+     weighted avg       0.80      0.79      0.79       311
