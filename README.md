@@ -470,6 +470,7 @@ Training of the Mask2former using the taco1 dataset in the task of instance segm
 - **Outputs:**
 Train of the Mask2former in taco1 for 12 epochs:
 ![taco1_mask2former](readme_images/train_mask2former_taco1.png)
+
 Best model is found at epoch 20. Despite loss bottomed at epoch 18 valuation metrics (mIoU) kept going up and therefore epoch 20 looks still a bit more promissing. Maybe further learning could be conducted to improve results.
 
 - **Metrics**:
@@ -486,6 +487,7 @@ Training of the Mask2former using the taco5 dataset in the task of instance segm
 - **Outputs:**
 Train of the Mask2former in Taco5 for 20 epochs:
 ![taco5_mask2former](readme_images/train_mask2former_taco5.png)
+
 In this case, the best model is not that simple to determine. Despite loss bottomed at epoch 13 valuation metrics (mIoU) kept going up for most of the categoies (except class 3 - Cup) and therefore epoch 20 looks more promissing. Maybe further learning could be conducted to improve results.
 
 
@@ -507,6 +509,7 @@ Training of the Mask2former using the taco28 dataset in the task of instance seg
 - **Outputs:**
 Train of the Mask2former in Taco28 for 20 epochs:
 ![taco28_mask2former](readme_images/train_mask2former_taco28.png)
+
 Best model is found at epoch 20. Despite loss bottomed at epoch 17 valuation metrics (mIoU) kept going up and therefore epoch 20 looks still a bit more promissing. Maybe further learning could be conducted to improve results.
 
 - **Metrics**:
