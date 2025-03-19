@@ -125,7 +125,7 @@ class WasteMask2Former(nn.Module):
                 "segmentation": pred["segmentation"].tolist(),
                 "segments_info": pred["segments_info"],
             })
-        print(processed_pred_maps)
+        #print(processed_pred_maps)
 
         return processed_pred_maps, processed_images
     

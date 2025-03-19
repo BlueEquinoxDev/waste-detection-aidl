@@ -4,8 +4,6 @@ This repository contains the code developed by Martí Fabregat, Rafel Febrer, Fe
 
 Several models for instance segmentation and image classification have been trained and evaluated to segment and classify waste.
 
-To do Project goal --> Marti
-
 ## Table of Contents
 - [Getting started](#getting-started)
   - [Requirements](#requirements)
@@ -18,7 +16,6 @@ To do Project goal --> Marti
     - [Split dataset](#split-dataset)
     - [Dataset classes](#dataset-classes)
       - [ResNet-50 for Viola77](#resnet-50-for-viola77)
-      - [ResNet-50 for Taco](#resnet-50-for-taco)
     - [Train](#train)
     - [Evaluate](#evaluate)
     - [Results](#results)
@@ -89,9 +86,16 @@ The categories that will be used for classification and segmentation depend on t
 * **Taco5** - Contains a subsample of the images of the original Taco Dataset. (5 labels only). It is an "easier" task.
 * **Taco1** - Contains the complete Taco Dataset using only 1 category as label ("waste").
 
+As can be seen taco is a unbalanced dataset for waste image segmentation:
+![taco28_dataset](readme_images/taco28.png)
+
 #### Viola77
 
 The [Viola77](https://huggingface.co/datasets/viola77data/recycling-dataset) dataset is used as well for classification. Under Apache 2.0 License.
+
+Viola is a close to perfectly balanced dataset:
+
+![Viola_dataset](readme_images/viola77.png)
 
 #### Combination of Datasets
 
@@ -99,16 +103,21 @@ A combination of Taco and Viola77 Datasets have been created to increase the num
 
 * **taco39viola11** - Contains a Taco Dataset subsection of annotations that match the Viola categories plus the Viola Dataset, so it is the Dataset with the biggest number of images for classification.
 
+![taco_and_viola](readme_images/taco39viola11.png)
+
 ### Exploratory data analysis
+
+#### TACO Dataset
 
 Explore the notebook ``demo.ipynb``, modified version of the original notebook from the [TACO Repository](https://github.com/pedropro/TACO) that inspects the dataset.
 The dataset is in COCO format. It contains the source pictures, anotations and labels. For more details related with the datasource please refer to [TACO Repository](https://github.com/pedropro/TACO).
 
-To do: Notebook for Viola --> Martí
+#### Viola77 Dataset
+Explore the notebook ``eda_viola.ipynb``. This Notebook contains and exploratory data analysis for the viola dataset and its classes, labels and distribution. For mor details related with the dataset please take a look into: https://huggingface.co/datasets/viola77data/recycling-dataset.
 
 ## Training
 
-### Image Classification with ResNet-50 --> to do Marti
+### Image Classification with ResNet-50
 #### Split dataset
 To split the annotations for training and evaluation on **ResNet-50** use ``split_dataset.py`` according to this explanation. It has several optional flags.
 ```
@@ -152,17 +161,14 @@ pip install torch torchvision transformers optuna numpy pandas matplotlib seabor
 - **Outputs:**
   - Saves the best hyperparameters in `hparams.json`.
 
-##### 3. `train_resnet_classification.py`
+##### 3. `train_resnet_classification_opt.py`
 - **Description:** Trains a ResNet-50 model on the Viola77 dataset.
 - **Inputs:**
   - Dataset from Hugging Face (`viola77data/recycling-dataset`)
-  - If `enhanced_hparams=True`, loads hyperparameters from `hparams.json`
+  - If `enhanced_hparams=True`, executes `optuna_resnet_hparams.py` first to determine the best hyperparameters before training.
 - **Outputs:**
   - Saves the trained model as `best_resnet50.pth`
   - Generates training metrics and confusion matrices
-
-##### 3.1. Modification:
-Added `enhanced_hparams` flag. If `True`, executes `optuna_resnet_hparams.py` first to determine the best hyperparameters before training.
 
 ##### 4. `test_resnet_classification.py`
 - **Description:** Evaluates the trained ResNet-50 model on the test dataset.
@@ -177,12 +183,18 @@ Added `enhanced_hparams` flag. If `True`, executes `optuna_resnet_hparams.py` fi
 1. **Train the Model**
 - Without optimized hyperparameters:
 ```bash
-python -m scripts.train_resnet_classification
+python -m scripts.train_resnet_classification_opt
 ```
-- With optimized hyperparameters:
-```bash
-python -m scripts.train_resnet_classification.py --enhanced_hparams True
-```
+
+##### Optional:
+* Use ``--enhanced_hparams`` if you want to enhance the hparameters with the optuna library. This option will exectute the script: optuna_resnet_hparams.py
+  ```bash
+  if args.enhanced_hparams:
+    os.system("python -m utilities.optuna_resnet_hparams")
+  ```
+* Use ``--lr`` if you want to use a different learning rate than default 0.00002.
+* Use ``--dropout`` if you want to use a dropout percentage different than default 0.2674 (26,74%).
+* Use ``--epochs`` if you want to use different epochs value than the default 15. 
 
 2. **Test the Model**
 ```bash
@@ -194,44 +206,48 @@ python -m scripts.test_resnet_classification.py
 Include plots and metrics here:
 
 - **Training Loss & Accuracy:**
-  ![image](https://github.com/user-attachments/assets/343e2ff4-2995-4a68-b97c-908be6126b8e)
+  
+  ![image](https://github.com/user-attachments/assets/0bbe2b7c-4c46-4be1-85ad-93a82dcdc1b1)
 
 - **Confusion Matrix (Train & Test):**
   - **Train**:
+
     ![image](https://github.com/user-attachments/assets/0b24da25-9438-453d-af6e-f8c1e68b8e06)
 
   - **Test**:
-    ![image](https://github.com/user-attachments/assets/9d5a8e1e-bffe-41a5-9454-438db90aa6f7)
+    
+    ![image](https://github.com/user-attachments/assets/244fb114-6ff9-4502-880e-d81d6efbf2e7)
 
 - **Evaluation Histogram**:
-  ![image](https://github.com/user-attachments/assets/2e889327-4b91-4f3f-a6ef-ce6375c5285e)
+  
+  ![image](https://github.com/user-attachments/assets/69b14c3a-c7a2-4080-a6b6-0980450a9c82)
     
 - **Classification Report:**
 ```
                    precision    recall  f1-score   support
 
-        aluminium       1.00      0.96      0.98        25
-        batteries       0.92      1.00      0.96        24
-        cardboard       0.97      1.00      0.98        28
-  
-disposable plates       0.96      1.00      0.98        26
-            glass       1.00      0.97      0.98        29
-     hard plastic       0.90      0.93      0.91        28
-            paper       0.95      0.95      0.95        22
-      paper towel       1.00      1.00      1.00        40
-      polystyrene       1.00      0.94      0.97        36
-    soft plastics       0.92      0.89      0.91        27
-    takeaway cups       1.00      1.00      1.00        26
+        aluminium       0.57      0.88      0.70        26
+        batteries       0.91      0.88      0.89        24
+        cardboard       0.74      0.93      0.82        15
+disposable plates       0.88      0.92      0.90        24
+            glass       0.85      0.63      0.72        35
+     hard plastic       0.48      0.52      0.50        25
+            paper       0.79      0.68      0.73        34
+      paper towel       0.84      1.00      0.91        31
+      polystyrene       0.80      0.71      0.75        34
+    soft plastics       0.68      0.52      0.59        33
+    takeaway cups       0.90      0.90      0.90        30
 
-         accuracy                           0.97       311
-        macro avg       0.97      0.97      0.97       311
-     weighted avg       0.97      0.97      0.97       311
+         accuracy                           0.76       311
+        macro avg       0.77      0.78      0.76       311
+     weighted avg       0.77      0.76      0.76       311
+
 ```
      
-- **Overall Accuracy: 0.9678**
+- **Overall Accuracy: 0.7621**
 
 
-### Image Classification with ViT --> To do Ferran
+### Image Classification with ViT
 #### Split dataset
 To split the annotations for training and evaluation on **ViT** use ``split_dataset.py`` following the same procedure as in **ResNet-50**.
 ```
@@ -245,12 +261,17 @@ The Viola77 dataset for Image classification in ``custom_datasets/viola77_datase
 ##### ViT for Taco + Viola77
 The Viola77 dataset for Image classification in ``custom_datasets/viola77_dataset.py`` has the functionality to load the Viola77 Dataset in for Image Classification.
 #### Train
-Run ``python run_classification_vit.py``
-Run ``python run_classification_vit_viola_taco.py``
+`python -m scripts.train_resnet_classification`
+
 #### Evaluate
+`python -m scripts.test_vit_classification --model_path [model_path] --image_path [image_path]`
+
+- model_path is the path to the model checkpoint (mandatory)
+- image_path is an optional parameter to the path where the image is located. If not set, then an evaluation with the whole dataset is done.
+
 #### Results
 
-### Instance segmentation with Mask R-CNN --> To do Miquel
+### Instance segmentation with Mask R-CNN
 #### Split dataset
 To split the annotations for training and evaluation in **Mask R-CNN** use ``split_dataset.py``.
 
@@ -269,17 +290,149 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=taco1 [--test_
 * Use ``--verbose`` (bool) if you want to have printed text on the console during execution.
 
 #### Dataset classes
-The Taco Dataset for mask R-CNN class in ``custom_datasets/taco_dataset_mask_r_cnn_update.py`` has the functionality to load the Taco Dataset in for Instance Segmentation.
+The Taco Dataset for mask R-CNN class in ``custom_datasets/taco_dataset_mask_r_cnn.py`` has the functionality to load the Taco Dataset in for Instance Segmentation.
 
 #### Train
-Run ``python -m scripts.train_mask_r_cnn``
+For train Mask R-CNN  we use Resnet-50 as backbone and freeze all layer except Feature Pyramid Network (FPN). The other layers that train too are Region Proposal Network (RPN) and all the layers that are in Roi Heads that include the predictors for bounding boxes and maks.
+![mask_r_cnn_architecture](readme_images/mask_r_cnn_architecture.png)
+To train mask-rcnn in any of the dataset, do:
+```
+python -m scripts.train_mask_r_cnn
+```
+
+Checkpoints will be saved in the results/mask_r_cnn folder.
 
 #### Evaluate
-Run ``python -m scripts.test_mask_r_cnn``
+To evaluate the model in the test set of the dataset, do:
+```
+python -m scripts.test_mask_r_cnn --checkpoint_path your_checkpoint_path
+```
 
 #### Results
+The metric we use is mAP of torch.metrics. The results are not good. The hipotesi is that the code that ajust the model make it that don't predict well and as mAP are sensible to bag predictions so the result are low.
+##### Taco1
+- **Description**:
+Train Mask R-CNN in taco1 dataset. Overfiting begin at epoch 12 so stop the train and evaluate at 12 checkpoint.
+- **Outputs**:
 
-### Instance segmentation with Mask2Former --> To do Rafa
+![mask_r_cnn_train_taco_5](readme_images/mask_rnn_taco_1.png)
+- **Metrics**
+
+Metric | Value
+--- | ---
+bbox_map |  0.21
+bbox_map_50 |  0.40
+bbox_map_75 |  0.20
+bbox_map_small |  0.14
+bbox_map_medium |  0.34
+bbox_map_large |  0.23
+bbox_mar_1 |  0.17
+bbox_mar_10 |  0.34
+bbox_mar_100 |  0.39
+bbox_mar_small |  0.30
+bbox_mar_medium |  0.51
+bbox_mar_large |  0.40
+segm_map |  0.25
+segm_map_50 |  0.40
+segm_map_75 |  0.26
+segm_map_small |  0.11
+segm_map_medium |  0.39
+segm_map_large |  0.34
+segm_mar_1 |  0.21
+segm_mar_10 |  0.39
+segm_mar_100 |  0.43
+segm_mar_small |  0.29
+segm_mar_medium |  0.57
+segm_mar_large |  0.50
+Avg. IoU (respect labels) | 0.09
+Avg. IoU (no respect labels) | 0.09
+Avg. False positives rate | 0.00
+Avg. False negatives rate | 0.01
+
+predicted classes |  1
+##### Taco5
+- **Description**:
+Train Mask R-CNN in taco5 dataset.
+- **Outputs**:
+
+![mask_r_cnn_train_taco_5](readme_images/mask_r_cnn_train_taco_5.png)
+- **Metrics**
+
+Metric | Value
+--- | ---
+bbox_map |  0.16
+bbox_map_50 |  0.42
+bbox_map_75 |  0.07
+bbox_map_small |  0.20
+bbox_map_medium |  0.19
+bbox_map_large |  0.19
+bbox_mar_1 |  0.28
+bbox_mar_10 |  0.31
+bbox_mar_100 |  0.31
+bbox_mar_small |  0.20
+bbox_mar_medium |  0.49
+bbox_mar_large |  0.30
+segm_map |  0.31
+segm_map_50 |  0.38
+segm_map_75 |  0.34
+segm_map_small |  0.08
+segm_map_medium |  0.37
+segm_map_large |  0.43
+segm_mar_1 |  0.39
+segm_mar_10 |  0.48
+segm_mar_100 |  0.48
+segm_mar_small |  0.15
+segm_mar_medium |  0.72
+segm_mar_large |  0.43
+Avg. IoU (respect labels) | 0.27
+Avg. IoU (no respect labels) | 0.31
+Avg. Complete IoU (respect labels) | 0.06
+Avg. Complete IoU (no respect labels) | 0.12
+Avg. False positives rate | 0.58
+Avg. False negatives rate | 0.10
+
+predicted classes:  [1, 2, 3, 4, 5]
+##### Taco28
+- **Description**:
+Train Mask R-CNN in taco28 dataset.
+- **Outputs**:
+
+![mask_r_cnn_train_taco_28](readme_images/mask_r_cnn_train_taco28.png)
+- **Metrics**
+
+Metric | Value
+--- | ---
+bbox_map |  0.04
+bbox_map_50 |  0.09
+bbox_map_75 |  0.04
+bbox_map_small |  0.03
+bbox_map_medium |  0.09
+bbox_map_large |  0.09
+bbox_mar_1 |  0.10
+bbox_mar_10 |  0.13
+bbox_mar_100 |  0.14
+bbox_mar_small |  0.07
+bbox_mar_medium |  0.20
+bbox_mar_large |  0.21
+segm_map |  0.07
+segm_map_50 |  0.11
+segm_map_75 |  0.07
+segm_map_small |  0.03
+segm_map_medium |  0.14
+segm_map_large |  0.15
+segm_mar_1 |  0.14
+segm_mar_10 |  0.18
+segm_mar_100 |  0.18
+segm_mar_small |  0.09
+segm_mar_medium |  0.26
+segm_mar_large |  0.29
+Avg. IoU (respect labels) | 0.24
+Avg. IoU (no respect labels) | 0.05
+Avg. False positives rate | 0.83
+Avg. False negatives rate | 0.32
+
+predicted classes:  [1, 4, 5, 6, 7, 8, 9, 10, 13, 14, 15, 17, 18, 20, 21, 22, 23, 26, 27, 28]
+### Instance segmentation with Mask2Former
 #### Split dataset
 To split the annotations for training and evaluation on **Mask2Former** use ``split_dataset.py`` following the same procedure as in **Mask R-CNN**.
 
@@ -290,6 +443,9 @@ python -m scripts.split_dataset --dataset_dir=data --dataset_type=taco1 [--test_
 #### Dataset classes
 
 #### Train
+The mask2former model has been finetunned using the weights from ``facebook/mask2former-swin-tiny-ade-semantic``.
+![mask2former_diagram](readme_images/mask2former_model.png)
+
 To train mask2former model in any of the datasets, do:
 ```
 python -m scripts.train_mask2former_segmentation --dataset_type=taco1 [--batch_size=1] [--checkpoint_path=your_checkpoint_path]
@@ -304,71 +460,110 @@ python -m scripts.test_mask2former_segmentation --checkpoint_path=your_checkpoin
 parser.add_argument('--checkpoint_path', required=False, help='Checkpoint path', type=str, default="")
 
 #### Results
-In general Mask2former learns to distinct well the background from the waste but fails mostly in classifying the waste.
+In general Mask2former learns to segment well the background from the waste but fails mostly in classifying the waste.
 Notice that, because of the unbalance of the dataset some classes may never apear in the test dataset and therefore the mIoU could be 0.
 
 ##### Taco1
+- **Description**:
+Training of the Mask2former using the taco1 dataset in the task of instance segmentation.
+
+- **Outputs:**
+Train of the Mask2former in taco1 for 12 epochs:
+![taco1_mask2former](readme_images/train_mask2former_taco1.png)
+
+Best model is found at epoch 20. Despite loss bottomed at epoch 18 valuation metrics (mIoU) kept going up and therefore epoch 20 looks still a bit more promissing. Maybe further learning could be conducted to improve results.
+
+- **Metrics**:
+
 Categories | mIoU
 --- | ---
-Background | 0.9860629439353943
-Waste | 0.5686376094818115
+Background | 0.991115391254425
+Waste | 0.6704526543617249
 
 ##### Taco5
+- **Description**:
+Training of the Mask2former using the taco5 dataset in the task of instance segmentation.
+
+- **Outputs:**
+Train of the Mask2former in Taco5 for 20 epochs:
+![taco5_mask2former](readme_images/train_mask2former_taco5.png)
+
+In this case, the best model is not that simple to determine. Despite loss bottomed at epoch 13 valuation metrics (mIoU) kept going up for most of the categoies (except class 3 - Cup) and therefore epoch 20 looks more promissing. Maybe further learning could be conducted to improve results.
+
+
+- **Metrics**:
+
 Categories | mIoU
 --- | ---
-...
+Background | 0.9847108721733093
+Bottle | 0.05829409137368202
+Carton | 0.07693199068307877
+Cup | 0.12679843604564667
+Can | 0.1528954803943634
+Plastic film | 0.0
 
 ##### Taco28
+- **Description**:
+Training of the Mask2former using the taco28 dataset in the task of instance segmentation.
+
+- **Outputs:**
+Train of the Mask2former in Taco28 for 20 epochs:
+![taco28_mask2former](readme_images/train_mask2former_taco28.png)
+
+Best model is found at epoch 20. Despite loss bottomed at epoch 17 valuation metrics (mIoU) kept going up and therefore epoch 20 looks still a bit more promissing. Maybe further learning could be conducted to improve results.
+
+- **Metrics**:
+
 Categories | mIoU
 --- | ---
-Background | 0.9905351996421814
+Background | 0.9908596873283386
 Aluminium foil | 0.0
 Battery | 0.0
 Blister pack | 0.0
-Bottle | 0.11504539847373962
-Bottle cap | 0.04049689695239067
+Bottle | 0.09910181164741516
+Bottle cap | 0.043327733874320984
 Broken glass | 0.0
-Can | 0.03863873332738876
-Carton | 0.0264853797852993
-Cigarette | 0.0204333309084177
-Cup | 0.041645195335149765
-Food waste: | 0.0
+Can | 0.060843873769044876
+Carton | 0.05095602571964264
+Cigarette | 0.015832440927624702
+Cup | 0.03592093661427498
+Food waste | 0.0
 Glass jar | 0.0
-Lid | 0.012108653783798218
-Other plastic | 0.018098747357726097
-Paper | 0.010264495387673378
+Lid | 0.012202137149870396
+Other plastic | 0.020540520548820496
+Paper | 0.016484104096889496
 Paper bag | 0.0
-Plastic bag & wrapper | 0.13824139535427094
-Plastic container | 0.0058823530562222
+Plastic bag & wrapper | 0.1564932018518448
+Plastic container | 0.0
 Plastic glooves | 0.0
-Plastic utensils | 0.0038472835440188646
+Plastic utensils | 0.0
 Pop tab | 0.0
-Rope & strings | 0.0
+Rope & strings | 0.0028102947399020195
 Scrap metal | 0.0
 Shoe | 0.0
 Squeezable tube | 0.0
-Straw | 0.008996364660561085
-Styrofoam piece | 0.01385095901787281
-Unlabeled litter | 0.0
+Straw | 0.00902826339006424
+Styrofoam piece | 0.008733779191970825
+Unlabeled litter | 0.0053437091410160065
 
 
 ## MLOps
 
-### Running the application with Docker --> To do Ferran
+### Running the application with Docker
 Build the image with:
 ```docker build -t waste-detection-app .```
 
 Run specific Python file:
 ```docker run --rm waste-detection-app <FILE_NAME.py>```
 
-### Google Cloud --> To do Ferran
+### Google Cloud
 This repository automates the setup of the GCP infrastructure. It contains the following Bash scripts:
 - `./setup_gcp_infrastructure.sh ` for setting up a VM, pull a Git repository and run the `startup_script.sh`.
 - `./delete_gcp_infrastructure.sh ` for deletting the infrastructure.
 - `./upload_model_checkpoint.sh` to upload checkpoint files to a shared Google Cloud Storage.
 - `./download_model_checkpoint.sh` to download checkpoint files from a shared Google Cloud Storage to the local instance.
 
-Further details in [Link]
+Further details on Google Cloud setup and utilities can be found in the [GCP Utils Documentation](gcp_utils/README.md).
 
 ### API
 To evaluate images outside the dataset an API with WebApp has been developed.
@@ -385,7 +580,7 @@ CHECKPOINT=checkpoint_epoch_7_mask_rcnn_taco1.pt
 The `MODEL_NAME` can be `MASK2FORMER` or `MASK_R-CNN`. The API has not been abilitated yet for classification models.
 
 The checkpoints of the models to test for the app should be placed in the folder `app/checkpoint`.
-![alt text](readme_images/API_folders.png)
+![api_folders](readme_images/API_folders.png)
 
 ### Running the API
 To run the api in local and in debug mode, do:
@@ -407,17 +602,14 @@ The WebApp allows to process images in a more user frendly approach.
 To use the user interface open your prefered browser and connect to your localhost port 8000: http://localhost:8000.
 
 If the API is running you should get to the home page:
-![alt text](readme_images/webapp_home.png)
+![web_app_home](readme_images/webapp_home.png)
 **Select a picture** and click on **Upload**.
 
 You should see your picture in the web.
-![alt text](readme_images/upload_image.png)
+![upload_image](readme_images/upload_image.png)
 Click on **Predict** to generate the segmentations.
 
 The output will be different according to the model used in the API. Here an example:
-![alt text](readme_images/web_prediction.png)
+![web_pred](readme_images/web_prediction.png)
 To try another picture use the **Try a different image** button.
-
-## Next Steps --> To do Marti
-- Implement the GUI in 
 

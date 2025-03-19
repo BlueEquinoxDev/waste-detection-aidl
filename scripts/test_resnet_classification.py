@@ -9,7 +9,24 @@ import seaborn as sns
 from torchvision import models
 from torch.utils.data import DataLoader
 from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
-from scripts.train_resnet_classification import test_dataset
+from datasets import load_dataset
+from custom_datasets.viola_dataset_resnet import Viola77DatasetResNet
+# from scripts.train_resnet_classification import test_dataset
+
+val_test_transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+
+dataset = load_dataset("viola77data/recycling-dataset", split="train")
+SEED = 42
+# Split dataset into training, validation, and test sets
+train_test = dataset.train_test_split(test_size=0.2, seed=SEED)
+val_test = train_test["test"].train_test_split(test_size=0.5, seed=SEED)
+
+test_dataset = val_test["test"]
+test_dataset = Viola77DatasetResNet(test_dataset, transform=val_test_transform)
 
 # Define DataLoader (num_workers=0 to avoid multiprocessing error on Windows)
 test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False, num_workers=0)
@@ -29,7 +46,7 @@ else:
     print(f"Sample label type: {type(sample['labels'])}")
 
 def load_model():
-    model_path = "./model/best_resnet50.pth"
+    model_path = "./results/cls-resnet-viola-final/best_resnet50.pth"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initialize ResNet-50
@@ -94,8 +111,8 @@ def evaluate_model():
 
     # Save Confusion Matrix
     cm = confusion_matrix(true_labels, pred_labels)
-    plt.figure(figsize=(12, 8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=test_dataset.classes, yticklabels=test_dataset.classes)
+    plt.figure(figsize=(15, 10))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Greens', xticklabels=test_dataset.classes, yticklabels=test_dataset.classes)
     plt.xlabel("Predicted")
     plt.ylabel("True")
     plt.title("Confusion Matrix")

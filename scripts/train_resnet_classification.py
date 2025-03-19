@@ -50,12 +50,20 @@ val_test_transform = transforms.Compose([
 
 # Load the dataset
 dataset = load_dataset("viola77data/recycling-dataset", split="train")
-train_test = dataset.train_test_split(test_size=0.2, seed= SEED)
-val_test = train_test["test"].train_test_split(test_size=0.5, seed = SEED)
+print(dataset)
 
-train_dataset = Viola77DatasetResNet(train_test["train"], transform=train_transform)
-val_dataset = Viola77DatasetResNet(val_test["train"], transform=val_test_transform)
-test_dataset = Viola77DatasetResNet(val_test["test"], transform=val_test_transform)
+# Split dataset into training, validation, and test sets
+train_test = dataset.train_test_split(test_size=0.2)
+val_test = train_test["test"].train_test_split(test_size=0.5)
+
+train_dataset = train_test["train"]
+val_dataset = val_test["train"]
+test_dataset = val_test["test"]
+
+# Create datasets with transforms
+train_dataset = Viola77DatasetResNet(train_dataset, transform=train_transform)
+val_dataset = Viola77DatasetResNet(val_dataset, transform=val_test_transform)
+test_dataset = Viola77DatasetResNet(test_dataset, transform=val_test_transform)
 
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
@@ -88,10 +96,13 @@ optimizer = torch.optim.Adam(model.parameters(), lr=2.0667521318354856e-05)
 criterion = torch.nn.CrossEntropyLoss()
 
 # Create compute_metrics function with label names
-logdir = os.path.join("logs", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
-metrics_function = create_compute_metrics(label_names,logdir=logdir)
+metrics_function = create_compute_metrics(label_names)
 
 logdir = os.path.join("logs", f"{EXPERIMENT_NAME}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
+
+# Create compute_metrics function with label names
+metrics_function = create_compute_metrics(label_names, logdir)
+
 
 # Initialize Tensorboard Writer with the previous folder 'logdir'
 writer=SummaryWriter(log_dir=logdir)

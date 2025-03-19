@@ -1,196 +1,235 @@
-import argparse
-from transformers import ViTForImageClassification, ViTImageProcessor
-from PIL import Image
-import torch
-from utilities.config_utils import TaskType
-from custom_datasets.taco_dataset_vit import TacoDatasetViT
-from custom_datasets.viola77_dataset import Viola77Dataset
-from custom_datasets.taco_viola_dataset_vit import TacoViolaDatasetViT
-# from torch.utils.data import DataLoader
-from transformers import TrainingArguments, Trainer
-from torchvision.transforms import v2 as transforms
 import os
-from datasets import load_dataset
-from utilities.compute_metrics import create_compute_metrics
-import numpy as np
-from torch.utils.tensorboard import SummaryWriter
+import csv
+import random
 from datetime import datetime
-import json
+from collections import Counter
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.tensorboard import SummaryWriter
+
+from sklearn.metrics import confusion_matrix, roc_auc_score, f1_score
+from sklearn.model_selection import train_test_split
+
+from PIL import Image
+from tqdm import tqdm
+import requests
+from io import BytesIO
+
+from datasets import load_dataset
+from transformers import ViTForImageClassification
+from torchvision import transforms
+from custom_datasets.viola77_dataset import Viola77Dataset
+
 from model.waste_vit import WasteViT
 
-# Parse arguments
-parser = argparse.ArgumentParser(description='Select the dataset for model training')
-parser.add_argument('--dataset', required=False, help='Dataset name', type=str, default="TACO")
+DATASET_NAME = "viola77data/recycling-dataset"
+BASE_DIR = "data/viola_dataset"
+IMAGES_DIR = os.path.join(BASE_DIR, "images")
+ANNOTATIONS_FILE = os.path.join(BASE_DIR, "annotations.csv")
+UPDATED_ANNOTATIONS_FILE = os.path.join(BASE_DIR, "annotations_updated.csv")
+EXPERIMENT_NAME = "cls-vit-viola"
+NUM_EPOCHS = 75
+BATCH_SIZE = 32
+SEED = 42
+CHECKPOINT = None # "results/cls-vit-viola-20250317-155954/cls-vit-viola-20250317.pth" # None
 
-# Check if the given dataset is valid
-valid_datasets = ["TACO5", "TACO28", "VIOLA", "TACO39VIOLA11"]
-dataset_name = parser.parse_args().dataset
-if dataset_name not in valid_datasets:
-    raise ValueError(f"Dataset must be one of {valid_datasets}")
-
-experiment_name = f"cls-vit-{dataset_name.lower()}"
-
-# Define data transforms
-data_transforms_train = transforms.Compose([
-    transforms.ToImage(),  # To tensor is deprecated
-    transforms.ToDtype(torch.uint8, scale=True),
-    transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), antialias=True),
-    transforms.RandomRotation(degrees=15),
-    transforms.RandomHorizontalFlip(0.5), 
-    transforms.ToDtype(torch.float32, scale=True),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+def create_transforms():
+    data_transforms_train = transforms.Compose([
+        transforms.RandomChoice([
+            transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomRotation(degrees=15),
+            transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3, hue=0.1),
+            transforms.GaussianBlur(kernel_size=3),
+        ]),
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
-
-data_transforms_test = transforms.Compose([
-    transforms.ToImage(),  # To tensor is deprecated,
-    transforms.ToDtype(torch.float32, scale=True),
-    transforms.RandomResizedCrop(size=(224, 224), scale=(0.8, 1.0), antialias=True),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    data_transforms_test = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
+    return data_transforms_train, data_transforms_test
 
-if "TACO" in dataset_name and "VIOLA" not in dataset_name:
+def setup_experiment():
+    timestamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+    logs_dir = os.path.join("logs", f"{EXPERIMENT_NAME}-{timestamp}")
+    results_dir = os.path.join("results", f"{EXPERIMENT_NAME}-{timestamp}")
+    os.makedirs(logs_dir, exist_ok=True)
+    os.makedirs(results_dir, exist_ok=True)
+    writer = SummaryWriter(log_dir=logs_dir)
+    print(f"Logs directory: {logs_dir}")
+    print(f"Results directory: {results_dir}")
+    return logs_dir, results_dir, writer
 
-    train_annotations_file = os.path.join("data", "train_annotations.json")
-    val_annotations_file = os.path.join("data", "validation_annotations.json")
-    test_annotations_file = os.path.join("data", "test_annotations.json")
+def train_model(model, train_loader, val_loader, experiment_name, results_dir, writer, device):
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.0023280870643464266)
+    criterion = nn.CrossEntropyLoss()
+    best_val_acc = 0.0
+    train_losses, val_losses = [], []
+    train_accuracies, val_accuracies = [], []
+    best_model_name = None
+    all_labels, all_raw_outputs = None, None
 
-    if dataset_name == "TACO5":
-        # read subset_classes from taco5_categories.json
-        subset_classes_file = os.path.join("data", "taco5_categories.json")
-        subset_classes = {}
-        with open(subset_classes_file, "r") as f:
-            subset_classes = json.load(f)
-    elif dataset_name == "TACO28":
-        # read subset_classes from taco28_categories.json
-        subset_classes_file = os.path.join("data", "taco28_categories.json")
-        subset_classes = {}
-        with open(subset_classes_file, "r") as f:
-            subset_classes = json.load(f) 
+    for epoch in range(NUM_EPOCHS):
+        model.train()
+        running_loss = 0.0
+        correct_preds = 0
+        total_preds = 0
 
-    # Load the TACO dataset
-    train_dataset = TacoDatasetViT(annotations_file=train_annotations_file, img_dir="data/images", transforms=data_transforms_train, subset_classes = subset_classes)
-    val_dataset = TacoDatasetViT(annotations_file=val_annotations_file, img_dir="data/images", transforms=data_transforms_test, subset_classes = subset_classes)
-    test_dataset = TacoDatasetViT(annotations_file=test_annotations_file, img_dir="data/images", transforms=data_transforms_test, subset_classes = subset_classes)
+        for images, labels in tqdm(train_loader, desc=f"Epoch {epoch+1}/{NUM_EPOCHS}"):
+            images, labels = images.to(device), labels.to(device)
+            optimizer.zero_grad()
+            outputs = model(images).logits
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
 
-elif dataset_name == "VIOLA":
+            running_loss += loss.item()
+            _, predicted = torch.max(outputs, 1)
+            correct_preds += (predicted == labels).sum().item()
+            total_preds += labels.size(0)
+
+        train_accuracy = correct_preds / total_preds
+        train_losses.append(running_loss / len(train_loader))
+        train_accuracies.append(train_accuracy)
+        print(f"Epoch {epoch+1}/{NUM_EPOCHS}, Loss: {train_losses[-1]:.4f}, Accuracy: {train_accuracy*100:.2f}%")
+
+        # Log training metrics
+        writer.add_scalar('Loss/train', train_losses[-1], epoch)
+        writer.add_scalar('Accuracy/train', train_accuracy, epoch)
+        
+
+        # Validation phase
+        model.eval()
+        val_loss = 0.0
+        correct_preds = 0
+        total_preds = 0
+        all_labels = []
+        all_raw_outputs = []
+        with torch.no_grad():
+            for images, labels in val_loader:
+                images, labels = images.to(device), labels.to(device).long()
+                outputs = model(images).logits
+                loss = criterion(outputs, labels)
+                val_loss += loss.item()
+                _, predicted = torch.max(outputs, 1)
+                correct_preds += (predicted == labels).sum().item()
+                total_preds += labels.size(0)
+                all_labels.extend(labels.cpu().numpy())
+                all_raw_outputs.extend(outputs.cpu().numpy())
+
+        val_accuracy = correct_preds / total_preds
+        val_losses.append(val_loss / len(val_loader))
+        val_accuracies.append(val_accuracy)
+        print(f"Validation Loss: {val_losses[-1]:.4f}, Validation Accuracy: {val_accuracy*100:.2f}%")
+
+        if val_accuracy > best_val_acc:
+            best_val_acc = val_accuracy
+            best_model_name = f"{experiment_name}-{datetime.now().strftime('%Y%m%d')}.pth"
+            model_path = os.path.join(results_dir, best_model_name)
+            torch.save(model.state_dict(), model_path)
+            print(f"New best model saved with Accuracy: {val_accuracy*100:.2f}%")
+
+        # Log validation metrics
+        writer.add_scalar('Loss/val', val_losses[-1], epoch)
+        writer.add_scalar('Accuracy/val', val_accuracy, epoch)
+        
+        # Optionally log learning rate
+        writer.add_scalar('Learning_rate', optimizer.param_groups[0]['lr'], epoch)
+
+    print(f"Training complete! Best model saved as: {best_model_name}")
+    return best_model_name, all_labels, all_raw_outputs
+
+def evaluate_model(all_labels, all_raw_outputs, class_names, results_dir):
+    probabilities = F.softmax(torch.tensor(all_raw_outputs), dim=1).numpy()
+    pred_labels = np.argmax(probabilities, axis=1)
+    conf_matrix = confusion_matrix(all_labels, pred_labels)
+    f1 = f1_score(all_labels, pred_labels, average="weighted")
+    auc = roc_auc_score(all_labels, probabilities, multi_class="ovr")
+
+    print("\nValidation Confusion Matrix:\n", conf_matrix)
+    print("\nValidation F1 Score:", f1)
+    print("\nValidation AUC Score:", auc)
+
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues",
+                xticklabels=class_names, yticklabels=class_names)
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+    plt.title("Validation Confusion Matrix")
+    
+    conf_matrix_path = os.path.join(results_dir, "validation_confusion_matrix.png")
+    plt.savefig(conf_matrix_path)
+    print(f"Confusion matrix saved to: {conf_matrix_path}")
+
+def main():
+    
     # Load the dataset
     dataset = load_dataset("viola77data/recycling-dataset", split="train")
     print(dataset)
 
     # Split dataset into training, validation, and test sets
-    train_test = dataset.train_test_split(test_size=0.2)
-    val_test = train_test["test"].train_test_split(test_size=0.5)
+    train_test = dataset.train_test_split(test_size=0.2, seed=SEED)
+    val_test = train_test["test"].train_test_split(test_size=0.5, seed=SEED)
 
     train_dataset = train_test["train"]
     val_dataset = val_test["train"]
     test_dataset = val_test["test"]
 
+    # Set up transforms
+    data_transforms_train, data_transforms_test = create_transforms()
+
     # Create datasets with transforms
     train_dataset = Viola77Dataset(train_dataset, transform=data_transforms_train)
     val_dataset = Viola77Dataset(val_dataset, transform=data_transforms_test)
     test_dataset = Viola77Dataset(test_dataset, transform=data_transforms_test)
+    
+    # Setup experiment directories and TensorBoard writer
+    logs_dir, results_dir, writer = setup_experiment()
+    
+    # Ensure consistent label mapping: reassign labels to be contiguous integers
+    annotations = pd.read_csv(UPDATED_ANNOTATIONS_FILE)
+    unique_labels = sorted(annotations["label"].unique())
+    label_mapping = {label: i for i, label in enumerate(unique_labels)}
+    num_classes = len(label_mapping)
+    
+    # Create dataloaders
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    
+    # Create and prepare model
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    checkpoint_path = CHECKPOINT
 
-elif dataset_name == "TACO39VIOLA11":
-    # Load the Viola dataset =================================================================
-    viola_dataset = load_dataset("viola77data/recycling-dataset", split="train")
-
-    # Split dataset into training, validation, and test sets
-    train_test_viola = viola_dataset.train_test_split(test_size=0.2)
-    val_test_viola = train_test_viola["test"].train_test_split(test_size=0.5)
-
-    train_dataset_viola = train_test_viola["train"]
-    val_dataset_viola = val_test_viola["train"]
-    test_dataset_viola = val_test_viola["test"]
-
-    # Create datasets with transforms
-    train_dataset_viola = Viola77Dataset(train_dataset_viola, transform=data_transforms_train)
-    val_dataset_viola = Viola77Dataset(val_dataset_viola, transform=data_transforms_test)
-    test_dataset_viola = Viola77Dataset(test_dataset_viola, transform=data_transforms_test)
-
-    # Obtain the categories form viola dataset
-    classes = viola_dataset.features['label'].names
-
-    # Load the TACO dataset =================================================================
-    train_annotations_file_taco = os.path.join("data", "train_annotations.json")
-    val_annotations_file_taco = os.path.join("data", "validation_annotations.json")
-    test_annotations_file_taco = os.path.join("data", "test_annotations.json")
-
-    # Prepare the mapping
-    with open("data/taco39viola11_categories.json", "r") as f:
-        categories_taco_viola = json.load(f)
-    mapping = { cat["id"]: cat["super_id"] for cat in categories_taco_viola }
-
-    # Create datasets with transforms
-    train_dataset_taco = TacoViolaDatasetViT(annotations_file=train_annotations_file_taco, img_dir="data/images", transform=data_transforms_train, classes=classes, mapping=mapping)
-    val_dataset_taco = TacoViolaDatasetViT(annotations_file=val_annotations_file_taco, img_dir="data/images", transform=data_transforms_test, classes=classes, mapping=mapping)
-    test_dataset_taco = TacoViolaDatasetViT(annotations_file=test_annotations_file_taco, img_dir="data/images", transform=data_transforms_test, classes=classes, mapping=mapping)
-
-    # Concatenate the datasets =================================================================
-    train_dataset = torch.utils.data.ConcatDataset([train_dataset_viola, train_dataset_taco])
-    val_dataset = torch.utils.data.ConcatDataset([val_dataset_viola, val_dataset_taco])
-    test_dataset = torch.utils.data.ConcatDataset([test_dataset_viola, test_dataset_taco])
-
-
-# After creating the concatenated dataset
-if dataset_name == "TACO39VIOLA11":
-    # Get number of classes and label mappings from one of the constituent datasets
-    # Assuming both datasets use the same class mappings
-    if isinstance(train_dataset.datasets[0], (TacoDatasetViT, Viola77Dataset)):
-        base_dataset = train_dataset.datasets[0]
-        num_classes = len(base_dataset.idx_to_cluster_class)
-        label_names = list(base_dataset.idx_to_cluster_class.values())
-        id2label = {idx: label for idx, label in base_dataset.idx_to_cluster_class.items()}
-        label2id = base_dataset.cluster_class_to_idx
-    else:
-        raise ValueError("Unexpected dataset type")
-else:
-    # For single datasets
     num_classes = len(train_dataset.idx_to_cluster_class)
     label_names = list(train_dataset.idx_to_cluster_class.values())
     id2label = {idx: label for idx, label in train_dataset.idx_to_cluster_class.items()}
     label2id = train_dataset.cluster_class_to_idx
 
-print(f"Number of classes: {num_classes} | Label names: {label_names}")
+    # Create an instance of the model with the checkpoint
+    model = WasteViT(num_classes=num_classes, id2label=id2label, label2id=label2id, checkpoint=checkpoint_path)
+    model.to(device)
+    
+    # Train the model
+    best_model_name, all_labels, all_raw_outputs = train_model(model, train_loader, val_loader, EXPERIMENT_NAME, results_dir, writer, device)
+    
+    # Evaluate the model
+    class_names = [train_dataset.idx_to_cluster_class[idx] for idx in range(len(train_dataset.idx_to_cluster_class))]
 
-model = WasteViT(num_classes=num_classes, id2label = id2label, label2id = label2id)
-#model = WasteViT(checkpoint="results/cls-vit-taco39viola11-20250218-200130/checkpoint-5620")
+    evaluate_model(all_labels, all_raw_outputs, class_names, results_dir)
 
-logdir = os.path.join("logs", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
-results_dir = os.path.join("results", f"{experiment_name}-{datetime.now().strftime('%Y%m%d-%H%M%S')}")
-
-# Create compute_metrics function with label names
-metrics_function = create_compute_metrics(label_names, logdir)
-
-# Define training arguments
-training_args = TrainingArguments(
-    output_dir=results_dir,
-    num_train_epochs=10,
-    per_device_train_batch_size=8,
-    per_device_eval_batch_size=8,
-    eval_strategy="epoch",
-    save_strategy="epoch",
-    logging_dir=logdir,
-    logging_strategy="epoch",
-    logging_steps=1,  # Log every 1 epoch  
-    report_to=["tensorboard"],  # Enable tensorboard reporting
-    load_best_model_at_end=True,  # Load the best model after training
-    metric_for_best_model="accuracy",  # Define metric to track
-    save_total_limit=3,  # Limit total saved checkpoints
-)
-
-# Define the Trainer
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=train_dataset,
-    eval_dataset=val_dataset,
-    compute_metrics=metrics_function,
-    processing_class=model.feature_extractor,  # Changed from tokenizer to processing_class
-)
-
-# Train the model
-trainer.train()
-
-# Evaluate the model
-val_results = trainer.evaluate()
-print(f'Evaluation results: {val_results}')
+if __name__ == "__main__":
+    main()
