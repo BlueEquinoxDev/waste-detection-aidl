@@ -506,41 +506,41 @@ Training of the Mask2former using the taco28 dataset in the task of instance seg
 - **Outputs:**
 Train of the Mask2former in Taco28 for 20 epochs:
 ![taco28_mask2former](readme_images/train_mask2former_taco28.png)
-Best model is found at epoch 14 and metrics are computed.
+Best model is found at epoch 20. Despite loss bottomed at epoch 17 valuation metrics (mIoU) kept going down and therefore epoch 20 looks still a bit more promissing. Maybe further learning could be conducted to improve results.
 
 - **Metrics**:
 
 Categories | mIoU
 --- | ---
-Background | 0.9905351996421814
+Background | 0.9908596873283386
 Aluminium foil | 0.0
 Battery | 0.0
 Blister pack | 0.0
-Bottle | 0.11504539847373962
-Bottle cap | 0.04049689695239067
+Bottle | 0.09910181164741516
+Bottle cap | 0.043327733874320984
 Broken glass | 0.0
-Can | 0.03863873332738876
-Carton | 0.0264853797852993
-Cigarette | 0.0204333309084177
-Cup | 0.041645195335149765
-Food waste: | 0.0
+Can | 0.060843873769044876
+Carton | 0.05095602571964264
+Cigarette | 0.015832440927624702
+Cup | 0.03592093661427498
+Food waste | 0.0
 Glass jar | 0.0
-Lid | 0.012108653783798218
-Other plastic | 0.018098747357726097
-Paper | 0.010264495387673378
+Lid | 0.012202137149870396
+Other plastic | 0.020540520548820496
+Paper | 0.016484104096889496
 Paper bag | 0.0
-Plastic bag & wrapper | 0.13824139535427094
-Plastic container | 0.0058823530562222
+Plastic bag & wrapper | 0.1564932018518448
+Plastic container | 0.0
 Plastic glooves | 0.0
-Plastic utensils | 0.0038472835440188646
+Plastic utensils | 0.0
 Pop tab | 0.0
-Rope & strings | 0.0
+Rope & strings | 0.0028102947399020195
 Scrap metal | 0.0
 Shoe | 0.0
 Squeezable tube | 0.0
-Straw | 0.008996364660561085
-Styrofoam piece | 0.01385095901787281
-Unlabeled litter | 0.0
+Straw | 0.00902826339006424
+Styrofoam piece | 0.008733779191970825
+Unlabeled litter | 0.0053437091410160065
 
 
 ## MLOps
