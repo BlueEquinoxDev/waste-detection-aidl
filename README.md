@@ -260,16 +260,49 @@ The Viola77 dataset for Image classification in ``custom_datasets/viola77_datase
 
 ##### ViT for Taco + Viola77
 The Viola77 dataset for Image classification in ``custom_datasets/viola77_dataset.py`` has the functionality to load the Viola77 Dataset in for Image Classification.
+
 #### Train
 `python -m scripts.train_resnet_classification`
 
-#### Evaluate
+#### Test the model
 `python -m scripts.test_vit_classification --model_path [model_path] --image_path [image_path]`
 
 - model_path is the path to the model checkpoint (mandatory)
 - image_path is an optional parameter to the path where the image is located. If not set, then an evaluation with the whole dataset is done.
 
 #### Results
+
+- **Training Loss & Accuracy:**
+Here we can see the loss and accuracy curves during training for the train and validation datasets.
+![vit_training](readme_images/vit_training.png)
+
+- **Test Accuracy and F1-score**
+
+Class | Accuracy (%) | F1 Score
+--- | --- | ---
+Overall | 82.64% | 0.8248
+aluminium | 88.46% | 0.7931
+batteries | 91.67% | 0.9362
+cardboard | 93.33% | 0.8750
+disposable plates | 95.83% | 0.9583
+glass | 80.00% | 0.8485
+hard plastic | 44.00% | 0.4889
+paper | 88.24% | 0.8696
+paper towel | 96.77% | 0.9677
+polystyrene | 79.41% | 0.8182
+soft plastics | 69.70% | 0.6667
+takeaway cups | 86.67% | 0.8667
+
+
+- **Test Confussion Matrix**
+![vit_test_confussion_matrix](readme_images/vit_test_confussion_matrix.png)
+
+### Comparing ResNet50 and ViT Models
+The comparison between ViT and ResNet for image classification was based on accuracy, measured as the proportion of correctly classified images. On average, ViT achieved 82% accuracy, outperforming ResNet's 76%:
+![resnet_vit_accuracy](readme_images/resnet_vit_accuracy.png)
+
+The higher performance was achieved at a significant cost. ViT has over three times more parameters and required nine times the computational resources and training time. With a relatively small dataset, this highlights a tradeoff: while ResNet is less accurate, it is significantly more efficient in terms of storage, computation, and environmental impact:
+![resnet_vit_comparison](readme_images/resnet_vit_comparison.png)
 
 ### Instance segmentation with Mask R-CNN
 #### Split dataset
