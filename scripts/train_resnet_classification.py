@@ -50,8 +50,6 @@ val_test_transform = transforms.Compose([
 
 # Load the dataset
 dataset = load_dataset("viola77data/recycling-dataset", split="train")
-print(dataset)
-
 # Split dataset into training, validation, and test sets
 train_test = dataset.train_test_split(test_size=0.2)
 val_test = train_test["test"].train_test_split(test_size=0.5)
